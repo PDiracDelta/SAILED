@@ -1,0 +1,38 @@
+---
+title: 'Model-based reference notebook'
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
+library(DEP)
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(limma)
+library(tidyverse)
+library(ggplot2)
+library(stringi)
+```
+
+
+```{r}
+path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
+data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+data.raw <- data.list$data.raw
+data.wide <- data.list$data.wide
+data.long <- data.list$data.long
+```
+
+## Unit
+
+## Normalizatiom
+
+```{r}
+# remove shared peptides before summarization (if any) and DEA
+```
+
+## Summarization
+
+## DEA
