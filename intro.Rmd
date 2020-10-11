@@ -1,10 +1,120 @@
 ---
-title: "Introduction to Isobaric Labeling Strategies"
-output: html_notebook
+title: "Introduction to Isobaric Labeling Strategies notebooks"
+output:
+  html_document:
+    df_print: paged
 ---
 
-
-```{r}
-plot(cars)
+```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
+library(DEP)
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(limma)
+library(tidyverse)
+library(ggplot2)
+library(stringi)
+library(venn)
 ```
+
+*The text below is just a quick and dirty sketch of the future content*
+
+In this notebook we will present aims of this study and describe briefly the study data. 
+
+- Let's give a similar explanation why we want to do this study by repeating the skeleton of our future manuscript (on google drive). Introduce the strategy components and our dichotomization of workflows (data-driven and model-based normalization).
+- Say a few words on the proteomic data structure (e.g. hierarchy, redundancy).
+- Introduce the selected data set from MSSstatsTMT (design, subsetting to mixtures 1,2 and techreps 1,2). 
+- Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
+- Some data vizualizations.
+
+Below the first few records of the data (in wide format) are printed out to see what we will be dealing with.
+
+```{r, echo=FALSE}
+path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
+data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+dat.l <- data.list$dat.l
+dat.w <- data.list$dat.w
+head(dat.w)
+```
+
+Some data characteristics:
+```{r, warning=FALSE, message=FALSE}
+(n.protein <- length(unique(dat.w$Protein))) # number of detected proteins
+(n.peptide <- length(unique(dat.w$Peptide))) # number of detected pepides
+(n.spectra <- nrow(dat.w)) # number of recorded spectra
+  
+# median # of peptides per protein
+dat.w %>% group_by(Protein) %>% summarize(ndist=n_distinct(Peptide)) %>% mutate(n.protein.mean=median(ndist)) %>% pull(n.protein.mean) %>% unique
+
+# median # of PSMs per peptide
+dat.w %>% group_by(Peptide) %>% summarize(ndist=n()) %>% mutate(n.peptide.med=median(ndist)) %>%
+  pull(n.peptide.med) %>% unique
+
+# how many 'peptides within run' instances 
+# (i.e. one peptide across multiple runs is treated as a separate entitity)
+(dc1 <- dat.w %>% distinct(Run, Peptide) %>% nrow) 
+
+dc2 <- dat.w %>% group_by(Run, Peptide) %>% 
+  summarize(ndist=n()) %>% 
+  filter(ndist>1)
+dc2 %>% nrow # 'peptides within run' instances detected in >1 spectra
+
+# distribution of PSM counts per 'peptides within run' (counts >1)
+table(dc2$ndist)
+hist(dc2$ndist, breaks=10, main="PSM counts per 'peptides within run'", xlab='PSM counts per peptide')
+
+# percentage of duplicates on PSM level
+100*nrow(dc2)/dc1
+
+# 'peptides within run' instances eluted over multiple retention times
+dc3 <- dat.w %>% group_by(Run, Peptide) %>% 
+  summarize(RT.dist=n_distinct(RT)) %>% 
+  filter(RT.dist>1) 
+dc3 %>% nrow 
+
+# RT is the cause of 99% of PSM duplicates
+100*(dc3 %>% nrow/dc2 %>% nrow) 
+
+# number of spectra with isolation interference>30%
+dat.w %>% filter(isoInterOk=='N') %>% nrow 
+
+# number of spectra with at least one missing quantification channel
+dat.w %>% filter(noNAs=='N') %>% nrow 
+
+# number of proteins represented by one peptide only 
+dat.w %>% filter(onehit.protein=='Y') %>% distinct(Protein) %>% nrow
+
+# number of shared peptides
+dat.w %>% filter(shared.peptide=='Y') %>% distinct(Peptide) %>% nrow
+
+# number of spectra after filtering out spectra wth iso interference >30% or with >1 missing quan channel
+dat.tmp <- dat.w %>% filter(isoInterOk=='Y' & noNAs=='Y')
+nrow(dat.tmp)
+
+# reduction in # of spectra
+nrow(dat.w)-nrow(dat.tmp)
+
+# Venn diagram of proteins identified  across MS runs
+unique.prot=dat.w %>% 
+  group_by(Run) %>%
+  distinct(Protein) %>% 
+  mutate(val=1)
+unique.prot <- unique.prot %>% pivot_wider(Protein, names_from='Run', values_from='val', values_fill=0)
+venn(unique.prot[, -1], zcolor = "style", main='Proteins')
+
+# Venn diagram of peptides identified  across MS runs
+unique.pep=dat.w %>% 
+  group_by(Run) %>%
+  distinct(Peptide) %>% 
+  mutate(val=1)
+unique.pep <- unique.pep %>% pivot_wider(Peptide, names_from='Run', values_from='val', values_fill=0)
+venn(unique.pep[, -1], zcolor = "style", main='Peptides')
+
+# names of spiked-in proteins
+(sp <- dat.tmp %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character)
+
+# number of spiked-in proteins
+length(sp)
+```
+
 
