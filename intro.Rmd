@@ -1,0 +1,10 @@
+---
+title: "Introduction to Isobaric Labeling Strategies"
+output: html_notebook
+---
+
+
+```{r}
+plot(cars)
+```
+
