@@ -1,8 +1,14 @@
 ---
 title: "Introduction to Isobaric Labeling Strategies notebooks"
-output:
+author: "Piotr Prostko"
+date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
+output: 
   html_document:
-    df_print: paged
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: flatly
 ---
 
 ```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
