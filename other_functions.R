@@ -19,6 +19,7 @@ aggFunc=function(in.data, var.names, agg.method='mean'){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 mixed.model.dea <- function(dat, mod.formula, conditions){
   
   response <- stri_trim_both( stri_split_fixed(mod.formula, pattern='~')[[1]][1]) # extract response var name
@@ -40,7 +41,7 @@ mixed.model.dea <- function(dat, mod.formula, conditions){
   
   for (i in seq_along(proteins)) {
     dat.sub <- dat[dat$Protein==proteins[i], ]
-    mod=lmer(formula, data=dat.sub, control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning"))
+    mod=lmer(mod.formula, data=dat.sub, control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning"))
     sum.mod=summary(mod)
     logFC <- sum.mod$coefficients[2,1] # estimate of the log2-fold-change corresponding to the effect size
     df.r <- NA # residual degrees of freedom assiciated with ordinary t-statistic and p-value
@@ -74,8 +75,9 @@ mixed.model.dea <- function(dat, mod.formula, conditions){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for printing # of up/down/not regulated proteins
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
-  cat('numerator:', conditions[1],', ' , 'denominator:', conditions[2], '\n')
+  cat('numerator condition:', conditions[1],', ' , 'denominator condition:', conditions[2], '\n')
   c(`Up`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']>0),
     `Down`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']<0),
     `Not Sig`=sum(dea.mat[, score.var]>cut.off))
@@ -84,6 +86,7 @@ regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # wrapper on confusionMatrix from caret package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 conf.mat <- function(dea.mat, score.var, cut.off){
   #pred.class <- factor(ifelse(dea.mat[, score.var]<.05, 'DE','not DE'), levels=c('not DE', 'DE'))
   pred.class <- factor(ifelse(dea.mat[, score.var]<cut.off, 'DE','not DE'), levels=c('not DE', 'DE'))
