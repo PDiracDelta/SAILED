@@ -1,0 +1,215 @@
+---
+title: "Model-based analysis of isobaric labels data. Unit component."
+author: "Piotr Prostko"
+date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: flatly
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, setup, include=FALSE}
+# default knitr options for all chunks
+knitr::opts_chunk$set(
+  message=FALSE,
+  warning=FALSE,
+  echo=FALSE
+)
+```
+
+
+```{r}
+library(caret)
+library(DEP)
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(limma)
+library(ggplot2)
+library(stringi)
+library(RColorBrewer)
+library(gridExtra)
+library(tidyverse)
+```
+
+This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
+
+We will check how varying analysis units [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+
+```{r}
+source('./other_functions.r')
+source('./plotting_functions.r')
+
+path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
+data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+dat.l <- data.list$dat.l # data in long format
+dat.w <- data.list$dat.w # data in wide format
+
+# keep spectra with isolation interference <30 and no missing quantification channels
+dat.l <- dat.l %>% filter(isoInterOk=='Y' & noNAs=='Y')
+
+# which proteins were spiked in?
+spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull
+
+# which peptides were identified in each MS run?
+unique.pep=dat.l %>% 
+  group_by(Run) %>%
+  distinct(Peptide) %>% 
+  mutate(val=1)
+unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
+tmp <- apply(unique.pep, 1, function(x) all(x==1))
+inner.peptides <- rownames(unique.pep)[tmp]
+```
+
+```{r}
+# specify # of varying component variants and their names
+n.components <- 3
+variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
+```
+
+# Unit component
+
+```{r}
+comp1 <- vector('list', n.components)
+names(comp1) <- variant.names
+```
+
+## variant 1: log2 transformation of reporter ion intensities
+
+```{r}
+comp1[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+```
+
+## variant 2: original scale (not log-transformed) of reporter ion intensities
+```{r}
+comp1[[2]] <- dat.l %>% rename(response=Intensity)
+```
+
+## variant 3: log2-transformation of intensity ratios (channel 127C in denominator)
+
+```{r}
+# or we can try another channel as reference
+denom.df <- dat.l %>% filter(Channel=='127C') %>% rename(denom=Intensity) %>%
+  select(Run, Protein, Peptide, RT, Charge, PTM, denom)
+comp1[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity))
+```
+
+# Summarization component
+
+```{r}
+comp2 <- comp1
+```
+
+## variant 1: no summarization
+
+<!-- ## variant 2: PSM to peptide summarization -->
+
+# Normalization component
+
+## variant1: mixed model spec 1
+
+```{r}
+comp3 <- lapply(comp2, function(x) {
+  mod <- lmer(response ~ Run + Run:Channel +
+                 (1|Protein)  + (1|Peptide), data=x)
+  x$response <- residuals(mod)
+  return(x)
+})
+```
+
+<!-- ## variant2: mixed model spec 2 -->
+
+<!-- ## variant3: mixed model spec 3 -->
+
+## Normalization diagnostic plots
+
+```{r}
+# PSM data needs to be aggregated prior to PCA plots and HC plots (they requires features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
+dat.l.summplot <- lapply(comp2, function(x) aggFunc(x, 'response', 'mean')) # before normalization
+dat.l.normplot <- lapply(comp3, function(x) aggFunc(x, 'response', 'mean')) # after normalization
+
+# now create data sets in wide format
+# before normalization
+dat.w.summplot <- lapply(dat.l.summplot, function(x) {
+  dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
+  return(dat.tmp)
+})
+# after normalization
+dat.w.normplot <- lapply(dat.l.normplot, function(x) {
+  dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
+  return(dat.tmp)
+})
+
+# make vectors with condition labels and color coding corresponding to samples in wide format data
+colors.condition <- tribble(
+  ~Condition, ~Col,
+  "0.125", 'black',
+  "0.5", 'blue',
+  "0.667", 'green',
+  "1", 'red'
+)
+# sufficient to do that only on the first items of dat.l.normplot and dat.w.normplot lists
+colors.condition.map <- dat.l.normplot[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
+ord <- match(colnames(dat.w.normplot[[1]]), colors.condition.map$`Run:Channel`)
+
+# important: these two vectors contain colors and condition labels corresponding to data in wide format
+cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
+conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
+```
+
+Boxplots:
+```{r}
+par(mfrow=c(3,2))
+for (i in 1:n.components){
+  boxplot(response~Run:Channel, dat.l.summplot[[i]], main=paste('Before normalization', variant.names[i], sep='_'), notch=TRUE)
+  boxplot(response~Run:Channel, dat.l.normplot[[i]], main=paste('After normalization', variant.names[i], sep='_'), notch=TRUE)
+}
+par(mfrow=c(1,1))  
+```
+
+MA plots:
+
+CV (coefficient of variation) plots:
+
+PCA plots:
+
+HC (hierarchical clustering) plots:
+
+# DEA component
+
+```{r}
+shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>% 
+  distinct(Peptide) %>% pull
+```
+
+## variant1: Mixed model (intra-protein correlation) + eBayes
+
+```{r}
+comp4 <- lapply(comp3, function(x){
+  tmp <- x %>% filter(!(Peptide %in% shared.peptides)) # remove shared peptides before DEA
+  out <- mixed.model.dea(dat=tmp, mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125'))
+  return(out)
+})
+
+```
+
+<!-- ## variant2: DEqMS -->
+
+## Comparison of differential abundance testing
+
+# Conclusions
+
+
+
+
+
+
+
+
+
+
