@@ -18,27 +18,22 @@ library(nlme)
 library(lme4)
 library(lmerTest)
 library(limma)
-library(DEP)
 library(ggplot2)
 library(stringi)
 library(RColorBrewer)
 library(gridExtra)
-
 library(tidyverse)
 ```
 
-This is a model-based reference notebook implementing the selected reference methods of each strategy component (i.e., unit, normalization, summarization and DEA). This means that none of the components will be varied throught this analysis. It will just serve as a basis for creating final notebooks.
+Data analysis of isobaric labeling experiments is a complex process which consists of multiple steps. Each of these steps require careful consideration, otherwise the success of the whole study may be at risk. In this series of notebooks we decided to check the impact of four analysis components on the end results of a quantitative proteomic study. These components are: unit, summarization, normalization and differential expression analysis.      
 
 ```{r, echo=FALSE}
 source('./other_functions.r')
 path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
 data.list <- readRDS(paste0(path.data, '/input_data.rds'))
 dat.l <- data.list$dat.l
-```
 
-First we apply some common filtering steps on the data. This includes removind PSMs with isolation iterference greater or equal than or missing quantification values [Piotr: explain why]. Note that we will not remove proteins called 'one-hit wonders' in proteomic slang and we will not remove shared peptides (yet, this step will be executed prior to DEA).
-
-```{r}
+# keep spectra with isolation interference <30 and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk=='Y' & noNAs=='Y')
 
 # which proteins were spiked in?
@@ -54,28 +49,20 @@ tmp <- apply(unique.pep, 1, function(x) all(x==1))
 inner.peptides <- rownames(unique.pep)[tmp]
 ```
 
-## Unit
-
-$log2$ transformation of reporter ion intensities.
+# Unit
 
 ```{r}
 dat.l <- dat.l %>% mutate(log2Intensity=log2(Intensity))
 ```
 
-`Put here Unit component specific graphs/tables (if applicable)`
-
-## Summarization
-
-No summarization, so the downstream analysis will be conducted on PSM level data.
-
-`Put here Summarization component specific graphs/tables (if applicable)`
+# Summarization
 
 ```{r, echo=FALSE}
 # no summarization needed therefore copty dat.l data set
 dat.l.summ <- dat.l
 ```
 
-## Normalization
+# Normalization
 
 ```{r, echo=FALSE}
 # mod0=lmer(log2Intensity ~ Run + Run:Channel +
@@ -106,12 +93,6 @@ dat.l.norm$resid1 <- residuals(mod1)
 # dat.l.norm$resid3 <- residuals(mod3)
 ```
 
-`Put here Normalization component specific graphs/tables (if applicable)`
-
-`Show estimated variance components. Show plots of estimated Run and Channel effects.`
-
-`Try to show plots before and after normalization (multiple normalization methods) in one panel`
-
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they requires features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
 var.names=c('log2Intensity', paste('resid',0:1,sep=''))
@@ -141,7 +122,6 @@ cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
 conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
 ```
 
-Boxplots:
 ```{r}
 par(mfrow=c(1,2))
   boxplot(log2Intensity~Run:Channel, dat.l.normplot, main='Before normalization')
@@ -149,7 +129,6 @@ par(mfrow=c(1,2))
 par(mfrow=c(1,1))
 ```
 
-MA plots:
 ```{r}
 # compute average of all samples in each condition or select just two samples?)
 temp <- unclass(dat.w.normplot[['log2Intensity']][, c('Mixture1_1:128C', 'Mixture1_1:129C') ])
@@ -182,12 +161,11 @@ p2 <- ggplot(df, aes(x = AVE, y = FC)) +
 grid.arrange(p1, p2, ncol=2)
 ```
 
-CV (coefficient of variation plots):
+CV (coefficient of variation) plots:
 ```{r}
 
 ```
 
-PCA plots:
 ```{r}
 par(mfrow=c(1,2))
   plotMDS(dat.w.normplot[['log2Intensity']], col=cols.vec, main='Before normalization')
@@ -195,7 +173,6 @@ par(mfrow=c(1,2))
 par(mfrow=c(2,2))
 ```
 
-HC plots:
 ```{r}
 par(mfrow=c(1,2))
 heatmap(dat.w.normplot[['log2Intensity']], hclustfun = function(d) hclust(d, method = "average"),col=brewer.pal(11,"RdBu"),
@@ -207,7 +184,7 @@ par(mfrow=c(1,1))
 ```
 
 ## DEA
-```{r, warning=FALSE, message=FALSE}
+```{r, include=FALSE}
 # remove shared peptides before DEA
 shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>% 
   distinct(Peptide) %>% pull
@@ -236,10 +213,6 @@ ggplot(dea1, aes(x = logFC, y = -log10(q.mod))) +
   geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
   geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
   geom_vline(xintercept = -1, color = "black", linetype = "dashed") 
-
-# top table
-
-# bar plot of Top 4 proteins
 
 ```
 
