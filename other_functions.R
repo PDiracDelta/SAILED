@@ -2,18 +2,18 @@
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-aggFunc=function(in.data, var.names, agg.method='mean'){
+aggFunc=function(dat, var.names, agg.method='mean'){
   
   library(dtplyr)
   select.met=match.arg(agg.method, c('mean', 'median'))
   
-  in.data2 <- lazy_dt(in.data)
-  out.data=in.data2 %>%
+  dat2 <- lazy_dt(dat)
+  out.dat=dat2 %>%
       group_by(Mixture, TechRepMixture, Run, Channel, Condition, BioReplicate, Protein, Peptide) %>%
       summarize_at(var.names, eval(parse(text=select.met))) %>%
     as_tibble()
     
-  return(out.data)
+  return(out.dat)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
