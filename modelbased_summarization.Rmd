@@ -1,5 +1,5 @@
 ---
-title: "Model-based analysis of isobaric labels data. Unit component."
+title: "Model-based analysis of isobaric labels data. Summarization component."
 author: "Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -68,14 +68,13 @@ inner.peptides <- rownames(unique.pep)[tmp]
 ```{r}
 # specify # of varying component variants and their names
 n.components <- 3
-variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
+variant.names <- c('no_summ', 'median_summ', 'sum_summ')
 ```
 
 # Unit component
 
 ```{r}
-comp1 <- vector('list', n.components)
-names(comp1) <- variant.names
+comp1 <- vector('list', 1)
 ```
 
 ## log2 transformation of reporter ion intensities
@@ -84,29 +83,34 @@ names(comp1) <- variant.names
 comp1[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
-## original scale (not log-transformed) of reporter ion intensities
-```{r}
-comp1[[2]] <- dat.l %>% rename(response=Intensity)
-```
+<!-- ## original scale (not log-transformed) of reporter ion intensities -->
 
-## log2-transformation of intensity ratios (channel 127C in denominator)
-
-```{r}
-# or we can try another channel as reference
-denom.df <- dat.l %>% filter(Channel=='127C') %>% rename(denom=Intensity) %>%
-  select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-comp1[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity))
-```
+<!-- ## log2-transformation of intensity ratios (channel 127C in denominator) -->
 
 # Summarization component
 
 ```{r}
-comp2 <- comp1
+comp2 <- vector('list', n.components)
+names(comp2) <- variant.names
 ```
 
 ## no summarization
 
-<!-- ## PSM to peptide summarization -->
+```{r}
+comp2[[1]] <- comp1[[1]]
+```
+
+## PSM to peptide summarization using median
+
+```{r}
+comp2[[2]] <- aggFunc(comp1[[1]], 'response', agg.method='median')
+```
+
+## PSM to peptide summarization using sum
+
+```{r}
+comp2[[3]] <- aggFunc(comp1[[1]], 'response', agg.method='sum')
+```
 
 # Normalization component
 
@@ -121,16 +125,22 @@ comp3 <- lapply(comp2, function(x) {
 })
 ```
 
-<!-- ## mixed model spec 2 -->
+<!-- ## variant2: mixed model spec 2 -->
 
-<!-- ## mixed model spec 3 -->
+<!-- ## variant3: mixed model spec 3 -->
 
 ## Normalization diagnostic plots
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.l.summplot <- lapply(comp2, function(x) aggFunc(x, 'response', 'mean')) # before normalization
-dat.l.normplot <- lapply(comp3, function(x) aggFunc(x, 'response', 'mean')) # after normalization
+
+# before normalization
+dat.l.summplot <- comp2
+dat.l.summplot[[1]] <- aggFunc(comp2[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
+
+# after normalization
+dat.l.normplot <- comp3
+dat.l.normplot[[1]] <- aggFunc(comp3[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
 
 # now create data sets in wide format
 # before normalization
@@ -186,7 +196,6 @@ comp4 <- lapply(comp3, function(x){
   out <- mixed.model.dea(dat=tmp, mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125'))
   return(out)
 })
-
 ```
 
 <!-- ## DEqMS -->
@@ -199,6 +208,7 @@ comp4 <- lapply(comp3, function(x){
 ```{r}
 sessionInfo()
 ```
+
 
 
 
