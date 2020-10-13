@@ -24,8 +24,8 @@ knitr::opts_chunk$set(
 
 ```{r}
 library(caret)
-library(DEP)
-library(nlme)
+# library(DEP)
+# library(nlme)
 library(lme4)
 library(lmerTest)
 library(limma)
@@ -38,7 +38,7 @@ library(tidyverse)
 
 This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
 
-We will check how varying analysis units [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+We will check how varying summarization methods [analysis unit/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
 source('./other_functions.r')
@@ -67,20 +67,20 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.components <- 3
+n.comp.variants <- 3
 variant.names <- c('no_summ', 'median_summ', 'sum_summ')
 ```
 
 # Unit component
 
 ```{r}
-comp1 <- vector('list', 1)
+dat.unit.l <- vector('list', 1)
 ```
 
 ## log2 transformation of reporter ion intensities
 
 ```{r}
-comp1[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
 <!-- ## original scale (not log-transformed) of reporter ion intensities -->
@@ -90,26 +90,26 @@ comp1[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 # Summarization component
 
 ```{r}
-comp2 <- vector('list', n.components)
-names(comp2) <- variant.names
+dat.summ.l <- vector('list', n.comp.variants)
+names(dat.summ.l) <- variant.names
 ```
 
 ## no summarization
 
 ```{r}
-comp2[[1]] <- comp1[[1]]
+dat.summ.l[[1]] <- dat.unit.l[[1]]
 ```
 
 ## PSM to peptide summarization using median
 
 ```{r}
-comp2[[2]] <- aggFunc(comp1[[1]], 'response', agg.method='median')
+dat.summ.l[[2]] <- aggFunc(dat.unit.l[[1]], 'response', agg.method='median')
 ```
 
 ## PSM to peptide summarization using sum
 
 ```{r}
-comp2[[3]] <- aggFunc(comp1[[1]], 'response', agg.method='sum')
+dat.summ.l[[3]] <- aggFunc(dat.unit.l[[1]], 'response', agg.method='sum')
 ```
 
 # Normalization component
@@ -117,7 +117,7 @@ comp2[[3]] <- aggFunc(comp1[[1]], 'response', agg.method='sum')
 ## mixed model spec 1
 
 ```{r}
-comp3 <- lapply(comp2, function(x) {
+dat.norm.l <- lapply(dat.summ.l, function(x) {
   mod <- lmer(response ~ Run + Run:Channel +
                  (1|Protein)  + (1|Peptide), data=x)
   x$response <- residuals(mod)
@@ -129,27 +129,28 @@ comp3 <- lapply(comp2, function(x) {
 
 <!-- ## variant3: mixed model spec 3 -->
 
-## Normalization diagnostic plots
+# Normalization diagnostic plots
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
 
 # before normalization
-dat.l.summplot <- comp2
-dat.l.summplot[[1]] <- aggFunc(comp2[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
+dat.summplot.l <- dat.summ.l
+dat.summplot.l[[1]] <- aggFunc(dat.summ.l[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
 
 # after normalization
-dat.l.normplot <- comp3
-dat.l.normplot[[1]] <- aggFunc(comp3[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
+dat.normplot.l <- dat.norm.l
+dat.normplot.l[[1]] <- aggFunc(dat.norm.l[[1]], 'response', 'mean') # only first variant requires aggregation to peptide level
 
 # now create data sets in wide format
 # before normalization
-dat.w.summplot <- lapply(dat.l.summplot, function(x) {
+dat.summplot.w <- lapply(dat.summplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   return(dat.tmp)
 })
+
 # after normalization
-dat.w.normplot <- lapply(dat.l.normplot, function(x) {
+dat.normplot.w <- lapply(dat.normplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   return(dat.tmp)
 })
@@ -162,9 +163,9 @@ colors.condition <- tribble(
   "0.667", 'green',
   "1", 'red'
 )
-# sufficient to do that only on the first items of dat.l.normplot and dat.w.normplot lists
-colors.condition.map <- dat.l.normplot[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
-ord <- match(colnames(dat.w.normplot[[1]]), colors.condition.map$`Run:Channel`)
+# sufficient to do that only on the first items of dat.normplot.l and dat.normplot.w lists
+colors.condition.map <- dat.normplot.l[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
+ord <- match(colnames(dat.normplot.w[[1]]), colors.condition.map$`Run:Channel`)
 
 # important: these two vectors contain colors and condition labels corresponding to data in wide format
 cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
@@ -188,23 +189,23 @@ shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>%
   distinct(Peptide) %>% pull
 ```
 
-## Mixed model (intra-protein correlation) + eBayes
+## mixed model (intra-protein correlation) + eBayes
 
 ```{r}
-comp4 <- lapply(comp3, function(x){
+dat.dea <- lapply(dat.norm.l, function(x){
   tmp <- x %>% filter(!(Peptide %in% shared.peptides)) # remove shared peptides before DEA
-  out <- mixed.model.dea(dat=tmp, mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125'))
+  out <- mixed.model.dea(dat=tmp[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125')) # subsetting to first 1000 records to speed up knitting
   return(out)
 })
 ```
 
 <!-- ## DEqMS -->
 
-## Comparison of differential abundance testing
+# Results comparison
 
 # Conclusions
 
-## Session information
+# Session information
 ```{r}
 sessionInfo()
 ```

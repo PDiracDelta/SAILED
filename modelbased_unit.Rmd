@@ -24,8 +24,8 @@ knitr::opts_chunk$set(
 
 ```{r}
 library(caret)
-library(DEP)
-library(nlme)
+#library(DEP)
+#library(nlme)
 library(lme4)
 library(lmerTest)
 library(limma)
@@ -67,26 +67,26 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.components <- 3
+n.comp.variants <- 3
 variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
 ```
 
 # Unit component
 
 ```{r}
-comp1 <- vector('list', n.components)
-names(comp1) <- variant.names
+dat.unit.l <- vector('list', n.comp.variants)
+names(dat.unit.l) <- variant.names
 ```
 
 ## log2 transformation of reporter ion intensities
 
 ```{r}
-comp1[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
 ## original scale (not log-transformed) of reporter ion intensities
 ```{r}
-comp1[[2]] <- dat.l %>% rename(response=Intensity)
+dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
 
 ## log2-transformation of intensity ratios (channel 127C in denominator)
@@ -95,13 +95,13 @@ comp1[[2]] <- dat.l %>% rename(response=Intensity)
 # or we can try another channel as reference
 denom.df <- dat.l %>% filter(Channel=='127C') %>% rename(denom=Intensity) %>%
   select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-comp1[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity))
+dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity))
 ```
 
 # Summarization component
 
 ```{r}
-comp2 <- comp1
+dat.summ.l <- dat.unit.l
 ```
 
 ## no summarization
@@ -113,7 +113,7 @@ comp2 <- comp1
 ## mixed model spec 1
 
 ```{r}
-comp3 <- lapply(comp2, function(x) {
+dat.norm.l <- lapply(dat.summ.l, function(x) {
   mod <- lmer(response ~ Run + Run:Channel +
                  (1|Protein)  + (1|Peptide), data=x)
   x$response <- residuals(mod)
@@ -125,21 +125,21 @@ comp3 <- lapply(comp2, function(x) {
 
 <!-- ## mixed model spec 3 -->
 
-## Normalization diagnostic plots
+# Normalization diagnostic plots
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.l.summplot <- lapply(comp2, function(x) aggFunc(x, 'response', 'mean')) # before normalization
-dat.l.normplot <- lapply(comp3, function(x) aggFunc(x, 'response', 'mean')) # after normalization
+dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', 'mean')) # before normalization
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # after normalization
 
 # now create data sets in wide format
 # before normalization
-dat.w.summplot <- lapply(dat.l.summplot, function(x) {
+dat.summplot.w <- lapply(dat.summplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   return(dat.tmp)
 })
 # after normalization
-dat.w.normplot <- lapply(dat.l.normplot, function(x) {
+dat.normplot.w <- lapply(dat.normplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   return(dat.tmp)
 })
@@ -152,9 +152,9 @@ colors.condition <- tribble(
   "0.667", 'green',
   "1", 'red'
 )
-# sufficient to do that only on the first items of dat.l.normplot and dat.w.normplot lists
-colors.condition.map <- dat.l.normplot[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
-ord <- match(colnames(dat.w.normplot[[1]]), colors.condition.map$`Run:Channel`)
+# sufficient to do that only on the first items of dat.normplot.l and dat.normplot.w lists
+colors.condition.map <- dat.normplot.l[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
+ord <- match(colnames(dat.normplot.w[[1]]), colors.condition.map$`Run:Channel`)
 
 # important: these two vectors contain colors and condition labels corresponding to data in wide format
 cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
@@ -178,24 +178,24 @@ shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>%
   distinct(Peptide) %>% pull
 ```
 
-## Mixed model (intra-protein correlation) + eBayes
+## mixed model (intra-protein correlation) + eBayes
 
 ```{r}
-comp4 <- lapply(comp3, function(x){
+dat.dea <- lapply(dat.norm.l, function(x){
   tmp <- x %>% filter(!(Peptide %in% shared.peptides)) # remove shared peptides before DEA
-  out <- mixed.model.dea(dat=tmp, mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125'))
+  out <- mixed.model.dea(dat=tmp[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)',
+                         conditions=c('1', '0.125')) # subsetting to first 1000 records to speed up knitting
   return(out)
 })
-
 ```
 
 <!-- ## DEqMS -->
 
-## Comparison of differential abundance testing
+# Results comparison
 
 # Conclusions
 
-## Session information
+# Session information
 ```{r}
 sessionInfo()
 ```
