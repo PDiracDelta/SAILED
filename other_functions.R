@@ -4,7 +4,7 @@
 
 aggFunc=function(dat, var.names, agg.method='mean'){
   
-  library(dplyr)
+  library(dtplyr)
   select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
   
   dat2 <- lazy_dt(dat)
