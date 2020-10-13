@@ -41,8 +41,8 @@ This notebook presents isobaric labeling data analysis strategy that includes mo
 We will check how varying analysis units [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.r')
-source('./plotting_functions.r')
+source('./other_functions.R')
+source('./plotting_functions.R')
 
 path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
 data.list <- readRDS(paste0(path.data, '/input_data.rds'))
