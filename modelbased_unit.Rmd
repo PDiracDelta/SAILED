@@ -38,7 +38,7 @@ library(tidyverse)
 
 This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
 
-We will check how varying analysis units [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
 source('./other_functions.R')
