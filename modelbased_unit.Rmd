@@ -44,8 +44,8 @@ We will check how varying analysis units [summarization/normalization/differenti
 source('./other_functions.R')
 source('./plotting_functions.R')
 
-path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
-data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+# you should either make a symbolic link in this directory
+data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 dat.w <- data.list$dat.w # data in wide format
 
