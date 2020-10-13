@@ -5,7 +5,7 @@
 aggFunc=function(dat, var.names, agg.method='mean'){
   
   library(dtplyr)
-  select.met=match.arg(agg.method, c('mean', 'median'))
+  select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
   
   dat2 <- lazy_dt(dat)
   out.dat=dat2 %>%
@@ -55,7 +55,7 @@ mixed.model.dea <- function(dat, mod.formula, conditions){
     p.mod <- sum.mod$coefficients[2,5] # moderated p-value corresonding to the moderated t-statistic
     
     results[i, ] <- c(logFC, t.ord, t.mod, p.ord, p.mod, NA, NA)
-    print(i)
+    #print(i)
   } 
   
   results <- as.data.frame(results)
