@@ -316,7 +316,7 @@ Volcano plots:
 
 ```{r}
 for (i in 1:n.comp.variants){
-  volcanoplot.ils(dat.dea[[i]], logFC.cols, q.cols, variant.names[i])
+  volcanoplot.ils(dat.dea[[i]], variant.names[i])
 }
 ```
 
