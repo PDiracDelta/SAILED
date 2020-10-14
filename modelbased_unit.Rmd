@@ -43,14 +43,14 @@ library(tidyverse)
 
 This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
 
-We will check how varying analysis units [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.r')
-source('./plotting_functions.r')
+source('./other_functions.R')
+source('./plotting_functions.R')
 
-path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
-data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+# you should either make a symbolic link in this directory
+data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 dat.w <- data.list$dat.w # data in wide format
 
@@ -130,7 +130,7 @@ dat.norm.l <- lapply(dat.summ.l, function(x) {
 
 <!-- ## mixed model spec 3 -->
 
-# Normalization diagnostic plots
+# QC plots <!--Normalization diagnostic plots-->
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
