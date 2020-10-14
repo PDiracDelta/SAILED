@@ -64,10 +64,10 @@ mixed.model.dea <- function(dat, mod.formula, conditions){
   if(nproteins>1) results$q.mod <- p.adjust(results$p.mod , method='BH') # moderated q-value corresponding to the moderated t-statistic
   else results$q.mod <- results$p.mod
   
-  results <- results %>% mutate(candidate=factor(case_when(q.mod <.01 ~ 'high',
-                                             q.mod >.01 & q.mod<.05 ~ 'med',
-                                             q.mod >.05 & q.mod<.1 ~ 'low',
-                                             q.mod >.1 ~ 'no'), levels=c('high', 'med', 'low', 'no')))
+  # results <- results %>% mutate(candidate=factor(case_when(q.mod <.01 ~ 'high',
+  #                                            q.mod >.01 & q.mod<.05 ~ 'med',
+  #                                            q.mod >.05 & q.mod<.1 ~ 'low',
+  #                                            q.mod >.1 ~ 'no'), levels=c('high', 'med', 'low', 'no')))
   
   return(results)
 } 
@@ -87,10 +87,41 @@ regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
 # wrapper on confusionMatrix from caret package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-conf.mat <- function(dea.mat, score.var, cut.off){
-  #pred.class <- factor(ifelse(dea.mat[, score.var]<.05, 'DE','not DE'), levels=c('not DE', 'DE'))
-  pred.class <- factor(ifelse(dea.mat[, score.var]<cut.off, 'DE','not DE'), levels=c('not DE', 'DE'))
-  #true.class<- factor(ifelse(rownames(dea.mat) %in% spiked.proteins, 'spiked', 'background'), levels=c('background', 'spiked'))
-  true.class<- factor(ifelse(rownames(dea.mat) %in% spiked.proteins, 'DE', 'not DE'), levels=c('not DE', 'DE'))
-  caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
+# example function arguments below for quicker development and debugging
+# dat=dat.dea[[1]]
+# score.var='q.mod'
+# cut.off <- 0.05
+# i <- 1
+
+conf.mat <- function(dat, score.var,cut.off){
+  
+  dat.cols <- colnames(dat)
+  logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
+  contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
+  
+  score.vars=paste(score.var, contrast.names, sep='_')  
+  conf.list <- vector('list', length(contrast.names))
+  conf.metrics <- matrix(NA, ncol=length(score.vars), nrow=5)
+  colnames(conf.metrics) <- contrast.names
+  rownames(conf.metrics) <- c('Accuracy', 'Sensitivity', 'Specificity', 'PPV', 'NPV')
+  
+  for (i in 1:length(contrast.names)){
+    pred.class <- factor(ifelse(dat[, score.vars[i]]<cut.off, 'DE','not DE'), levels=c('not DE', 'DE'))
+    true.class<- factor(ifelse(rownames(dat) %in% spiked.proteins, 'DE','not DE'), levels=c('not DE', 'DE'))
+    tmp=caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
+    tmp.tab <- tmp$table
+    conf.list[[i]] <- tmp$table
+    conf.metrics[, i] <- c(tmp$overall['Accuracy'], tmp$byClass[c('Sensitivity', 'Specificity', 'Pos Pred Value', 'Neg Pred Value')])
+  }
+  
+  conf.tab <- matrix(unlist(conf.list), ncol=2, byrow=TRUE)
+  conf.tab <- cbind(rep(contrast.names, each=2), conf.tab)
+  colnames(conf.tab) <- c('contrast', 'background','spiked')
+  rownames(conf.tab) <- rep(c('not DEA', 'DEA'), length(contrast.names))
+  return(list(tab=conf.tab, metrics=conf.metrics))
 }
+
+# use case (not run)
+# cm <- conf.mat(dat.dea[[1]], 'q.mod', contrast.names, 0.05)
+# xtable(cm$tab, type='html')
+# xtable(cm$metrics, type='html')
