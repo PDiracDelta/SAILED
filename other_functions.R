@@ -1,4 +1,25 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# convert data to long format (assume Run, Mixture columns already present)
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+to_long_format<-function(x, study.design) {
+  # remove reference cols if still present
+  study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
+  quan.cols = unique(study.design$Channel)
+  x <- x %>% pivot_longer(cols=quan.cols, names_to='Channel', values_to='response', values_drop_na=FALSE)
+  
+  # merge Condition, TechRepMixture, BioReplicate variables from study.design
+  # remove cols to add if already present to avoid errors.
+  x <- x[,!(colnames(x) %in% c('Condition', 'TechRepMixture', 'BioReplicate'))]
+  x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
+    relocate(TechRepMixture, .after=Mixture) %>%
+    relocate(Condition, .after=TechRepMixture) %>%
+    relocate(BioReplicate, .after=Condition) %>% select(-X)
+  return(x)
+}
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
