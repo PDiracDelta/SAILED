@@ -33,6 +33,11 @@ library(ggplot2)
 library(stringi)
 library(RColorBrewer)
 library(gridExtra)
+library(ggfortify)
+library(dendextend)
+library(psych)
+library(xtable)
+library(kableExtra)
 library(tidyverse)
 ```
 
@@ -84,7 +89,7 @@ names(dat.unit.l) <- variant.names
 dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
-## original scale (not log-transformed) of reporter ion intensities
+## original scale (not log2-transformed) of reporter ion intensities
 ```{r}
 dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
@@ -163,13 +168,75 @@ conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
 
 Boxplots:
 
+```{r}
+for (i in 1: n.comp.variants){
+  par(mfrow=c(1,2))
+    boxplot.ils(dat.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
+    boxplot.ils(dat.norm.l[[i]], paste('After normalization', variant.names[i], sep='_'))
+  par(mfrow=c(1,1))
+}
+```
+
 MA plots:
+
+MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
+
+```{r}
+# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
+scale.vec <- c('log', 'raw', 'log') 
+
+for (i in 1: n.comp.variants){
+  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  
+  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  
+  grid.arrange(p1, p2, ncol=2)  
+}
+```
+
+MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+
+```{r}
+# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
+scale.vec <- c('log', 'raw', 'log') 
+samples.num <- dat.summplot.l[[1]] %>% filter(Condition=='1') %>% distinct(Run:Channel) %>% pull
+samples.denom <- dat.summplot.l[[1]] %>% filter(Condition=='0.125') %>% distinct(Run:Channel) %>% pull
+for (i in 1: n.comp.variants){
+  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  
+  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  
+  grid.arrange(p1, p2, ncol=2)  
+}
+```
 
 CV (coefficient of variation) plots:
 
 PCA plots:
 
+```{r}
+# create a shorter version of run variable to present on legend
+run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.summplot.w[[1]]), fixed=':'), function(x) x[1])), fixed='Mixture', 'Mix')
+
+for (i in 1: n.comp.variants){
+  par(mfrow=c(1, 2))
+    pcaplot.ils(dat.summplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.normplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  par(mfrow=c(1, 1))  
+}
+```
+
 HC (hierarchical clustering) plots:
+
+```{r}
+# !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
+for (i in 1: n.comp.variants){
+  par(mfrow=c(1, 2))
+    dendrogram.ils(dat.summplot.w[[i]][1:1000,], cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.normplot.w[[i]][1:100,], cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  par(mfrow=c(1, 1))  
+}
+```
 
 # DEA component
 
@@ -181,21 +248,84 @@ shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>%
 ## mixed model (intra-protein correlation) + eBayes
 
 ```{r}
+# !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
 dat.dea <- lapply(dat.norm.l, function(x){
   tmp <- x %>% filter(!(Peptide %in% shared.peptides)) # remove shared peptides before DEA
   out <- mixed.model.dea(dat=tmp[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)',
-                         conditions=c('1', '0.125')) # subsetting to first 1000 records to speed up knitting
+                         conditions=c('1', '0.125')) 
   return(out)
 })
+
+# create fake variables to mimic the output format of Joris's moderated t-test function - this part will be removed
+condition.levels <- levels(dat.norm.l[[1]]$Condition)
+ref.condition <- condition.levels[1]
+contrast.names <- paste0('cond', condition.levels[-c(1, length(condition.levels))], '-cond', ref.condition)
+dea.vars <- c('logFC','t.ord','t.mod','p.ord','p.mod','q.ord','q.mod')
+
+for (i in 1: length(dat.dea)){
+    dat1 <- dat.dea[[i]][, dea.vars]
+    dat2 <- dat1
+    dat3 <- dat1
+    colnames(dat1) <- paste(colnames(dat1), contrast.names[1], sep='_')
+    colnames(dat2) <- paste(colnames(dat2), contrast.names[2], sep='_')
+    colnames(dat3) <- paste(colnames(dat3), contrast.names[3], sep='_')
+    rnames <-  rownames(dat.dea[[i]])
+    dat.dea[[i]] <- bind_cols(dat1, dat2, dat3)
+    rownames(dat.dea[[i]]) <- rnames
+}
+# 
+
+# character vectors containing logFC and p-values columns
+dea.cols <- colnames(dat.dea[[1]])
+logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
+q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
+n.contrasts <- length(logFC.cols)
 ```
 
 <!-- ## DEqMS -->
 
 # Results comparison
 
+Confusion matrix:
+
+```{r, results='asis'}
+n.comp.variants <- 3
+for (i in 1:n.comp.variants){
+  cat("\n")
+  cat('Confusion matrix for variant: ', variant.names[i])
+  cm <- conf.mat(dat.dea[[i]], 'q.mod', 0.05)
+  cat("\n")
+  print(kable(cm$tab))
+  cat("\n")
+  print(kable(cm$metrics))
+  cat("\n")
+}
+```
+
+Scatter plots:
+
+```{r}
+for (i in 1: n.comp.variants){
+  pairs.panels(dat.dea[[i]][, q.cols], method='spearman', main=paste("Spearman's correlation of adjusted p-values", variant.names[i], sep='_' ))
+  
+  pairs.panels(dat.dea[[i]][, logFC.cols], method='spearman', main=paste("Spearman's correlation of log2FC", variant.names[i], sep='_' ))
+}
+```
+
+Volcano plots:
+
+```{r}
+for (i in 1:n.comp.variants){
+  volcanoplot.ils(dat.dea[[i]], logFC.cols, q.cols, variant.names[i])
+}
+```
+
+Violin plot:
+
 # Conclusions
 
 # Session information
+
 ```{r}
 sessionInfo()
 ```
