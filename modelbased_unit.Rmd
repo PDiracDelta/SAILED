@@ -222,7 +222,7 @@ run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.summplot.w[[1]]
 
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.summplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.summplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'), scale=T)
     pcaplot.ils(dat.normplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
