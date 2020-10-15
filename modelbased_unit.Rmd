@@ -106,6 +106,7 @@ dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide
 # Summarization component
 
 ```{r}
+# no summarization 
 dat.summ.l <- dat.unit.l
 ```
 
@@ -143,6 +144,7 @@ dat.summplot.w <- lapply(dat.summplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   return(dat.tmp)
 })
+
 # after normalization
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
   dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
