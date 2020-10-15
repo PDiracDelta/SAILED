@@ -121,9 +121,9 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
 # colour.labels <- cols.vec
 # title <- 'Before normalization'
 
-pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title){
+pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, scale=F){
   
-  pc.cr <- prcomp(t(dat), scale = TRUE, center = TRUE)
+  pc.cr <- prcomp(t(dat), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
   prop.var=paste('(',round(100*sumpc.cr$importance[2,1:2],2),' %)',sep='')
   axis.lab=paste(c('PC1','PC2'),prop.var)
