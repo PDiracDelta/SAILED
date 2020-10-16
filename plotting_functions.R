@@ -11,6 +11,10 @@
 
 boxplot.ils <- function(dat, title, ...){  
     
+  # first make sure that Run and Channel are factors 
+  dat$Run <- as.factor(dat$Run)
+  dat$Channel <- as.factor(dat$Channel)
+  
   # prepare nice run and channel labels
   run.labels <- paste0('run', 1:length(levels(dat$Run)))
   n.run <- length(run.labels)
