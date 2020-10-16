@@ -83,4 +83,4 @@ dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.facto
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
 
 # save data in wide and long format
-saveRDS(list(dat.l=dat.l, dat.w=dat.w), paste0(path.data, '/input_data.rds'))
+saveRDS(list(dat.l=dat.l, dat.w=dat.w), 'input_data.rds')  # make symlink
