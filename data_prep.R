@@ -2,14 +2,14 @@ library(tidyverse)
 library(ggplot2)
 library(stringi)
 
-path.data='G:/My Drive/Isobaric labeling strategies/data'
-dat.raw.fullvar <- read.delim(paste0(path.data, '/PSMs.csv'))
-dat.raw <- read.delim(paste0(path.data, '/PSMs_cleaned.csv'))
+# path.data='G:/My Drive/Isobaric labeling strategies/data'
+dat.raw.fullvar <- read.delim('PSMs.csv')  # create symlink
+dat.raw <- read.delim('PSMs_cleaned.csv')  # create symlink
 dat.raw <- dat.raw.fullvar[, c(colnames(dat.raw), 'Identifying.Node', 'Spectrum.File')]
 dat.raw.org <- dat.raw
 
 # read in the study design data frame
-study.design=read.delim(paste0(path.data, './msstatstmt_studydesign.csv'))
+study.design=read.delim('msstatstmt_studydesign.csv')  # create symlink
 
 # rename quantification columns
 tmp.fun <- function(x){
