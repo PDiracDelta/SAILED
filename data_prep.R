@@ -17,7 +17,7 @@ dat.raw <- dat.raw %>% rename_with(.fn=tmp.fun, .cols=starts_with('Abundance..')
 
 # drop channels with reference samples and rename some more variables
 dat.raw <- dat.raw %>% select(-c('126','131')) %>% 
-  rename(Protein=Master.Protein.Accessions, Peptide=Annotated.Sequence, RT=RT..min., PTM=Modifications)
+  rename(Protein=Protein.Accessions, Peptide=Annotated.Sequence, RT=RT..min., PTM=Modifications)
 
 # save names of quantification columns for later use
 quan.cols <- paste0(rep(127:130, each=2), c('C','N'))
