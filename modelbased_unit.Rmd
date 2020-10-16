@@ -46,19 +46,33 @@ This notebook presents isobaric labeling data analysis strategy that includes mo
 We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.R')
-source('./plotting_functions.R')
+source('other_functions.R')
+source('plotting_functions.R')
 
 # you should either make a symbolic link in this directory
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
-dat.w <- data.list$dat.w # data in wide format
+dat.w <- data.list$dat.w # data in semi-wide format (wide only within runs)
 
-# keep spectra with isolation interference <30 and no missing quantification channels
-dat.l <- dat.l %>% filter(isoInterOk=='Y' & noNAs=='Y')
+# keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
+dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
-# which proteins were spiked in?
-spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull
+# remove the proteins overlapped between spiked-in proteins and background proteins
+# extract the list of spiked-in proteins
+ups.prot <- unique(dat.l[grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
+# extract the list of background proteins
+bg.prot <- unique(dat.l[!grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
+# overlapped proteins between spiked-in proteins and background proteins
+inter <- ups.prot[which(gsub("ups", "", ups.prot) %in% bg.prot)]
+
+# generate the list of proteins to remove
+protein.remove <- c(inter, gsub("ups", "", inter))
+
+# remove the overlapped proteins 
+dat.l <- dat.l %>% filter(!(Protein %in% protein.remove))
+
+# which spiked-in proteins are left?
+spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull  %>% as.character
 
 # which peptides were identified in each MS run?
 unique.pep=dat.l %>% 
