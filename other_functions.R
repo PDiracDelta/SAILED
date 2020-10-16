@@ -2,7 +2,7 @@
 # convert data to long format (assume Run, Mixture columns already present)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-to_long_format<-function(x, study.design) {
+to_long_format<-function(x, study.design, merge_study_design=T) {
   # remove reference cols if still present
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   quan.cols = unique(study.design$Channel)
@@ -10,11 +10,13 @@ to_long_format<-function(x, study.design) {
   
   # merge Condition, TechRepMixture, BioReplicate variables from study.design
   # remove cols to add if already present to avoid errors.
-  x <- x[,!(colnames(x) %in% c('Condition', 'TechRepMixture', 'BioReplicate'))]
-  x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
+  if (merge_study_design) {
+    x <- x[,!(colnames(x) %in% c('Condition', 'TechRepMixture', 'BioReplicate'))]
+    x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
     relocate(TechRepMixture, .after=Mixture) %>%
     relocate(Condition, .after=TechRepMixture) %>%
     relocate(BioReplicate, .after=Condition) %>% select(-X)
+  }
   return(x)
 }
 
