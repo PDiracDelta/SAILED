@@ -3,9 +3,7 @@ library(ggplot2)
 library(stringi)
 
 # path.data='G:/My Drive/Isobaric labeling strategies/data'
-# dat.raw.fullvar <- read.delim('PSMs.csv')  # create symlink
-dat.raw <- read.delim('PSMs_cleaned.csv')  # create symlink
-# dat.raw <- dat.raw.fullvar[, c(colnames(dat.raw), 'Identifying.Node', 'Spectrum.File')]
+dat.raw <- read.delim('PSMs_cleaned.csv', sep = ',')  # create symlink
 dat.raw.org <- dat.raw
 
 # read in the study design data frame
