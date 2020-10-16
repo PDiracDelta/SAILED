@@ -141,8 +141,8 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
 # title <- 'Before normalization'
 
 pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, scale=F){
-  
-  pc.cr <- prcomp(t(dat), scale = scale, center = TRUE)
+  # drop NA values (they are due to proteins not detected in all runs.)
+  pc.cr <- prcomp(t(dat %>% drop_na()), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
   prop.var=paste('(',round(100*sumpc.cr$importance[2,1:2],2),' %)',sep='')
   axis.lab=paste(c('PC1','PC2'),prop.var)
@@ -181,7 +181,7 @@ pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, sc
 dendrogram.ils <- function(dat, colour.labels, title){
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
-  dend_raw <- as.dendrogram(hclust(dist(t(dat))))
+  dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
   labels_colors(dend_raw) <- colour.labels
   plot(dend_raw, horiz=TRUE, main=title)
   par(mar=par.mar.org) 
