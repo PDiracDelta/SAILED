@@ -1,5 +1,4 @@
 library(tidyverse)
-library(ggplot2)
 library(stringi)
 
 # path.data='G:/My Drive/Isobaric labeling strategies/data'
@@ -22,8 +21,11 @@ dat.raw <- dat.raw %>% select(-c('126','131')) %>%
 # save names of quantification columns for later use
 quan.cols <- paste0(rep(127:130, each=2), c('C','N'))
 
-# remove records with empty Protein column
-dat.raw <- dat.raw %>% filter(Protein!='')
+# focus only on single proteins, not on protein groups (as in the MSstatTMT publication)
+dat.raw <- dat.raw %>% filter(X..Proteins==1)
+
+# check for empty Protein variable - there should be none of them
+dat.raw %>% filter(Protein=='') %>% nrow
 
 # remove PSM redundancy due to multiple PSM engine score
 table(dat.raw$Identifying.Node)
@@ -33,26 +35,30 @@ check1=dat.raw %>% group_by(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Is
 dat.raw <- dat.raw %>% distinct_at(vars(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols))
 
 # create flags for PSMs: 
-#   having isolation interference <30% or NA [isoInterOk]; 
+#   having isolation interference <=30% or NA [isoInterOk]; 
 #   having 0 missing quantification values [noNAs]
 #   representing 'one-hit' wonders, i.e., proteins identified by only one peptide
 #   representing shared peptides (note that shared peptides will not be removed until summarization and DEA)
 
-dat.raw$isoInterOk=ifelse(dat.raw$Isolation.Interference....<=30 | is.na(dat.raw$Isolation.Interference....), 'Y', 'N')
+dat.raw$isoInterOk=ifelse(dat.raw$Isolation.Interference....<=30 | is.na(dat.raw$Isolation.Interference....), T, F)
 
-dat.raw$noNAs=ifelse(complete.cases(dat.raw[, quan.cols]), 'Y', 'N')
+dat.raw$noNAs=ifelse(complete.cases(dat.raw[, quan.cols]), T, F)
 
-onehit.df <- dat.raw %>% group_by(Spectrum.File, Protein) %>% 
-  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, 'Y', 'N')) %>%
+# this flag should be calculated regardless of MS run
+# otherwise one protein could be marked as 'one-hit wonder' in one run and as not 'one-hit wonder' in another run
+# then if you would remove the one-hit wonder case, you would create more missing values affecting further analyses
+onehit.df <- dat.raw %>% group_by(Protein) %>% 
+  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, T, F)) %>%
   select(-c(ndist))
 
-shared.peptide.df <- dat.raw %>% group_by(Spectrum.File, Peptide) %>% 
+# this flag should be calculated regardless of MS run
+shared.peptide.df <- dat.raw %>% group_by(Peptide) %>% 
   summarize(ndist=n_distinct(Protein), 
-            shared.peptide=ifelse(ndist>1, 'Y', 'N')) %>%
+            shared.peptide=ifelse(ndist>1, T, F)) %>%
   select(-c(ndist))
 
-dat.raw <- inner_join(dat.raw, onehit.df, by=c('Spectrum.File', 'Protein'))
-dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Spectrum.File', 'Peptide'))
+dat.raw <- inner_join(dat.raw, onehit.df, by=c('Protein'))
+dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Peptide'))
 
 # select only useful columns
 dat.raw <- dat.raw %>%
@@ -77,7 +83,7 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 # create factors 
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor))
 
-# and now return to wide format (useful for some visualizations)
+# and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
 
 # save data in wide and long format
