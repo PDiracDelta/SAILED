@@ -44,9 +44,23 @@ boxplot.ils <- function(dat, title, ...){
        srt = 35, # rotate the labels by 35 degrees.
        cex = 1)
 }
-  
+
 # use case (not run)
 # boxplot.ils(dat, 'afternorm')
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# boxplot.w
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+boxplot.w <- function(dat, study.design, title, ...){  
+  # remove reference cols if still present
+  study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
+  # convert to long format again because ggplot for wide data is excruciating
+  dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
+  
+  boxplot.ils(dat, title, ...)  
+}
+
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # maplot.ils
