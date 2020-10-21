@@ -86,7 +86,8 @@ gm_mean = function(x, na.rm=TRUE){
 }
 
 maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
-
+  
+  dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
   denom <- as.matrix(dat[, samples.denom])
