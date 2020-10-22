@@ -203,9 +203,9 @@ moderated_ttest <- function(dat, design, scale) {
     # therefore, coefficients are NOT log fold changes! --> Adjust
     # fitted_response_matrix <- fit$coefficients %*% t(fit$design)
     logFC <- log2((logFC+reference_averages)/reference_averages)
-  }
-  # independent of `scale`, the reference condition averages should be subtracted to obtain 0 fold change
-  logFC[,reference_condition] <- logFC[,reference_condition] - reference_averages
+    logFC[,reference_condition] <- logFC[,reference_condition] - 1  # correct reference
+  } else {   # still have to correct reference
+    logFC[,reference_condition] <- logFC[,reference_condition] - reference_averages }
   df.r <- fit$df.residual # residual degrees of freedom assiciated with ordinary t-statistic and p-value
   df.0 <- rep(fit$df.prior, ngenes) # degrees of freedom associated with s2.0
   s2.0 <- rep(fit$s2.prior, ngenes) # estimated prior value for the variance
