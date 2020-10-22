@@ -248,3 +248,40 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
     return(p)})
   do.call(grid.arrange, violin.plots)
 }
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# boxplot.ils
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+# example function arguments' below for quicker development and debugging
+# dat <- dat.summplot.l[[1]]
+# title <- 'Before normalization'
+# groupby.CV <- c('Peptide', 'Condition')
+# groupby.quant <- 'Condition'
+# rmCVquan=0.99
+# abs.val <- T
+
+CVplot.ils <- function(dat, groupby.CV, groupby.quant, title, rmCVquan=0.99, abs.val=T, ...){  
+  
+  dat <- dat %>% ungroup
+  
+  # compute CV per feature (Protein/Peptide) within group according to groupby_cmd argument
+  # grouping observations according to groupby_cmd
+  if (abs.val){
+    CV.df <- dat %>% group_by(across(groupby.CV)) %>% summarise(CV=sd(abs(response))/mean(abs(response)))
+  } else {
+    CV.df <- dat %>% group_by(across(groupby.CV)) %>% summarise(CV=sd(response)/mean(response))
+  }
+  # compute CV quantile within groups
+  CV.quantiles.df <- CV.df %>% group_by(across(groupby.quant)) %>% summarise(quan=quantile(CV, rmCVquan))
+  
+  # filter out features with CV larger greater than the quantile
+  CV.df <- left_join(CV.df, CV.quantiles.df, by=groupby.quant) %>% filter(CV<quan)
+  
+  ff <- formula(paste0('CV~',groupby.quant))
+  boxplot(ff, data=CV.df, main=title, notch=T, ...)  
+}
+
+# use case (not run)
+# CVplot.ils(dat=at.summplot.l[[1]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
+#            title='Before normalization')
