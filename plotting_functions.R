@@ -216,8 +216,8 @@ volcanoplot.ils <- function(dat, variant.title){
   
   # iterate over contrasts  
   for (j in 1:length(logFC.cols)){
-    df <- data.frame(logFC=dat.dea[[i]][, logFC.cols[j]],
-                     q.mod=dat.dea[[i]][, q.cols[j] ])
+    df <- data.frame(logFC=dat[, logFC.cols[j]],
+                     q.mod=dat[, q.cols[j] ])
     volcano.plots[[j]] <- ggplot(df, aes(x = logFC, y = -log10(q.mod))) +
       geom_point() +
       xlab("log2(FC)") +
