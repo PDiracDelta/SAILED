@@ -256,35 +256,68 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
 # CVplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# feature.group argument can be set to 'Protein' or 'Peptide' depending on which level CV should be computed
+# xaxis.group argument defines the groups for which CV will be computed separately. It can be set to: 
+# 'Condition', 'Run', 'Mixture', interactions of these.
+
 # example function arguments' below for quicker development and debugging
 # dat <- dat.summplot.l[[1]]
 # title <- 'Before normalization'
-# groupby.CV <- c('Peptide', 'Condition')
-# groupby.quant <- 'Condition'
+# feature.group <- 'Protein' 
+# xaxis.group <- 'Condition'
 # rmCVquan=0.99
 # abs.val <- T
 
-CVplot.ils <- function(dat, groupby.CV, groupby.quant, title, rmCVquan=0.99, abs.val=T, ...){  
+CVplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
   
   dat <- dat %>% ungroup
   
   # compute CV per feature (Protein/Peptide) within group according to groupby_cmd argument
   # grouping observations according to groupby_cmd
   if (abs.val){
-    CV.df <- dat %>% group_by(across(groupby.CV)) %>% summarise(CV=sd(abs(response))/mean(abs(response)))
+    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(abs(response))/mean(abs(response)))
   } else {
-    CV.df <- dat %>% group_by(across(groupby.CV)) %>% summarise(CV=sd(response)/mean(response))
+    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response)/mean(response))
   }
   # compute CV quantile within groups
-  CV.quantiles.df <- CV.df %>% group_by(across(groupby.quant)) %>% summarise(quan=quantile(CV, rmCVquan))
+  CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan))
   
   # filter out features with CV larger greater than the quantile
-  CV.df <- left_join(CV.df, CV.quantiles.df, by=groupby.quant) %>% filter(CV<quan)
+  # this is done to get rid of outliers and improve visibility 
+  CV.df <- left_join(CV.df, CV.quantiles.df, by=xaxis.group) %>% filter(CV<quan)
   
-  ff <- formula(paste0('CV~',groupby.quant))
+  ff <- formula(paste0('CV~', xaxis.group))
   boxplot(ff, data=CV.df, main=title, notch=T, ...)  
 }
 
 # use case (not run)
-# CVplot.ils(dat=at.summplot.l[[1]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
+# CVplot.ils(dat=dat.summplot.l[[1]], feature.group='Peptide', xaxis.group='Condition', 
 #            title='Before normalization')
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# scatterplot.ils: wrapper function on pairs.panels from 'psych' package
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+# example function arguments' below for quicker development and debugging
+# dat <- dat.dea
+# cols <- q.cols
+# stat <- 'p-values'
+
+scatterplot.ils <- function(dat, cols, stat){
+  
+  select.stat <- match.arg(stat, c('p-values', 'log2FC'))
+  title <- paste("Spearman's correlation of", select.stat)
+  
+  contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
+  
+  for (i in 1:length(cols)){
+    df <- sapply(dat, function(x) x[, cols[i]])
+    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
+  }
+}
+
+# use case (not run)
+# scatterplot.ils(dat.dea, q.cols, 'p-values')
+
+
+
