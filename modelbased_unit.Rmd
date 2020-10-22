@@ -229,6 +229,16 @@ for (i in 1: n.comp.variants){
 ```
 
 CV (coefficient of variation) plots:
+```{r}
+for (i in 1: n.comp.variants){
+  par(mfrow=c(1, 2))
+    CVplot.ils(dat=dat.summplot.l[[i]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
+             title=paste('Before normalization', variant.names[i], sep='_'), xlab='Condition')
+    CVplot.ils(dat=dat.normplot.l[[i]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
+             title=paste('After normalization', variant.names[i], sep='_'), xlab='Condition')
+  par(mfrow=c(1, 1))  
+}
+```
 
 PCA plots:
 
