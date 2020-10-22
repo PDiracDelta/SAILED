@@ -94,8 +94,8 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
 
   if (select.scale=='log'){
     
-    num <- apply(num, 1, function(x) mean(x, na.rm=TRUE))
-    denom <- apply(denom, 1, function(x) mean(x, na.rm=TRUE))
+    num <- apply(num, 1, mean)
+    denom <- apply(denom, 1, mean)
     FC <- num-denom
     AVE <- (num+denom)/2
     
