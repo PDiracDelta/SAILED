@@ -234,3 +234,17 @@ volcanoplot.ils <- function(dat, variant.title){
 
 # use case (not run)
 # volcanoplot.ils(dat.dea[[1]], variant.names[1])
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# violinplot.ils: violin plot for each condition and dashed line with expected fold change
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+violinplot.ils <- function(dat.spiked.logfc.l) {
+  conditions.num <- sort(as.numeric(unique(dat.spiked.logfc.l[[1]]$condition)))
+  segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
+  violin.plots <- lapply(dat.spiked.logfc.l, function(x) {
+    p <- ggplot(x, aes(x=condition, y=logFC)) + geom_violin(draw_quantiles = TRUE) + 
+      geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
+                   color = 'red', linetype = 'dashed')
+    return(p)})
+  do.call(grid.arrange, violin.plots)
+}
