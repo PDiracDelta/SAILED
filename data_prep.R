@@ -80,8 +80,8 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
   relocate(Condition, .after=TechRepMixture) %>%
   relocate(BioReplicate, .after=Condition)
 
-# create factors 
-dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor))
+# convert character variables to factors and drop unused factor levels
+dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
 
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
