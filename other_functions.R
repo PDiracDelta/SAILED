@@ -180,10 +180,8 @@ get_design_matrix <- function(referenceCondition, study.design) {
 # moderated t-test for data-driven approach
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-moderated_ttest <- function(dat, design, scale='raw') {
+moderated_ttest <- function(dat, design) {
   library(limma)
-  select.scale=match.arg(scale, c('log', 'raw'))
-  if (select.scale=='log'){
   # This version makes MAXIMAL use of limma. It is an extension of eb.fit, but 
   # with terminology from moderated_ttest_extracted, which returns 
   # output for more than 1 sample comparison.
