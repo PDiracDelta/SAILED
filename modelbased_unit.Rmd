@@ -57,20 +57,6 @@ dat.w <- data.list$dat.w # data in semi-wide format (wide only within runs)
 # keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
-# remove the proteins overlapped between spiked-in proteins and background proteins
-# extract the list of spiked-in proteins
-ups.prot <- unique(dat.l[grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
-# extract the list of background proteins
-bg.prot <- unique(dat.l[!grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
-# overlapped proteins between spiked-in proteins and background proteins
-inter <- ups.prot[which(gsub("ups", "", ups.prot) %in% bg.prot)]
-
-# generate the list of proteins to remove
-protein.remove <- c(inter, gsub("ups", "", inter))
-
-# remove the overlapped proteins 
-dat.l <- dat.l %>% filter(!(Protein %in% protein.remove))
-
 # which spiked-in proteins are left?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull  %>% as.character
 
