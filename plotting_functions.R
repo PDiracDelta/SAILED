@@ -241,11 +241,14 @@ volcanoplot.ils <- function(dat, variant.title){
 violinplot.ils <- function(dat.spiked.logfc.l) {
   conditions.num <- sort(as.numeric(unique(dat.spiked.logfc.l[[1]]$condition)))
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
-  violin.plots <- lapply(dat.spiked.logfc.l, function(x) {
-    p <- ggplot(x, aes(x=condition, y=logFC)) + geom_violin(draw_quantiles = TRUE) + 
+  violin.plots <- emptyList(names(dat.spiked.logfc.l))
+  for (i in seq_along(violin.plots)) {
+    p <- ggplot(dat.spiked.logfc.l[[i]], aes(x=condition, y=logFC)) + 
+      geom_violin(draw_quantiles = TRUE) + ggtitle(names(dat.spiked.logfc.l)[i]) + 
       geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
                    color = 'red', linetype = 'dashed')
-    return(p)})
+    violin.plots[[i]] <- p
+  }
   do.call(grid.arrange, violin.plots)
 }
 

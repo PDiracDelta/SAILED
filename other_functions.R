@@ -1,4 +1,12 @@
 library(tidyverse)
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# make empty list with names pre-defined.
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+emptyList <- function(names) {
+  return(sapply(names,function(x) NULL))
+}
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # convert data to long format (assume Run, Mixture columns already present)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -180,14 +188,24 @@ get_design_matrix <- function(referenceCondition, study.design) {
 # moderated t-test for data-driven approach
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-moderated_ttest <- function(dat, design) {
+moderated_ttest <- function(dat, design, scale) {
   library(limma)
   # This version makes MAXIMAL use of limma. It is an extension of eb.fit, but 
   # with terminology from moderated_ttest_extracted, which returns 
   # output for more than 1 sample comparison.
+  design <- design[match(colnames(dat), rownames(design)),]  # fix column order
   ngenes <- dim(dat)[1]
   fit <- eBayes(lmFit(dat, design))
   logFC <- fit$coefficients # estimate of the log2-fold-change corresponding to the effect size
+  reference_condition <- colnames(design)[colSums(design) == nrow(design)]
+  reference_averages <- fit$coefficients[,reference_condition]
+  if (scale!='log') {  # the inputs are RAW and NOT LOG2 transformed.
+    # therefore, coefficients are NOT log fold changes! --> Adjust
+    # fitted_response_matrix <- fit$coefficients %*% t(fit$design)
+    logFC <- log2((logFC+reference_averages)/reference_averages)
+    logFC[,reference_condition] <- logFC[,reference_condition] - 1  # correct reference
+  } else {   # still have to correct reference
+    logFC[,reference_condition] <- logFC[,reference_condition] - reference_averages }
   df.r <- fit$df.residual # residual degrees of freedom assiciated with ordinary t-statistic and p-value
   df.0 <- rep(fit$df.prior, ngenes) # degrees of freedom associated with s2.0
   s2.0 <- rep(fit$s2.prior, ngenes) # estimated prior value for the variance
@@ -213,4 +231,5 @@ moderated_ttest <- function(dat, design) {
   colnames(q.mod) <- paste0('q.mod', '_', colnames(q.mod))
   results <- data.frame(logFC, t.ord, t.mod, p.ord, p.mod, q.ord, q.mod, df.r, df.0, s2.0, s2, s2.post)
   rownames(results) <- rownames(dat)
+  return(results)
 }
