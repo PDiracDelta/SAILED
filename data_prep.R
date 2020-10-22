@@ -82,6 +82,18 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 
 # convert character variables to factors and drop unused factor levels
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
+ 
+### finally, remove the proteins overlapped between spiked-in proteins and background proteins
+# extract the list of spiked-in proteins
+ups.prot <- unique(dat.l[grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
+# extract the list of background proteins
+bg.prot <- unique(dat.l[!grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
+# overlapped proteins between spiked-in proteins and background proteins
+inter <- ups.prot[which(gsub("ups", "", ups.prot) %in% bg.prot)]
+# generate the list of proteins to remove
+protein.remove <- c(inter, gsub("ups", "", inter))
+# remove the overlapped proteins 
+dat.l <- dat.l %>% filter(!(Protein %in% protein.remove))
 
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
