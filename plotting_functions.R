@@ -193,7 +193,7 @@ dendrogram.ils <- function(dat, colour.labels, title){
 # dendrogram.ils(dat.normplot.w[[1]][1:100, ], cols.vec, 'Before normalization')
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# volcanoplot.ils
+# volcanoplot.ils.old
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 # example function arguments' below for quicker development and debugging
@@ -202,7 +202,7 @@ dendrogram.ils <- function(dat, colour.labels, title){
 # q.cols
 # variant.title <- variant.names[1]
 
-volcanoplot.ils <- function(dat, variant.title){
+volcanoplot.ils.old <- function(dat, variant.title){
   
   dat.cols <- colnames(dat)
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
@@ -287,7 +287,7 @@ CVplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
   CV.df <- left_join(CV.df, CV.quantiles.df, by=xaxis.group) %>% filter(CV<quan)
   
   ff <- formula(paste0('CV~', xaxis.group))
-  boxplot(ff, data=CV.df, main=title, notch=T, ...)  
+  boxplot(ff, data=CV.df, main=title, notch=T, xlab=xaxis.group, ...)  
 }
 
 # use case (not run)
@@ -301,7 +301,7 @@ CVplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 # example function arguments' below for quicker development and debugging
 # dat <- dat.dea
 # cols <- q.cols
-# stat <- 'p-values'
+# stat <- 'p-values' or 'log2FC'
 
 scatterplot.ils <- function(dat, cols, stat){
   
@@ -319,5 +319,45 @@ scatterplot.ils <- function(dat, cols, stat){
 # use case (not run)
 # scatterplot.ils(dat.dea, q.cols, 'p-values')
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# volcanoplot.ils
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# dat=dat.dea
+# contrast.num=1
+
+volcanoplot.ils <- function(dat, contrast.num, spiked.proteins){
+  
+  dat.cols <- colnames(dat[[1]])
+  logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
+  q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
+  
+  # list for storing variant specifc plots
+  volcano.plots <- vector('list', length(logFC.cols))
+  
+  # contrast names
+  contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
+  variant.title <- names(dat)
+  
+  # iterate over variants
+  for (j in 1:length(dat)){
+    df <- data.frame(logFC=dat[[j]][, logFC.cols[contrast.num]],
+                     q.mod=dat[[j]][, q.cols[contrast.num] ],
+                     protein=ifelse(rownames(dat[[j]]) %in% spiked.proteins, 'spiked-in', 'background'))
+    
+    volcano.plots[[j]] <- ggplot(df, aes(x = logFC, y = -log10(q.mod), color=protein)) +
+      geom_point() +
+      xlab("log2(FC)") +
+      ylab("-log10(FDR)") +
+      ggtitle(paste(contrast.names[contrast.num], variant.title[j], sep='_' )) +
+      geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
+      geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
+      geom_vline(xintercept = -1, color = "black", linetype = "dashed") +
+      theme(legend.position = "none")
+  }
+  
+  # put contrast specific volcano plots in 1x3 grid
+  # do.call(grid.arrange, volcano.plots)
+  grid.arrange(grobs = volcano.plots, ncol=length(volcano.plots))
+}
 
