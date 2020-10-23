@@ -9,6 +9,7 @@ output:
     toc_float: true
     number_sections: true
     theme: flatly
+    code_folding: "hide"
 editor_options: 
   chunk_output_type: console
 ---
@@ -17,8 +18,7 @@ editor_options:
 # default knitr options for all chunks
 knitr::opts_chunk$set(
   message=FALSE,
-  warning=FALSE,
-  echo=FALSE
+  warning=FALSE
 )
 ```
 
@@ -58,7 +58,7 @@ dat.w <- data.list$dat.w # data in semi-wide format (wide only within runs)
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
 # which spiked-in proteins are left?
-spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull  %>% as.character
+spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 # which peptides were identified in each MS run?
 unique.pep=dat.l %>% 
@@ -118,10 +118,11 @@ dat.summ.l <- dat.unit.l
 
 ## mixed model spec 1
 
-```{r}
+```{r, cache=TRUE}
 dat.norm.l <- lapply(dat.summ.l, function(x) {
-  mod <- lmer(response ~ Run + Run:Channel +
-                 (1|Protein)  + (1|Peptide), data=x)
+  # mod <- lmer(response ~ Run + Run:Channel +
+  #                (1|Protein)  + (1|Peptide), data=x)
+  mod <- lmer(response ~ Run + (1|Run:Channel), data=x)
   x$response <- residuals(mod)
   return(x)
 })
@@ -141,14 +142,12 @@ dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean'))
 # now create data sets in wide format
 # before normalization
 dat.summplot.w <- lapply(dat.summplot.l, function(x) {
-  #dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
   return(dat.tmp)
 })
 
 # after normalization
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
-  #dat.tmp <- unclass(xtabs('response~ Peptide + I(Run:Channel)', data=x, drop.unused.levels = TRUE))
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
   return(dat.tmp)
 })
@@ -170,7 +169,7 @@ cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
 conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
 ```
 
-Boxplots:
+## Boxplot:
 
 ```{r}
 for (i in 1: n.comp.variants){
@@ -181,12 +180,12 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-MA plots:
+## MA plot:
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
 scale.vec <- c('log', 'raw', 'log') 
 
 for (i in 1: n.comp.variants){
@@ -201,7 +200,7 @@ for (i in 1: n.comp.variants){
 MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
 scale.vec <- c('log', 'raw', 'log') 
 samples.num <- dat.summplot.l[[1]] %>% filter(Condition=='1') %>% distinct(Run:Channel) %>% pull
 samples.denom <- dat.summplot.l[[1]] %>% filter(Condition=='0.125') %>% distinct(Run:Channel) %>% pull
@@ -214,19 +213,20 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-CV (coefficient of variation) plots:
+## CV (coefficient of variation) plot:
+
 ```{r}
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    CVplot.ils(dat=dat.summplot.l[[i]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
-             title=paste('Before normalization', variant.names[i], sep='_'), xlab='Condition')
-    CVplot.ils(dat=dat.normplot.l[[i]], groupby.CV=c('Peptide', 'Condition'), groupby.quant='Condition',
-             title=paste('After normalization', variant.names[i], sep='_'), xlab='Condition')
+    CVplot.ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
+               title=paste('Before normalization', variant.names[i], sep='_'))
+    CVplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
+               title=paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
 
-PCA plots:
+## PCA plot:
 
 ```{r}
 # create a shorter version of run variable to present on legend
@@ -240,7 +240,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-HC (hierarchical clustering) plots:
+## HC (hierarchical clustering) plot:
 
 ```{r}
 # !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
@@ -254,26 +254,19 @@ for (i in 1: n.comp.variants){
 
 # DEA component
 
-```{r}
-shared.peptides <- dat.l %>% filter(shared.peptide=='Y') %>% 
-  distinct(Peptide) %>% pull
-```
-
 ## mixed model (intra-protein correlation) + eBayes
 
-```{r}
+```{r, cache=TRUE}
 # !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
 dat.dea <- lapply(dat.norm.l, function(x){
-  tmp <- x %>% filter(!(Peptide %in% shared.peptides)) # remove shared peptides before DEA
-  out <- mixed.model.dea(dat=tmp[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)',
-                         conditions=c('1', '0.125')) 
+  out <- mixed.model.dea(dat=x[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', '0.125')) 
   return(out)
 })
 
 # create fake variables to mimic the output format of Joris's moderated t-test function - this part will be removed
 condition.levels <- levels(dat.norm.l[[1]]$Condition)
 ref.condition <- condition.levels[1]
-contrast.names <- paste0('cond', condition.levels[-c(1, length(condition.levels))], '-cond', ref.condition)
+contrast.names <- paste0('cond', condition.levels[-1], '-cond', ref.condition)
 dea.vars <- c('logFC','t.ord','t.mod','p.ord','p.mod','q.ord','q.mod')
 
 for (i in 1: length(dat.dea)){
@@ -300,41 +293,29 @@ n.contrasts <- length(logFC.cols)
 
 # Results comparison
 
-Confusion matrix:
+## Confusion matrix:
 
 ```{r, results='asis'}
-n.comp.variants <- 3
-for (i in 1:n.comp.variants){
-  cat("\n")
-  cat('Confusion matrix for variant: ', variant.names[i])
-  cm <- conf.mat(dat.dea[[i]], 'q.mod', 0.05)
-  cat("\n")
-  print(kable(cm$tab))
-  cat("\n")
-  print(kable(cm$metrics))
-  cat("\n")
-}
+cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
+print.conf.mat(cm)
 ```
 
-Scatter plots:
+## Scatter plot:
 
 ```{r}
-for (i in 1: n.comp.variants){
-  pairs.panels(dat.dea[[i]][, q.cols], method='spearman', main=paste("Spearman's correlation of adjusted p-values", variant.names[i], sep='_' ))
-  
-  pairs.panels(dat.dea[[i]][, logFC.cols], method='spearman', main=paste("Spearman's correlation of log2FC", variant.names[i], sep='_' ))
-}
+scatterplot.ils(dat.dea, q.cols, 'p-values')
+scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots:
+## Volcano plot:
 
 ```{r}
-for (i in 1:n.comp.variants){
-  volcanoplot.ils(dat.dea[[i]], variant.names[i])
+for (i in 1:n.contrasts){
+  volcanoplot.ils(dat.dea, i, spiked.proteins)
 }
 ```
 
-Violin plot:
+## Violin plot:
 
 # Conclusions
 
