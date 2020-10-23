@@ -208,7 +208,7 @@ cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
 conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
 ```
 
-Boxplots:
+## Boxplots:
 
 ```{r}
 # use (half-)wide format
@@ -220,7 +220,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-MA plots:
+## MA plots:
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
@@ -237,7 +237,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+## MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
@@ -253,9 +253,9 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-CV (coefficient of variation) plots:
+## CV (coefficient of variation) plots:
 
-PCA plots:
+## PCA plots:
 
 ```{r}
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
@@ -269,7 +269,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-HC (hierarchical clustering) plots:
+## HC (hierarchical clustering) plots:
 
 TO DO:
 - !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
