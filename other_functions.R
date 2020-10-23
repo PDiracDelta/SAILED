@@ -120,43 +120,96 @@ regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 # example function arguments below for quicker development and debugging
-# dat=dat.dea[[1]]
+# dat=dat.dea
 # score.var='q.mod'
 # cut.off <- 0.05
-# i <- 1
 
-conf.mat <- function(dat, score.var,cut.off){
+conf.mat <- function(dat, score.var, cut.off, spiked.proteins){
   
-  dat.cols <- colnames(dat)
+  # extract contrast names
+  dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
+  
   contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
+  n.contrasts <- length(contrast.names)
+  
+  nam.variants <- names(dat)
+  n.variants <- length(dat)
   
   score.vars=paste(score.var, contrast.names, sep='_')  
-  conf.list <- vector('list', length(contrast.names))
-  conf.metrics <- matrix(NA, ncol=length(score.vars), nrow=5)
-  colnames(conf.metrics) <- contrast.names
-  rownames(conf.metrics) <- c('Accuracy', 'Sensitivity', 'Specificity', 'PPV', 'NPV')
   
+  results <- vector('list', n.contrasts)
+  names(results)=contrast.names
+  
+  tab <- vector('list', n.variants)
+  names(tab)=names(dat)
+  stats <- matrix(NA, ncol=n.variants, nrow=5)
+  colnames(stats) <- nam.variants
+  rownames(stats) <- c('Accuracy', 'Sensitivity', 'Specificity', 'PPV', 'NPV')
+
   for (i in 1:length(contrast.names)){
-    pred.class <- factor(ifelse(dat[, score.vars[i]]<cut.off, 'DE','not DE'), levels=c('not DE', 'DE'))
-    true.class<- factor(ifelse(rownames(dat) %in% spiked.proteins, 'DE','not DE'), levels=c('not DE', 'DE'))
-    tmp=caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
-    tmp.tab <- tmp$table
-    conf.list[[i]] <- tmp$table
-    conf.metrics[, i] <- c(tmp$overall['Accuracy'], tmp$byClass[c('Sensitivity', 'Specificity', 'Pos Pred Value', 'Neg Pred Value')])
+    
+    tab[] <- NA
+    stats[] <- NA
+    
+    for (j in 1:n.variants){
+      pred.class <- factor(ifelse(dat[[j]][, score.vars[i]]<cut.off, 'DE','not_DE'), levels=c('not_DE', 'DE'))
+      true.class<- factor(ifelse(rownames(dat[[j]]) %in% spiked.proteins, 'DE','not_DE'), levels=c('not_DE', 'DE'))
+      tmp=caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
+      tab[[j]] <- tmp$table
+      stats[, j] <- c(tmp$overall['Accuracy'], tmp$byClass[c('Sensitivity', 'Specificity', 'Pos Pred Value', 'Neg Pred Value')])
+    }
+    
+    tmp <- matrix(unlist(lapply(tab, as.numeric)), nrow=2)
+    colnames(tmp) <- rep(c('background', 'spiked'), n.variants)
+    rownames(tmp) <- c('not_DE', 'DE')
+    results[[i]] <- list(tab=tmp, stats=stats)
+    
   }
   
-  conf.tab <- matrix(unlist(conf.list), ncol=2, byrow=TRUE)
-  conf.tab <- cbind(rep(contrast.names, each=2), conf.tab)
-  colnames(conf.tab) <- c('contrast', 'background','spiked')
-  rownames(conf.tab) <- rep(c('not DEA', 'DEA'), length(contrast.names))
-  return(list(tab=conf.tab, metrics=conf.metrics))
+  return(results)
 }
 
 # use case (not run)
 # cm <- conf.mat(dat.dea[[1]], 'q.mod', contrast.names, 0.05)
 # xtable(cm$tab, type='html')
 # xtable(cm$metrics, type='html')
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# print conf.mat output
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+print.conf.mat <- function(dat){
+  
+  myHeader1 <- c(1, rep(2, length(variant.names)))
+  names(myHeader1) <- c(" ",variant.names)
+  
+  # dat is a list of size equal to # of contrasts
+  # output is presented by contrasts
+  for (i in 1:length(dat)){
+    
+    myHeader2 <- c(1, 2*length(variant.names))
+    names(myHeader2) <- c(" ", names(dat)[i])
+    
+    myHeader3 <- c(1, length(variant.names))
+    names(myHeader3) <- c(" ", names(dat)[i])
+    
+    # print confusion table counts  
+    print(
+      kable(dat[[i]]$tab) %>%
+        kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
+        add_header_above(myHeader1) %>%
+        add_header_above(myHeader2)
+    )
+    
+    # print confusion table statistics
+    print(
+      kable(dat[[i]]$stats, digits=3) %>%
+        kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
+        add_header_above(myHeader3)
+    )
+  }
+}
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # get design matrix for use in moderated t-test
