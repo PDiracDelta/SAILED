@@ -61,7 +61,7 @@ shared.peptides <- dat.l %>% filter(!shared.peptide)
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
 # which proteins were spiked in?
-spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull
+spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 # which peptides were identified in each MS run?
 unique.pep=dat.l %>% 
