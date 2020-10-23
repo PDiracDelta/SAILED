@@ -95,6 +95,9 @@ protein.remove <- c(inter, gsub("ups", "", inter))
 # remove the overlapped proteins 
 dat.l <- dat.l %>% filter(!(Protein %in% protein.remove))
 
+# remove shared peptides
+dat.l <- dat.l %>% filter(!shared.peptide)
+
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
 
