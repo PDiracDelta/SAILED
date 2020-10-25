@@ -281,6 +281,21 @@ for (i in 1: n.comp.variants){
 
 ## PCA plots:
 
+### Using all proteins
+```{r}
+# create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
+run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
+
+for (i in seq_along(dat.norm.summ.w2)){
+  par(mfrow=c(1, 2))
+  # select only the spiked.proteins
+  pcaplot.ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  par(mfrow=c(1, 1))  
+}
+```
+
+### Using spiked proteins only
 ```{r}
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
@@ -294,6 +309,8 @@ for (i in seq_along(dat.norm.summ.w2)){
 ```
 
 ## HC (hierarchical clustering) plots:
+
+Only use spiked proteins
 
 TO DO:
 - !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
