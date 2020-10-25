@@ -238,5 +238,6 @@ moderated_ttest <- function(dat, design, scale) {
   colnames(q.mod) <- paste0('q.mod', '_', colnames(q.mod))
   results <- data.frame(logFC, t.ord, t.mod, p.ord, p.mod, q.ord, q.mod, df.r, df.0, s2.0, s2, s2.post)
   rownames(results) <- rownames(dat)
-  return(results)
+  # remove referenceCondition values; they are irrelevant
+  return(results %>% select(-contains(reference_condition)))
 }
