@@ -261,10 +261,10 @@ for (i in 1: n.comp.variants){
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
 
-for (i in 1: n.comp.variants){
+for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -277,10 +277,10 @@ TO DO:
 - unify the list of args across pcaplot.ils and dendrogram.ils. Make sure labeling and color picking is done in the same location (either inside or outside the function)
 
 ```{r}
-for (i in 1: n.comp.variants){
+for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.nonnorm.summ.w2[[i]][1:1000,] %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.nonnorm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
