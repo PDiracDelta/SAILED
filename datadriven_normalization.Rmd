@@ -314,15 +314,14 @@ for (i in seq_along(dat.norm.summ.w2)){
 Only use spiked proteins
 
 TO DO:
-- !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
 - also use short label names like in PCA plot
 - unify the list of args across pcaplot.ils and dendrogram.ils. Make sure labeling and color picking is done in the same location (either inside or outside the function)
 
 ```{r}
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.nonnorm.summ.w2[1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
