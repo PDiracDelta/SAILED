@@ -266,7 +266,7 @@ run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
   # select only the spiked.proteins
-  pcaplot.ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+  pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
   pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
