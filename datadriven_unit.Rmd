@@ -202,10 +202,11 @@ colors.condition <- tribble(
 run_channel_condition <- expand_grid(Channel=quanCols, Run=unique(study.design$Run)) %>% left_join(study.design, by=c('Channel', 'Run')) %>% select(Run, Channel, Condition)
 colors.condition.map <- run_channel_condition %>% unite(Channel, Channel:Run) %>% left_join(colors.condition, by='Condition')
 ord <- match(colnames(dat.norm.summ.w2[[1]]), colors.condition.map$Channel)
+ord <- ord[!is.na(ord)]  # drop first entry which is NA
 
 # important: these two vectors contain colors and condition labels corresponding to data in wide2 format
-cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
-conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
+cols.vec <- colors.condition.map[ord, 'Col'] %>% pull
+conditions.vec <- colors.condition.map[ord, 'Condition'] %>% pull
 ```
 
 ## Boxplots:
