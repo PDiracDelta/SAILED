@@ -60,9 +60,9 @@ aggFunc=function(dat, var.names, agg.method='mean'){
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-dat <- dat.norm.l[[2]]
-mod.formula='response ~ Condition + (1|Run:Channel)'
-referenceCondition
+# dat <- dat.norm.l[[2]]
+# mod.formula='response ~ Condition + (1|Run:Channel)'
+# referenceCondition
 
 mixed.model.dea <- function(dat, mod.formula, referenceCondition){
   
