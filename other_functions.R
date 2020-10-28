@@ -24,7 +24,8 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
     x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
     relocate(TechRepMixture, .after=Mixture) %>%
     relocate(Condition, .after=TechRepMixture) %>%
-    relocate(BioReplicate, .after=Condition) %>% select(-X)
+    relocate(BioReplicate, .after=Condition)  
+    # %>%  select(-X) # is this needed?
   }
   return(x)
 }
@@ -52,57 +53,58 @@ aggFunc=function(dat, var.names, agg.method='mean'){
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-mixed.model.dea <- function(dat, mod.formula, conditions){
+dat <- dat.norm.l[[2]]
+mod.formula='response ~ Condition + (1|Run:Channel)'
+referenceCondition
+
+mixed.model.dea <- function(dat, mod.formula, referenceCondition){
   
-  response <- stri_trim_both( stri_split_fixed(mod.formula, pattern='~')[[1]][1]) # extract response var name
   mod.formula <- as.formula(mod.formula)
-  dat <- dat[dat$Condition %in% conditions, ] # filter out other conditions
   
-  # proteins with at least one not missing quantification value
-  # in both conditions
-  proteins <- dat %>% group_by(Protein, Condition) %>% 
-    summarize(n=sum(!is.na(response))) %>% filter(n>=1) %>%
-    group_by(Protein) %>% summarize(nn=n()) %>%
-    filter(nn==2) %>% pull(Protein)
-  
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   
-  results <- matrix(NA, nrow=length(proteins), ncol=7)
-  colnames(results) <- c('logFC', 't.ord', 't.mod', 'p.ord', 'p.mod', 'q.ord', 'q.mod')
+  dat$Condition <- relevel(dat$Condition, referenceCondition)
+  condition.levels <- levels(droplevels(dat$Condition))
+  n.conditions <- length(condition.levels)
+  
+  contrast.names <- condition.levels[-match(referenceCondition,condition.levels)]
+  
+  possib_mod <- possibly(function(x) lmer(mod.formula, data=dat[dat$Protein==x, ], control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning")), otherwise=NULL)
+  
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions-1)
+  t.mod <- p.mod <- logFC
+  i=3
+  for (i in seq_along(proteins)){
+    mod <- possib_mod(proteins[i])
+    if (!is.null(mod)){
+      sum.mod <- summary(mod)
+      logFC[i,]=sum.mod$coefficients[-1,1] # estimate of the log2-fold-change corresponding to the effect size
+      t.mod[i,]=sum.mod$coefficients[-1,4] # moderated t-statistic
+      p.mod[i,]=sum.mod$coefficients[-1,5] # moderated p-value corresonding to the moderated t-statistic
+    } else {
+      logFC[i,] <- rep(NA, n.conditions-1)
+      t.mod[i,] <- rep(NA, n.conditions-1)
+      p.mod[i,] <- rep(NA, n.conditions-1)
+    }
+  }
+  
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', contrast.names)
+  colnames(t.mod) <- paste0('t.mod', '_', contrast.names)
+  colnames(p.mod) <- paste0('p.mod', '_', contrast.names)
+  colnames(q.mod) <- paste0('q.mod', '_', contrast.names)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod)
   rownames(results) <- proteins
   
-  for (i in seq_along(proteins)) {
-    dat.sub <- dat[dat$Protein==proteins[i], ]
-    mod=lmer(mod.formula, data=dat.sub, control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning"))
-    sum.mod=summary(mod)
-    logFC <- sum.mod$coefficients[2,1] # estimate of the log2-fold-change corresponding to the effect size
-    df.r <- NA # residual degrees of freedom assiciated with ordinary t-statistic and p-value
-    df.0 <- NA # degrees of freedom associated with s2.0
-    s2.0 <- NA # estimated prior value for the variance
-    s2 <- vcov(mod)[2, 2] # sample variance
-    s2.post <- s2 # posterior value for the variance
-    t.ord <- sum.mod$coefficients[2,4] # vector of ordinary t-statistic: using sigma vs s2.post
-    t.mod <- sum.mod$coefficients[2,4] # moderated t-statistic
-    p.ord <- sum.mod$coefficients[2,5] # ordinary p-value corresonding to the ordinary t-statistic
-    p.mod <- sum.mod$coefficients[2,5] # moderated p-value corresonding to the moderated t-statistic
-    
-    results[i, ] <- c(logFC, t.ord, t.mod, p.ord, p.mod, NA, NA)
-    #print(i)
-  } 
-  
-  results <- as.data.frame(results)
-  if (nproteins>1) results$q.ord <- p.adjust(results$p.ord , method='BH') # ordinary q-value corresponding to the ordinary t-statistic
-  else results$q.ord <- results$p.ord
-  if(nproteins>1) results$q.mod <- p.adjust(results$p.mod , method='BH') # moderated q-value corresponding to the moderated t-statistic
-  else results$q.mod <- results$p.mod
-  
-  # results <- results %>% mutate(candidate=factor(case_when(q.mod <.01 ~ 'high',
-  #                                            q.mod >.01 & q.mod<.05 ~ 'med',
-  #                                            q.mod >.05 & q.mod<.1 ~ 'low',
-  #                                            q.mod >.1 ~ 'no'), levels=c('high', 'med', 'low', 'no')))
-  
+  # results <- results %>% drop_na() # removing proteins with missing values may affect
   return(results)
 } 
+
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for printing # of up/down/not regulated proteins
