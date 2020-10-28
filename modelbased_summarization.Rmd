@@ -9,6 +9,7 @@ output:
     toc_float: true
     number_sections: true
     theme: flatly
+    code_folding: "hide"
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,14 +19,16 @@ editor_options:
 knitr::opts_chunk$set(
   message=FALSE,
   warning=FALSE,
-  echo=FALSE
+  echo=FALSE,
+  fig.width=12,
+  fig.height=9
 )
 ```
 
 ```{r}
 library(caret)
-# library(DEP)
-# library(nlme)
+#library(DEP)
+#library(nlme)
 library(lme4)
 library(lmerTest)
 library(limma)
@@ -33,16 +36,21 @@ library(ggplot2)
 library(stringi)
 library(RColorBrewer)
 library(gridExtra)
+library(ggfortify)
+library(dendextend)
+library(psych)
+library(xtable)
+library(kableExtra)
 library(tidyverse)
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
 
-We will check how varying summarization methods [analysis unit/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+We will check how varying analysis components [unit/summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.r')
-source('./plotting_functions.r')
+source('other_functions.r')
+source('plotting_functions.r')
 
 path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
 data.list <- readRDS(paste0(path.data, '/input_data.rds'))
@@ -103,13 +111,13 @@ dat.summ.l[[1]] <- dat.unit.l[[1]]
 ## PSM to peptide summarization using median
 
 ```{r}
-dat.summ.l[[2]] <- aggFunc(dat.unit.l[[1]], 'response', agg.method='median')
+dat.summ.l[[2]] <- aggFunc(dat.unit.l[[1]], 'response', 'median')
 ```
 
 ## PSM to peptide summarization using sum
 
 ```{r}
-dat.summ.l[[3]] <- aggFunc(dat.unit.l[[1]], 'response', agg.method='sum')
+dat.summ.l[[3]] <- aggFunc(dat.unit.l[[1]], 'response', 'sum')
 ```
 
 # Normalization component
