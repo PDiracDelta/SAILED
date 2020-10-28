@@ -202,13 +202,14 @@ colors.condition <- tribble(
 run_channel_condition <- expand_grid(Channel=quanCols, Run=unique(study.design$Run)) %>% left_join(study.design, by=c('Channel', 'Run')) %>% select(Run, Channel, Condition)
 colors.condition.map <- run_channel_condition %>% unite(Channel, Channel:Run) %>% left_join(colors.condition, by='Condition')
 ord <- match(colnames(dat.norm.summ.w2[[1]]), colors.condition.map$Channel)
+ord <- ord[!is.na(ord)]  # drop first entry which is NA
 
 # important: these two vectors contain colors and condition labels corresponding to data in wide2 format
-cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
-conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
+cols.vec <- colors.condition.map[ord, 'Col'] %>% pull
+conditions.vec <- colors.condition.map[ord, 'Condition'] %>% pull
 ```
 
-Boxplots:
+## Boxplots:
 
 ```{r}
 # use (half-)wide format
@@ -220,7 +221,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-MA plots:
+## MA plots:
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
@@ -237,7 +238,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+## MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
@@ -253,23 +254,40 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-CV (coefficient of variation) plots:
+## CV (coefficient of variation) plots:
 
-PCA plots:
+## PCA plots:
 
+### Using all proteins
 ```{r}
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
 
-for (i in 1: n.comp.variants){
+for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  # select only the spiked.proteins
+  pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
 
-HC (hierarchical clustering) plots:
+### Using spiked proteins only
+```{r}
+# create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
+run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
+
+for (i in seq_along(dat.norm.summ.w2)){
+  par(mfrow=c(1, 2))
+    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  par(mfrow=c(1, 1))  
+}
+```
+
+## HC (hierarchical clustering) plots:
+
+Only use spiked proteins
 
 TO DO:
 - !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
@@ -277,10 +295,10 @@ TO DO:
 - unify the list of args across pcaplot.ils and dendrogram.ils. Make sure labeling and color picking is done in the same location (either inside or outside the function)
 
 ```{r}
-for (i in 1: n.comp.variants){
+for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.nonnorm.summ.w2[[i]][1:1000,] %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.nonnorm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
