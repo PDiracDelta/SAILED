@@ -196,49 +196,6 @@ dendrogram.ils <- function(dat, sample.labels, colour.labels, title){
 # dendrogram.ils(dat.normplot.w[[1]][1:100, ], sample.labels, cols.vec, 'Before normalization')
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# volcanoplot.ils.old
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-# example function arguments' below for quicker development and debugging
-# dat <- dat.dea[[1]]
-# logFC.cols
-# q.cols
-# variant.title <- variant.names[1]
-
-volcanoplot.ils.old <- function(dat, variant.title){
-  
-  dat.cols <- colnames(dat)
-  logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
-  q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
-  
-  # list for storing contrast specifc plots
-  volcano.plots <- vector('list', length(logFC.cols))
-  
-  # contrast names
-  contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
-  
-  # iterate over contrasts  
-  for (j in 1:length(logFC.cols)){
-    df <- data.frame(logFC=dat[, logFC.cols[j]],
-                     q.mod=dat[, q.cols[j] ])
-    volcano.plots[[j]] <- ggplot(df, aes(x = logFC, y = -log10(q.mod))) +
-      geom_point() +
-      xlab("log2(FC)") +
-      ylab("-log10(FDR)") +
-      ggtitle(paste(contrast.names[j], variant.title, sep='_' )) +
-      geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
-      geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
-      geom_vline(xintercept = -1, color = "black", linetype = "dashed") 
-  }
-  
-  # put all volcano plots in one grid
-  do.call(grid.arrange, volcano.plots) # try to allocate them in columns or reshape the data and switch to facet_wrap/facet_grid  in ggplot
-}
-
-# use case (not run)
-# volcanoplot.ils(dat.dea[[1]], variant.names[1])
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # violinplot.ils: violin plot for each condition and dashed line with expected fold change
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 violinplot.ils <- function(dat.spiked.logfc.l) {
@@ -301,11 +258,9 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 # example function arguments' below for quicker development and debugging
-dat <- dat.dea
-cols <- q.cols
-stat <- 'p-values'
-
-head(dat.dea[[3]])
+# dat <- dat.dea
+# cols <- q.cols
+# stat <- 'p-values'
 
 scatterplot.ils <- function(dat, cols, stat){
   
