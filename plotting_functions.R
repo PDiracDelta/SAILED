@@ -152,17 +152,17 @@ pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, sc
   Ux1<-as.vector(pc.cr$x[,1])
   Ux2<-as.vector(pc.cr$x[,2])
   
-  legend.map <- cbind(run=run.labels, run.numeric=as.numeric(as.factor(run.labels)), 
+  legend.map <- cbind(run=run.labels, run.shape=as.numeric(as.factor(run.labels)), 
                      condition=condition.labels, colour=colour.labels) %>% as.data.frame 
   # points shape passed to 'pch' argument, starts from 15
-  legend.map$run.numeric <- as.numeric(legend.map$run.numeric)+14 
+  legend.map$run.shape <- as.numeric(legend.map$run.shape)+14 
   
-  legend1 <- legend.map %>% distinct(run, run.numeric)
+  legend1 <- legend.map %>% distinct(run, run.shape)
   legend2 <- legend.map %>% distinct(condition, colour)
   
-  plot(Ux1,Ux2, col=colour.labels, pch=legend.map$run.numeric, 
+  plot(Ux1,Ux2, col=colour.labels, pch=legend.map$run.shape, 
        main=title, xlab=axis.lab[1], ylab=axis.lab[2], cex=1.5)
-  legend('bottomleft', legend=legend1$run, pch=legend1$run.numeric, bty = "n", cex=1.1) # run
+  legend('bottomleft', legend=legend1$run, pch=legend1$run.shape, bty = "n", cex=1.1) # run
   legend('bottomright', legend=legend2$condition, text.col=as.character(legend2$colour), bty = "n", cex=1.1) # condition
 }
 
@@ -177,10 +177,13 @@ pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, sc
 
 # example function arguments' below for quicker development and debugging
 # dat <- dat.normplot.w[[1]][1:100, ]
+# sample.labels <- stri_replace(colnames(dat), fixed='Mixture', 'Mix')
 # colour.labels <- cols.vec
 # title <- 'Before normalization'
 
-dendrogram.ils <- function(dat, colour.labels, title){
+dendrogram.ils <- function(dat, sample.labels, colour.labels, title){
+  
+  colnames(dat) <- sample.labels
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
   dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
@@ -190,7 +193,7 @@ dendrogram.ils <- function(dat, colour.labels, title){
 }
 
 # use case (not run)
-# dendrogram.ils(dat.normplot.w[[1]][1:100, ], cols.vec, 'Before normalization')
+# dendrogram.ils(dat.normplot.w[[1]][1:100, ], sample.labels, cols.vec, 'Before normalization')
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # volcanoplot.ils.old
@@ -268,12 +271,11 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
 # rmCVquan=0.99
 # abs.val <- T
 
-CVplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
+cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
   
   dat <- dat %>% ungroup
   
-  # compute CV per feature (Protein/Peptide) within group according to groupby_cmd argument
-  # grouping observations according to groupby_cmd
+  # compute CV per feature (Protein/Peptide) 
   if (abs.val){
     CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(abs(response))/mean(abs(response)))
   } else {
@@ -299,9 +301,11 @@ CVplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 # example function arguments' below for quicker development and debugging
-# dat <- dat.dea
-# cols <- q.cols
-# stat <- 'p-values' or 'log2FC'
+dat <- dat.dea
+cols <- q.cols
+stat <- 'p-values'
+
+head(dat.dea[[3]])
 
 scatterplot.ils <- function(dat, cols, stat){
   
@@ -309,8 +313,9 @@ scatterplot.ils <- function(dat, cols, stat){
   title <- paste("Spearman's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
-  
+  i=1
   for (i in 1:length(cols)){
+    names(dat) <- NULL
     df <- sapply(dat, function(x) x[, cols[i]])
     pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
   }
