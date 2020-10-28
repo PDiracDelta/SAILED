@@ -121,22 +121,22 @@ dat.norm.l <- lapply(dat.norm.l, function(x) x[[1]] <- dat.summ.l[[1]])
 # wgt.background <- (n.spiked+n.background)/n.background
 # dat.summ.l[[1]]$weights <- ifelse(dat.summ.l[[1]]$protein.type=='spiked', wgt.spiked, wgt.background)
 
-LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l[[1]])
+LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l[[1]])
 dat.norm.l[[1]]$response <- residuals(LMM1)
 ```
 
 ## mixed model spec 2
 
 ```{r}
-LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l[[1]])
+LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l[[1]])
 dat.norm.l[[2]]$response <- residuals(LMM2)
 ```
 
 ## mixed model spec 3
 
 ```{r}
-LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l[[1]])
-dat.norm.l[[3]]$response <- residuals(LMM3)
+LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l[[1]])
+dat.norm.l[[3]]$response <- residuals(LMM1)
 ```
 
 # QC plots
