@@ -234,12 +234,12 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
   
   # compute CV per feature (Protein/Peptide) 
   if (abs.val){
-    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(abs(response))/mean(abs(response)))
+    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(abs(response), na.rm=TRUE)/mean(abs(response), na.rm=TRUE))
   } else {
-    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response)/mean(response))
+    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response, na.rm=TRUE)/mean(response, na.rm=TRUE))
   }
   # compute CV quantile within groups
-  CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan))
+  CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan, na.rm=TRUE))
   
   # filter out features with CV larger greater than the quantile
   # this is done to get rid of outliers and improve visibility 
