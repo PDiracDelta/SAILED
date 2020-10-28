@@ -9,6 +9,7 @@ output:
     toc_float: true
     number_sections: true
     theme: flatly
+    code_folding: "hide"
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,7 +19,8 @@ editor_options:
 knitr::opts_chunk$set(
   message=FALSE,
   warning=FALSE,
-  echo=FALSE
+  fig.width=12,
+  fig.height=7
 )
 ```
 
@@ -85,8 +87,7 @@ referenceCondition <- '0.5'
 # Unit component
 
 ```{r}
-dat.unit.l <- vector('list', n.comp.variants)
-names(dat.unit.l) <- variant.names
+dat.unit.l <- emptyList(variant.names)
 ```
 
 ## log2 transformation of reporter ion intensities
@@ -106,7 +107,8 @@ dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 # or we can try another channel as reference
 denom.df <- dat.l %>% filter(Channel==referenceChannel) %>% rename(denom=Intensity) %>%
   select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity))
+dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity)) # response=log2(Intensity/denom)
+# log2ratio=0 for the reference channel, NA are generated in CONSTANd normalization - fix this bug
 ```
 
 # Normalization component
@@ -135,10 +137,6 @@ dat.norm.w <- lapply(dat.unit.w, function(x) {
   return(bind_rows(x.split.norm))
 })
 ```
-
-<!-- ## Normalization method 2 -->
-
-<!-- ## Normalization method 3 -->
 
 # Summarization component
 
@@ -169,12 +167,7 @@ dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
 })
 ```
 
-<!-- ## summarization method 2 -->
-
-<!-- ## summarization method 3 -->
-
-
-# QC plots <!--Normalization diagnostic plots-->
+# QC plots
 
 ```{r}
 # make data completely wide (also across runs)
@@ -209,7 +202,7 @@ cols.vec <- colors.condition.map[ord, 'Col'] %>% pull
 conditions.vec <- colors.condition.map[ord, 'Condition'] %>% pull
 ```
 
-## Boxplots:
+## Boxplots
 
 ```{r}
 # use (half-)wide format
@@ -221,7 +214,7 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-## MA plots:
+## MA plots
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
@@ -230,9 +223,9 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 scale.vec <- c('log', 'raw', 'log') 
 # use wide2 format
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
   
-  p2 <- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
   
   grid.arrange(p1, p2, ncol=2)  
 }
@@ -246,30 +239,51 @@ scale.vec <- c('log', 'raw', 'log')
 channels.num <- colors.condition.map %>% filter(Condition=='1') %>% select(Channel) %>% pull
 channels.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% select(Channel) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'))
   
-  p2 <- maplot.ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
   
   grid.arrange(p1, p2, ncol=2)  
 }
 ```
 
-## CV (coefficient of variation) plots:
+## CV (coefficient of variation) plots
 
-## PCA plots:
+```{r}
+dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, function(x){
+  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
+  x <- to_long_format(x, study.design)
+})
+
+dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
+  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
+  x <- to_long_format(x, study.design)
+})
+
+par(mfrow=c(1, 2))
+for (i in 1: n.comp.variants){
+    cvplot.ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
+               title=paste('Raw', variant.names[i], sep='_'), abs=F)
+    cvplot.ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
+               title=paste('Normalized', variant.names[i], sep='_'), abs=F)
+}
+par(mfrow=c(1, 1))  
+```
+
+## PCA plots
 
 ### Using all proteins
 ```{r}
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
 
+par(mfrow=c(1, 2))
 for (i in seq_along(dat.norm.summ.w2)){
-  par(mfrow=c(1, 2))
   # select only the spiked.proteins
-  pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
+  pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'))
+  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
 }
+par(mfrow=c(1, 1))  
 ```
 
 ### Using spiked proteins only
@@ -279,26 +293,25 @@ run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1
 
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'))
+    pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
 
-## HC (hierarchical clustering) plots:
+## HC (hierarchical clustering) plots
 
 Only use spiked proteins
 
 TO DO:
-- !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
-- also use short label names like in PCA plot
 - unify the list of args across pcaplot.ils and dendrogram.ils. Make sure labeling and color picking is done in the same location (either inside or outside the function)
 
 ```{r}
+sample.labels <- stri_replace(colnames(dat.nonnorm.summ.w2[[1]] %>% select(-Protein)), fixed='Mixture', 'Mix')
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.nonnorm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    dendrogram.ils(dat.norm.summ.w2[[i]][1:1000,] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, paste('Raw', variant.names[i], sep='_'))
+    dendrogram.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -330,28 +343,16 @@ for (i in seq_along(dat.norm.summ.w2)) {
 }
 ```
 
-<!-- Wilcoxon test -->
-
-<!-- Permutation test -->
-
 # Results comparison
 
-Confusion matrix:
+Confusion matrix
 
 ```{r, results='asis'}
-for (i in 1:n.comp.variants){
-  cat("\n")
-  cat('Confusion matrix for variant: ', variant.names[i])
-  cm <- conf.mat(dat.dea[[i]], 'q.mod', 0.05)
-  cat("\n")
-  print(kable(cm$tab))
-  cat("\n")
-  print(kable(cm$metrics))
-  cat("\n")
-}
+cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
+print.conf.mat(cm)
 ```
 
-Scatter plots:
+Scatter plots
 
 ```{r}
 # character vectors containing logFC and p-values columns
@@ -360,22 +361,19 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
-for (i in seq(n.comp.variants)){
-  pairs.panels(dat.dea[[i]][, q.cols], method='spearman', main=paste("Spearman's correlation of adjusted p-values", variant.names[i], sep='_' ))
-  
-  pairs.panels(dat.dea[[i]][, logFC.cols], method='spearman', main=paste("Spearman's correlation of log2FC", variant.names[i], sep='_' ))
-}
+scatterplot.ils(dat.dea, q.cols, 'p-values')
+scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots:
+Volcano plots
 
 ```{r}
-for (i in 1:n.comp.variants){
-  volcanoplot.ils(dat.dea[[i]], variant.names[i])
+for (i in 1:n.contrasts){
+  volcanoplot.ils(dat.dea, i, spiked.proteins)
 }
 ```
 
-Violin plots:
+Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}
@@ -385,7 +383,6 @@ dat.spiked.logfc.l <- lapply(dat.spiked.logfc, function(x) {
   x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
 violinplot.ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
 ```
-
 
 # Conclusions
 
