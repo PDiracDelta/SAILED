@@ -293,7 +293,7 @@ volcanoplot.ils <- function(dat, contrast.num, spiked.proteins){
   q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
   
   # list for storing variant specifc plots
-  volcano.plots <- vector('list', length(logFC.cols))
+  volcano.plots <- vector('list', length(dat))
   
   # contrast names
   contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
