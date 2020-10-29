@@ -37,7 +37,6 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
   return(x)
 }
 
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -81,7 +80,7 @@ mixed.model.dea <- function(dat, mod.formula, referenceCondition){
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions-1)
   t.mod <- p.mod <- logFC
-  i=3
+  
   for (i in seq_along(proteins)){
     mod <- possib_mod(proteins[i])
     if (!is.null(mod)){
@@ -111,7 +110,6 @@ mixed.model.dea <- function(dat, mod.formula, referenceCondition){
   # results <- results %>% drop_na() # removing proteins with missing values may affect
   return(results)
 } 
-
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for printing # of up/down/not regulated proteins
@@ -295,4 +293,48 @@ moderated_ttest <- function(dat, design, scale) {
   rownames(results) <- rownames(dat)
   # remove referenceCondition values; they are irrelevant
   return(results %>% select(-contains(reference_condition)))
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Wilcoxon test
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+wilcoxon_test <- function(dat, referenceCondition, otherConditions){
+  
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
+  nproteins <- length(proteins)
+  
+  n.conditions <- length(otherConditions)
+  
+  refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
+    distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+  
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
+  t.mod <- p.mod <- logFC
+  
+  for (i in 1:n.conditions){
+    
+  CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
+      distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+    
+    wilcox.results=row_wilcoxon_twosample(x=dat[,CondCols], y=dat[,refCondCols])
+    
+    logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
+    t.mod[,i] <- wilcox.results$statistic
+    p.mod[,i] <- wilcox.results$pvalue
+  }
+  
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', otherConditions)
+  colnames(t.mod) <- paste0('t.mod', '_', otherConditions)
+  colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
+  colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod)
+  rownames(results) <- proteins
+  
+  return(results)
 }
