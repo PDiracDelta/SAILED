@@ -139,20 +139,26 @@ dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condi
 
 ## medianSweeping
 
+```{r}
+# subtract the spectrum median log2intensity from the observed log2intensities
+dat.norm.w$medianSweeping <- dat.unit.w
+dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
+```
+
 TO DO:
 - remove next code block i changed parameter values to avoid errors in subsequent code blocks
 ```{r}
 # specify # of varying component variants and their names
-# n.comp.variants <- 3
-n.comp.variants <- 2
-#variant.names <- c('CONSTANd', 'NOMAD', 'medianSweeping')
-variant.names <- c('CONSTANd', 'NOMAD')
-# scale.vec <- c('log', 'log', 'log') 
-scale.vec <- c('log', 'log') 
+n.comp.variants <- 3
+#n.comp.variants <- 2
+variant.names <- c('CONSTANd', 'NOMAD', 'medianSweeping')
+#variant.names <- c('CONSTANd', 'NOMAD')
+scale.vec <- c('log', 'log', 'log') 
+#scale.vec <- c('log', 'log') 
 ```
 
 ```{r}
-dat.norm.w$medianSweeping <- NULL # do_mediansweeping
+#dat.norm.w$medianSweeping <- NULL # do_mediansweeping
 ```
 
 # Summarization component
@@ -179,6 +185,17 @@ Let's also summarize the non-normalized data for comparison in the next section.
 # non-normalized data
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+```
+
+```{r}
+# medianSweeping: in each channel, subtract median computed across all proteins within a channel
+# do the above separately for each MS run
+x.split <- split(dat.norm.summ.w$medianSweeping, dat.norm.summ.w$medianSweeping$Run)  
+x.split.norm  <- lapply(x.split, function(y) {
+  y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median) )
+  return(y)
+})
+dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 ```
 
 # QC plots
@@ -234,10 +251,10 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], 'Before normalization')
+p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], 'Raw')
 
 for (i in 1: n.comp.variants){
- p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+ p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }
 grid.arrange(grobs = p, ncol=2, nrow=2)  
 ```
@@ -250,10 +267,10 @@ channels.num <- colors.condition.map %>% filter(Condition=='1') %>% select(Chann
 channels.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% select(Channel) %>% pull
 
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale.vec[i], 'Before normalization')
+p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale.vec[i], 'Raw')
 
 for (i in 1: n.comp.variants){
- p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+ p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }
 grid.arrange(grobs = p, ncol=2, nrow=2)  
 ```
@@ -289,11 +306,11 @@ par(mfrow=c(1, 1))
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
 par(mfrow=c(2, 2))
-  pcaplot.ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, 'Before normalization')
+  pcaplot.ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, 'Raw')
   
 for (i in seq_along(dat.norm.summ.w2)){
   # select only the spiked.proteins
-  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  pcaplot.ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))  
 ```
@@ -303,11 +320,11 @@ par(mfrow=c(1, 1))
 # create a shorter version of run variable to present on legend ([-1] to avoid Protein col)
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.norm.summ.w2[[1]])[-1], fixed='_'), function(x) paste(x[2],x[3],sep = '_'))), fixed='Mixture', 'Mix')
 par(mfrow=c(2, 2))
-  pcaplot.ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, 'Before normalization')
+  pcaplot.ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, 'Raw')
   
 for (i in seq_along(dat.norm.summ.w2)){
   # select only the spiked.proteins
-  pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+  pcaplot.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))  
 ```
@@ -324,10 +341,10 @@ TO DO:
 sample.labels <- stri_replace(colnames(dat.nonnorm.summ.w2 %>% select(-Protein)), fixed='Mixture', 'Mix')
 
 par(mfrow=c(2, 2))
-  dendrogram.ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, 'Before normalization')
+  dendrogram.ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, 'Raw')
 
 for (i in seq_along(dat.norm.summ.w2)){
-    dendrogram.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))  
 ```
@@ -374,9 +391,8 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
-# scatterplot.ils(dat.dea, p.cols, 'p-values') # commented due to error, sd=0 for NOMAD and RAW
+#scatterplot.ils(dat.dea, q.cols, 'p-values') # commented due to error, sd=0 for NOMAD and RAW
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
-
 ```
 
 Volcano plots
