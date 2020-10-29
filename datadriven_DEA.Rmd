@@ -1,0 +1,252 @@
+---
+title: "Data-driven analysis of isobaric labels data. DEA component."
+author: "Joris Van Houtven"
+date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    code_folding: "hide"
+editor_options: 
+  chunk_output_type: console
+---
+  
+```{r, setup, include=FALSE}
+# default knitr options for all chunks
+knitr::opts_chunk$set(
+  message=FALSE,
+  warning=FALSE,
+  fig.width=12,
+  fig.height=7
+)
+```
+
+```{r}
+library(caret)
+# library(DEP)
+# library(nlme)
+# library(lme4)
+# library(lmerTest)
+library(limma)
+library(ggplot2)
+library(stringi)
+library(RColorBrewer)
+library(gridExtra)
+library(psych)
+library(kableExtra)
+library(psych)
+library(tidyverse)
+library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
+library(matrixTests)
+```
+
+This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
+
+We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
+
+```{r}
+source('./other_functions.R')
+source('./plotting_functions.R')
+
+# you should either make a symbolic link in this directory
+data.list <- readRDS('input_data.rds')
+dat.l <- data.list$dat.l # data in long format
+# dat.w <- data.list$dat.w # data in wide format
+if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
+
+# remove shared peptides
+shared.peptides <- dat.l %>% filter(!shared.peptide)
+
+# keep spectra with isolation interference <30 and no missing quantification channels
+dat.l <- dat.l %>% filter(isoInterOk & noNAs)
+
+# which proteins were spiked in?
+spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
+
+# which peptides were identified in each MS run?
+unique.pep=dat.l %>% 
+  group_by(Run) %>%
+  distinct(Peptide) %>% 
+  mutate(val=1)
+unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
+tmp <- apply(unique.pep, 1, function(x) all(x==1))
+inner.peptides <- rownames(unique.pep)[tmp]
+```
+
+```{r}
+# specify # of varying component variants and their names
+n.comp.variants <- 2
+variant.names <- c('LIMMA', 'Wilcoxon')
+scale.vec <- c('log', 'log') 
+# pick reference channel and condition for making plots / doing DEA
+referenceChannel <- '127C'
+referenceCondition <- '0.5'
+```
+
+# Unit component
+
+```{r}
+dat.unit.l <-list()
+```
+
+## log2 transformation of reporter ion intensities
+
+```{r}
+dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+```
+
+# Normalization component
+
+```{r}
+# switch to wide format
+dat.unit.w <- lapply(dat.unit.l, function(x) {
+  pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
+})
+# dat.unit.w2 <- lapply(dat.unit.l, function(x) {
+#   pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=c('Run','Channel'), values_from=response)
+# })
+```
+
+## CONSTANd
+
+```{r}
+# dat.unit.l entries are in long format so all have same colnames and no quanCols
+quanCols = setdiff(colnames(dat.unit.w[[1]]), colnames(dat.unit.l[[1]]))
+dat.norm.w <- lapply(dat.unit.w, function(x) {
+  x.split <- split(x, x$Run)  # apply CONSTANd to each Run separately
+  x.split.norm  <- lapply(x.split, function(y) {
+    y[,quanCols] <- CONSTANd(y[,quanCols])$normalized_data
+    return(y)
+  })
+  return(bind_rows(x.split.norm))
+})
+```
+
+# Summarization component
+
+Summarize quantification values from PSM to peptide (first step) to protein (second step).
+
+## Median summarization (PSM to peptide to protein)
+
+```{r}
+# normalized data
+study.design=read.delim('msstatstmt_studydesign.csv')
+dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
+  # group by (run,)protein,peptide then summarize twice (once on each level)
+  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+  return(y)
+})
+```
+
+Notice that the row sums are not equal to Ncols anymore, because the median summarization
+does not preserve them (but mean summarization does).
+
+# QC plots
+
+```{r}
+# make data completely wide (also across runs)
+
+## normalized data
+dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
+  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols))
+  return(dat.tmp)
+})
+
+# make vectors with condition labels and color coding corresponding to samples in wide format data
+colors.condition <- tribble(
+  ~Condition, ~Col,
+  "0.125", 'black',
+  "0.5", 'blue',
+  "0.667", 'green',
+  "1", 'red'
+)
+run_channel_condition <- expand_grid(Channel=quanCols, Run=unique(study.design$Run)) %>% left_join(study.design, by=c('Channel', 'Run')) %>% select(Run, Channel, Condition)
+colors.condition.map <- run_channel_condition %>% unite(Channel, Channel:Run) %>% left_join(colors.condition, by='Condition')
+ord <- match(colnames(dat.norm.summ.w2[[1]]), colors.condition.map$Channel)
+ord <- ord[!is.na(ord)]  # drop first entry which is NA
+
+# important: these two vectors contain colors and condition labels corresponding to data in wide2 format
+cols.vec <- colors.condition.map[ord, 'Col'] %>% pull
+conditions.vec <- colors.condition.map[ord, 'Condition'] %>% pull
+```
+
+# DEA component
+
+## Moderated t-test
+
+TODO:
+- Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
+  - done. remove this code?
+NOTE:
+- actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
+```{r}
+design.matrix <- get_design_matrix(referenceCondition, study.design)
+dat.dea <- emptyList(variant.names)
+for (i in seq_along(dat.norm.summ.w2)) {
+  this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
+  d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[i]]), 'Protein')
+  dat.dea[[i]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
+}
+```
+
+## Wilcoxon test
+
+TO DO:-Wilcoxon test doesn't compute log2FC. Wanna try to compute means on original scale and then log2 ratio of sample means?
+
+```{r}
+otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
+otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
+dat.dea[[2]] <- wilcoxon_test(dat.norm.summ.w2[[1]], referenceCondition, otherConditions)
+```
+
+# Results comparison
+
+Confusion matrix
+
+```{r, results='asis'}
+cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
+print.conf.mat(cm)
+```
+
+Scatter plots
+
+```{r}
+# character vectors containing logFC and p-values columns
+dea.cols <- colnames(dat.dea[[1]])
+logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
+q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
+n.contrasts <- length(logFC.cols)
+
+scatterplot.ils(dat.dea, q.cols, 'p-values')
+scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
+```
+
+Volcano plots
+
+```{r}
+for (i in 1:n.contrasts){
+  volcanoplot.ils(dat.dea, i, spiked.proteins)
+}
+```
+
+Violin plots
+
+Let's see whether the spiked protein fold changes make sense
+```{r}
+# plot theoretical value (horizontal lines) and violin per condition
+dat.spiked.logfc <- lapply(dat.dea, function(x) x[spiked.proteins,logFC.cols])
+dat.spiked.logfc.l <- lapply(dat.spiked.logfc, function(x) {
+  x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
+violinplot.ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
+```
+
+# Conclusions
+
+# Session information
+
+```{r}
+sessionInfo()
+```
