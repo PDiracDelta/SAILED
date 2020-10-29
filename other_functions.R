@@ -313,13 +313,16 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions){
   t.mod <- p.mod <- logFC
   
   for (i in 1:n.conditions){
-    
+  
   CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
       distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
     
     wilcox.results=row_wilcoxon_twosample(x=dat[,CondCols], y=dat[,refCondCols])
     
-    logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
+    #logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
+    num <- rowMeans(2^dat[,CondCols], na.rm = T)
+    denom <- rowMeans(2^dat[,refCondCols], na.rm = T)
+    logFC[,i] <- ifelse(denom!=0, log2(num/denom), NA) 
     t.mod[,i] <- wilcox.results$statistic
     p.mod[,i] <- wilcox.results$pvalue
   }
