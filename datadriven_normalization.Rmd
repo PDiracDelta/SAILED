@@ -25,19 +25,12 @@ knitr::opts_chunk$set(
 ```
 
 ```{r}
-library(caret)
-# library(DEP)
-# library(nlme)
-# library(lme4)
-# library(lmerTest)
-library(limma)
 library(ggplot2)
 library(stringi)
-library(RColorBrewer)
 library(gridExtra)
-library(psych)
 library(kableExtra)
 library(psych)
+library(limma)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")

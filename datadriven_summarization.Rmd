@@ -25,18 +25,12 @@ knitr::opts_chunk$set(
 ```
 
 ```{r}
-library(caret)
-# library(DEP)
-# library(nlme)
-# library(lme4)
-# library(lmerTest)
-library(limma)
+
 library(ggplot2)
 library(stringi)
-library(RColorBrewer)
 library(gridExtra)
-library(psych)
 library(kableExtra)
+library(limma)
 library(psych)
 library(MSnbase)  # CAREFUL! load this BEFORE tidyverse, or you will screw up the rename function.
 library(tidyverse)
