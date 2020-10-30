@@ -312,9 +312,6 @@ for (i in seq_along(dat.norm.summ.w2)){
 
 ## Moderated t-test
 
-TODO:
-- Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
-  - done. remove this code?
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
