@@ -244,7 +244,7 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], 'Raw')
+p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
 
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
