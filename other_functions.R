@@ -1,5 +1,3 @@
-library(tidyverse)
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # make empty list with names pre-defined.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -42,8 +40,6 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 aggFunc=function(dat, var.names, agg.method='mean'){
-  
-  library(dtplyr)
   select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
   
   dat2 <- lazy_dt(dat)
@@ -249,7 +245,6 @@ get_design_matrix <- function(referenceCondition, study.design) {
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 moderated_ttest <- function(dat, design, scale) {
-  library(limma)
   # This version makes MAXIMAL use of limma. It is an extension of eb.fit, but 
   # with terminology from moderated_ttest_extracted, which returns 
   # output for more than 1 sample comparison.
