@@ -368,14 +368,14 @@ dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Prot
 
 # Results comparison
 
-Confusion matrix
+## Confusion matrix
 
 ```{r, results='asis'}
 cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
 print.conf.mat(cm)
 ```
 
-Scatter plots
+## Scatter plots
 TO DO: Piotr: constant NOMAD i RAW q-values (approx. 1) generate error in scatterplots
 ```{r}
 # character vectors containing logFC and p-values columns
@@ -388,7 +388,7 @@ n.contrasts <- length(logFC.cols)
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots
+## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -396,7 +396,7 @@ for (i in 1:n.contrasts){
 }
 ```
 
-Violin plots
+## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}

@@ -202,14 +202,14 @@ dat.dea[[3]] <- permutation_test(dat.norm.summ.w2[[1]], referenceCondition, othe
 
 # Results comparison
 
-Confusion matrix
+## Confusion matrix
 
 ```{r, results='asis'}
 cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
 print.conf.mat(cm)
 ```
 
-Scatter plots
+## Scatter plots
 
 ```{r}
 # character vectors containing logFC and p-values columns
@@ -222,7 +222,7 @@ scatterplot.ils(dat.dea, q.cols, 'p-values')
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots
+## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -230,7 +230,7 @@ for (i in 1:n.contrasts){
 }
 ```
 
-Violin plots
+## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}
