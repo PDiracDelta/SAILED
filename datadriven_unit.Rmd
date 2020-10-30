@@ -101,7 +101,8 @@ or in other words: each value is divided by the row mean.
 
 ```{r}
 # group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
-dat.unit.l[[3]] <- dat.l %>% group_by(Run, RT) %>% mutate(response=Intensity/mean(Intensity)) %>% ungroup() %>% select(-c(Intensity))
+denom.df <- dat.l %>% group_by(Run, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
+dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) # response=log2(Intensity/denom)
 ```
 
 # Normalization component
