@@ -72,9 +72,8 @@ inner.peptides <- rownames(unique.pep)[tmp]
 # specify # of varying component variants and their names
 n.comp.variants <- 3
 variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
-scale.vec <- c('log', 'raw', 'raw')
-# pick reference channel and condition for making plots / doing DEA
-referenceChannel <- '127C'
+scale.vec <- c('log', 'raw', 'raw')  # ratios are considered raw, because they are basically mean-normalized intensities
+# pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 ```
 
@@ -95,13 +94,14 @@ dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intens
 dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
 
-## intensity ratios (channel 127C in denominator)
+## intensity ratios (with respect to average within run)
+
+Calculate ratio's (per PSM) with respect to average intensity within run, 
+or in other words: each value is divided by the row mean.
 
 ```{r}
-# or we can try another channel as reference
-denom.df <- dat.l %>% filter(Channel==referenceChannel) %>% rename(denom=Intensity) %>%
-  select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity)) # response=log2(Intensity/denom)
+# group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
+dat.unit.l[[3]] <- dat.l %>% group_by(Run, RT) %>% mutate(response=Intensity/mean(Intensity)) %>% ungroup() %>% select(-c(Intensity))
 ```
 
 # Normalization component
