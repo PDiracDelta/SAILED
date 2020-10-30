@@ -268,10 +268,10 @@ scatterplot.ils <- function(dat, cols, stat){
   title <- paste("Spearman's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
-  i=1
+  
   for (i in 1:length(cols)){
-    names(dat) <- NULL
-    df <- sapply(dat, function(x) x[, cols[i]])
+    # names(dat) <- NULL # this line generates variant names on the plot
+    df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame %>% drop_na()
     pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
   }
 }

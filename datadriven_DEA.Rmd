@@ -72,9 +72,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.comp.variants <- 2
-variant.names <- c('LIMMA', 'Wilcoxon')
-scale.vec <- c('log', 'log') 
+n.comp.variants <- 3
+variant.names <- c('LIMMA', 'Wilcoxon', 'Permutation test')
+scale.vec <- c('log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
@@ -188,12 +188,16 @@ for (i in seq_along(dat.norm.summ.w2)) {
 
 ## Wilcoxon test
 
-TO DO:-Wilcoxon test doesn't compute log2FC. Wanna try to compute means on original scale and then log2 ratio of sample means?
-
 ```{r}
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
 dat.dea[[2]] <- wilcoxon_test(dat.norm.summ.w2[[1]], referenceCondition, otherConditions)
+```
+
+## Permutation test
+
+```{r}
+dat.dea[[3]] <- permutation_test(dat.norm.summ.w2[[1]], referenceCondition, otherConditions, B=1000, seed=394)
 ```
 
 # Results comparison
