@@ -71,7 +71,7 @@ inner.peptides <- rownames(unique.pep)[tmp]
 ```{r}
 # specify # of varying component variants and their names
 n.comp.variants <- 3
-variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
+variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
 # pick reference channel and condition for making plots / doing DEA
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
@@ -94,7 +94,7 @@ dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intens
 dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
 
-## log2-transformation of intensity ratios (channel 127C in denominator)
+## intensity ratios (channel 127C in denominator)
 
 ```{r}
 # or we can try another channel as reference
