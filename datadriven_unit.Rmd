@@ -72,6 +72,7 @@ inner.peptides <- rownames(unique.pep)[tmp]
 # specify # of varying component variants and their names
 n.comp.variants <- 3
 variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
+scale.vec <- c('log', 'raw', 'raw')
 # pick reference channel and condition for making plots / doing DEA
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
@@ -101,7 +102,6 @@ dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 denom.df <- dat.l %>% filter(Channel==referenceChannel) %>% rename(denom=Intensity) %>%
   select(Run, Protein, Peptide, RT, Charge, PTM, denom)
 dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity)) # response=log2(Intensity/denom)
-# log2ratio=0 for the reference channel, NA are generated in CONSTANd normalization - fix this bug
 ```
 
 # Normalization component
@@ -213,7 +213,6 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
 # use wide2 format
 for (i in 1: n.comp.variants){
   p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
