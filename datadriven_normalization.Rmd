@@ -138,22 +138,6 @@ dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
 ```
 
-TO DO:
-- remove next code block i changed parameter values to avoid errors in subsequent code blocks
-```{r}
-# specify # of varying component variants and their names
-n.comp.variants <- 3
-#n.comp.variants <- 2
-variant.names <- c('CONSTANd', 'NOMAD', 'medianSweeping')
-#variant.names <- c('CONSTANd', 'NOMAD')
-scale.vec <- c('log', 'log', 'log') 
-#scale.vec <- c('log', 'log') 
-```
-
-```{r}
-#dat.norm.w$medianSweeping <- NULL # do_mediansweeping
-```
-
 # Summarization component
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
