@@ -341,3 +341,68 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions){
   
   return(results)
 }
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Permutation test
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+# dat <- dat.norm.summ.w2[[1]]
+# referenceCondition
+# otherConditions
+# seed=2998
+# B=1000
+
+permutation_test <- function(dat, referenceCondition, otherConditions, B, seed){
+  
+  set.seed(seed)
+  
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
+  nproteins <- length(proteins)
+  
+  n.conditions <- length(otherConditions)
+  
+  allCols <- colnames(dat)[-1]
+  refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
+    distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+  refCondColsLen <- length(refCondCols)
+  
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
+  t.mod <- p.mod <- logFC
+  permStat <- matrix(NA, nrow=nproteins, ncol=B)
+  
+  for (i in 1:n.conditions){
+    
+    CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
+      distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+    
+    obsStat <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
+    
+    for (b in 1:B){
+      
+      shuffledChannels <- sample(c(refCondCols, CondCols))
+      
+      datRef <- dat[, shuffledChannels[1:refCondColsLen]]
+      datCond <- dat[, shuffledChannels[(refCondColsLen+1):length(shuffledChannels)]]
+      
+      permStat[,b] <- rowMeans(datCond, na.rm=TRUE)-rowMeans(datRef, na.rm=TRUE)
+    }
+    
+    logFC[,i] <- obsStat 
+    t.mod[,i] <- NA
+    sum.tmp <- apply(cbind(abs(obsStat), abs(permStat)), 1, function(x) sum(x[-1]>x[1], na.rm=T))
+    p.mod[,i] <- (1+sum.tmp)/(1+B)
+  }
+  
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', otherConditions)
+  colnames(t.mod) <- paste0('t.mod', '_', otherConditions)
+  colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
+  colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod)
+  rownames(results) <- proteins
+  return(results)
+}
