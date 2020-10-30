@@ -227,7 +227,6 @@ for (i in 1: n.comp.variants){
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
 channels.num <- colors.condition.map %>% filter(Condition=='1') %>% select(Channel) %>% pull
 channels.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% select(Channel) %>% pull
 for (i in 1: n.comp.variants){
