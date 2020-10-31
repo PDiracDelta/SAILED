@@ -60,7 +60,6 @@ boxplot.w <- function(dat, study.design, title, ...){
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   # convert to long format again because ggplot for wide data is excruciating
   dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
-  
   boxplot.ils(dat, title, ...)  
 }
 
@@ -201,12 +200,10 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
   violin.plots <- emptyList(names(dat.spiked.logfc.l))
   for (i in seq_along(violin.plots)) {
-    p <- ggplot(dat.spiked.logfc.l[[i]], aes(x=condition, y=logFC)) + 
+    violin.plots[[i]] <- ggplot(dat.spiked.logfc.l[[i]], aes(x=condition, y=logFC)) + 
       geom_violin(draw_quantiles = TRUE) + ggtitle(names(dat.spiked.logfc.l)[i]) + 
       geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
-                   color = 'red', linetype = 'dashed')
-    violin.plots[[i]] <- p
-  }
+                   color = 'red', linetype = 'dashed') }
   do.call(grid.arrange, violin.plots)
 }
 
