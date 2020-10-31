@@ -28,6 +28,7 @@ knitr::opts_chunk$set(
 library(ggplot2)
 library(stringi)
 library(gridExtra)
+library(dendextend)
 library(kableExtra)
 library(psych)
 library(limma)
