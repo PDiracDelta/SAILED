@@ -29,9 +29,7 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
     x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
     relocate(TechRepMixture, .after=Mixture) %>%
     relocate(Condition, .after=TechRepMixture) %>%
-    relocate(BioReplicate, .after=Condition)  
-    # %>%  select(-X) # is this needed?
-  }
+    relocate(BioReplicate, .after=Condition) }
   return(x)
 }
 
@@ -235,8 +233,7 @@ get_design_matrix <- function(referenceCondition, study.design) {
   rownames(design) <- all_channels
   colnames(design) <- c(referenceCondition, otherConditions)
   for (i in 1:N_channels) {  # for each channel in each condition, put a "1" in the design matrix.
-    design[study.design.unitedchannel$Channel[i], study.design.unitedchannel$Condition[i]] = 1
-  }
+    design[study.design.unitedchannel$Channel[i], study.design.unitedchannel$Condition[i]] = 1 }
   return(design)
 }
 
