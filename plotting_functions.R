@@ -1,7 +1,7 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # dat.beforenorm <- dat.summplot.l
 # dat.afternorm <- dat.normplot.l
@@ -48,9 +48,6 @@ boxplot.ils <- function(dat, title, ...){
        cex = 1)
 }
 
-# use case (not run)
-# boxplot.ils(dat, 'afternorm')
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.w
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -67,9 +64,10 @@ boxplot.w <- function(dat, study.design, title, ...){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # maplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
+# what is 'correctness of MA plots' ?
 # investigate correctness of MA plots for model-based normalized data
 
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # design.look <- dat.l %>% distinct(Run, Channel, Condition)
 # dat <- dat.summplot.w[[1]] # before normalization
@@ -78,6 +76,7 @@ boxplot.w <- function(dat, study.design, title, ...){
 # scale <- 'log' #or raw
 # title <- 'Before normalization'
 
+# what does 'gm' in gm_mean stand for?
 gm_mean = function(x, na.rm=TRUE){
   exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
@@ -118,6 +117,7 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
     geom_hline(yintercept = -1.0, color = "black", linetype = "dotted") # 2-fold down
 }
 
+# obsolete?
 # use case (not run)
 # samples.num <- dat.summplot.l[[1]] %>% filter(Condition=='1') %>% distinct(Run:Channel) %>% pull
 # samples.denom <- dat.summplot.l[[1]] %>% filter(Condition=='0.125') %>% distinct(Run:Channel) %>% pull 
@@ -129,9 +129,11 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
 # pcaplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# todo
 # think of a better way to allocate legend
 # conditions are not sorted properly
 
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # dat <- dat.summplot.w[[1]]
 # run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat), fixed=':'), function(x) x[1])), fixed='Mixture', 'Mix')
@@ -163,15 +165,14 @@ pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, sc
   legend('bottomright', legend=legend2$condition, text.col=as.character(legend2$colour), bty = "n", cex=1.1) # condition
 }
 
-# use case (not run)
-# pcaplot.ils(dat, run.labels, condition.labels, colour.labels, title)
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # dendrogram.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# todo
 # add legend
 
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # dat <- dat.normplot.w[[1]][1:100, ]
 # sample.labels <- stri_replace(colnames(dat), fixed='Mixture', 'Mix')
@@ -195,6 +196,7 @@ dendrogram.ils <- function(dat, sample.labels, colour.labels, title){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # violinplot.ils: violin plot for each condition and dashed line with expected fold change
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 violinplot.ils <- function(dat.spiked.logfc.l) {
   conditions.num <- sort(as.numeric(unique(dat.spiked.logfc.l[[1]]$condition)))
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
@@ -215,6 +217,7 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
 # xaxis.group argument defines the groups for which CV will be computed separately. It can be set to: 
 # 'Condition', 'Run', 'Mixture', interactions of these.
 
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # dat <- dat.summplot.l[[1]]
 # title <- 'Before normalization'
@@ -237,7 +240,7 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
   CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan, na.rm=TRUE))
   
   # filter out features with CV larger greater than the quantile
-  # this is done to get rid of outliers and improve visibility 
+  # this is done to get rid of outliers and improve visibility
   CV.df <- left_join(CV.df, CV.quantiles.df, by=xaxis.group) %>% filter(CV<quan)
   
   ff <- formula(paste0('CV~', xaxis.group))
@@ -252,6 +255,7 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 # scatterplot.ils: wrapper function on pairs.panels from 'psych' package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# obsolete?
 # example function arguments' below for quicker development and debugging
 # dat <- dat.dea
 # cols <- q.cols
@@ -271,13 +275,11 @@ scatterplot.ils <- function(dat, cols, stat){
   }
 }
 
-# use case (not run)
-# scatterplot.ils(dat.dea, q.cols, 'p-values')
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # volcanoplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
+# obsolete?
 # dat=dat.dea
 # contrast.num=1
 
