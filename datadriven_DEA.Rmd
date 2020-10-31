@@ -83,6 +83,7 @@ referenceCondition <- '0.5'
 # Unit component
 
 ```{r}
+# do not use list (see modelbased notebook comment)
 dat.unit.l <-list()
 ```
 
@@ -169,6 +170,7 @@ NOTE:
 ```{r}
 design.matrix <- get_design_matrix(referenceCondition, study.design)
 dat.dea <- emptyList(variant.names)
+# when not using lists of length 1, this for-loop disappears.
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
   d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[i]]), 'Protein')
@@ -180,7 +182,8 @@ for (i in seq_along(dat.norm.summ.w2)) {
 ```{r}
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
-dat.dea[[2]] <- wilcoxon_test(dat.norm.summ.w2[[1]], referenceCondition, otherConditions)
+# please use names
+dat.dea$wilcoxon <- wilcoxon_test(dat.norm.summ.w2[[1]], referenceCondition, otherConditions)
 ```
 
 ## Permutation test
