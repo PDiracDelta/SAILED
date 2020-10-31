@@ -97,11 +97,7 @@ dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intens
 ```{r}
 # switch to wide format
 dat.unit.w <- lapply(dat.unit.l, function(x) {
-  pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
-})
-# dat.unit.w2 <- lapply(dat.unit.l, function(x) {
-#   pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=c('Run','Channel'), values_from=response)
-# })
+  pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response) } )
 ```
 
 ## CONSTANd
@@ -113,10 +109,8 @@ dat.norm.w <- lapply(dat.unit.w, function(x) {
   x.split <- split(x, x$Run)  # apply CONSTANd to each Run separately
   x.split.norm  <- lapply(x.split, function(y) {
     y[,quanCols] <- CONSTANd(y[,quanCols])$normalized_data
-    return(y)
-  })
-  return(bind_rows(x.split.norm))
-})
+    return(y) } )
+  return(bind_rows(x.split.norm)) } )
 ```
 
 # Summarization component
@@ -130,9 +124,7 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 study.design=read.delim('msstatstmt_studydesign.csv')
 dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
-  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
-  return(y)
-})
+  return( x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup() ) } )
 ```
 
 Notice that the row sums are not equal to Ncols anymore, because the median summarization
@@ -145,9 +137,7 @@ does not preserve them (but mean summarization does).
 
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols))
-  return(dat.tmp)
-})
+  return( x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols)) ) } )
 
 # make vectors with condition labels and color coding corresponding to samples in wide format data
 colors.condition <- tribble(
@@ -182,8 +172,7 @@ dat.dea <- emptyList(variant.names)
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
   d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[i]]), 'Protein')
-  dat.dea[[i]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
-}
+  dat.dea[[i]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale) }
 ```
 
 ## Wilcoxon test
@@ -226,8 +215,7 @@ scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot.ils(dat.dea, i, spiked.proteins)
-}
+  volcanoplot.ils(dat.dea, i, spiked.proteins) }
 ```
 
 ## Violin plots
