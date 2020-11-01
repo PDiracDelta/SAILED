@@ -261,18 +261,23 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 # dat <- dat.dea
 # cols <- q.cols
 # stat <- 'p-values'
+# title <- 'test'
 
 scatterplot.ils <- function(dat, cols, stat){
-  
+
   select.stat <- match.arg(stat, c('p-values', 'log2FC'))
-  title <- paste("Spearman's correlation of", select.stat)
+  title <- paste("Perason's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
+  
+  # fix the order of proteins
+  ord=rownames(dat[[1]])
+  dat=lapply(dat, function(x) x[ord, ])  
   
   for (i in 1:length(cols)){
     # names(dat) <- NULL # this line generates variant names on the plot
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame %>% drop_na()
-    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
+    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='pearson', lm=T, ellipses=F)
   }
 }
 
