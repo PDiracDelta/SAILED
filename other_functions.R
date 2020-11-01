@@ -41,14 +41,18 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-aggFunc=function(dat, var.names, agg.method='mean'){
+# dat=dat.summ.l
+# var.names='response'
+# group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide')
+
+aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
   
   library(dtplyr)
   select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
   
   dat2 <- lazy_dt(dat)
-  out.dat=dat2 %>%
-      group_by(Mixture, TechRepMixture, Run, Channel, Condition, BioReplicate, Protein, Peptide) %>%
+  out.dat=dat %>%
+      group_by(across(all_of(group.vars))) %>%
       summarize_at(var.names, eval(parse(text=select.met))) %>%
     as_tibble()
     
@@ -405,4 +409,44 @@ permutation_test <- function(dat, referenceCondition, otherConditions, B, seed){
   results <- data.frame(logFC, t.mod, p.mod, q.mod)
   rownames(results) <- proteins
   return(results)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# DEqMS
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+# dat <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
+# design <- get_design_matrix(referenceCondition, study.design)
+
+deqms_test <- function(dat, design) {
+  library(DEqMS)
+  design <- design[match(colnames(dat), rownames(design)),]  
+  ngenes <- dim(dat)[1]
+  fit <- eBayes(lmFit(dat, design))
+  fit$count = PSMcounts.df[rownames(fit$coefficients),]
+  fit = spectraCounteBayes(fit)
+  logFC <- fit$coefficients 
+  reference_condition <- colnames(design)[colSums(design) == nrow(design)]
+  reference_averages <- fit$coefficients[,reference_condition]
+  logFC[,reference_condition] <- logFC[,reference_condition] - reference_averages 
+  t.mod <- fit$sca.t 
+  p.mod <- fit$sca.p 
+  if(ngenes>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else q.mod <- p.mod 
+  colnames(logFC) <- paste0('logFC_', colnames(logFC))
+  colnames(t.mod) <- paste0('t.mod', '_', colnames(t.mod))
+  colnames(p.mod) <- paste0('p.mod', '_', colnames(p.mod))
+  colnames(q.mod) <- paste0('q.mod', '_', colnames(q.mod))
+  results <- data.frame(logFC, t.mod, p.mod, q.mod)
+  return(results %>% select(-contains(reference_condition)))
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# ANOVA using moderated_ttest
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+get_anova <- function(dat){
+  dat <- dat[,!stri_detect(colnames(dat), fixed='mod')] # drop the modified columns
+  colnames(dat) <- stri_replace(colnames(dat), replacement = 'mod', fixed='ord') # rename ordinary values into mod
+  # to be consistent with other functions
+  return(dat)
 }

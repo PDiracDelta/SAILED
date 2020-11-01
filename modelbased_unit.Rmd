@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
   message=FALSE,
   warning=FALSE,
   fig.width=12,
-  fig.height=9
+  fig.height=7
 )
 ```
 
@@ -59,7 +59,7 @@ dat.w <- data.list$dat.w # data in semi-wide format (wide only within runs)
 # keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
-# which spiked-in proteins are left?
+# which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 # which peptides were identified in each MS run?
@@ -133,17 +133,17 @@ dat.norm.l <- lapply(dat.summ.l, function(x) {
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', 'mean')) # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # after normalization
+dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', 'mean')) # Raw (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # Normalized
 
 # now create data sets in wide format
-# before normalization
+# Raw
 dat.summplot.w <- lapply(dat.summplot.l, function(x) {
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
   return(dat.tmp)
 })
 
-# after normalization
+# Normalized
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
   return(dat.tmp)
@@ -171,8 +171,8 @@ conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
 ```{r}
 for (i in 1: n.comp.variants){
   par(mfrow=c(1,2))
-    boxplot.ils(dat.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
-    boxplot.ils(dat.norm.l[[i]], paste('After normalization', variant.names[i], sep='_'))
+    boxplot.ils(dat.summ.l[[i]], paste('Raw', variant.names[i], sep='_'))
+    boxplot.ils(dat.norm.l[[i]], paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1,1))
 }
 ```
@@ -186,9 +186,9 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 scale.vec <- c('log', 'raw', 'log') 
 
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
   
-  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
   
   grid.arrange(p1, p2, ncol=2)  
 }
@@ -202,9 +202,9 @@ scale.vec <- c('log', 'raw', 'log')
 samples.num <- colors.condition.map %>% filter(Condition=='1') %>% distinct(`Run:Channel`) %>% pull
 samples.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% distinct(`Run:Channel`) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'))
   
-  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
   
   grid.arrange(p1, p2, ncol=2)  
 }
@@ -216,9 +216,9 @@ for (i in 1: n.comp.variants){
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
     cvplot.ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
-               title=paste('Before normalization', variant.names[i], sep='_'))
+               title=paste('Raw', variant.names[i], sep='_'))
     cvplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
-               title=paste('After normalization', variant.names[i], sep='_'))
+               title=paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -232,8 +232,8 @@ run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.summplot.w[[1]]
 spiked.peptides <- dat.l %>% filter(Protein %in% spiked.proteins) %>% distinct(Peptide) %>% pull
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.summplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('Before normalization', variant.names[i], sep='_'), scale=T)
-    pcaplot.ils(dat.normplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    pcaplot.ils(dat.summplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'), scale=T)
+    pcaplot.ils(dat.normplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -242,11 +242,10 @@ for (i in 1: n.comp.variants){
 
 ```{r}
 sample.labels <- stri_replace(colnames(dat.summplot.w[[1]]), fixed='Mixture', 'Mix')
-# !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.summplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('Before normalization', variant.names[i], sep='_'))
-    dendrogram.ils(dat.normplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('After normalization', variant.names[i], sep='_'))
+    dendrogram.ils(dat.summplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('Raw', variant.names[i], sep='_'))
+    dendrogram.ils(dat.normplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
