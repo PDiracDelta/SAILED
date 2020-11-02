@@ -1,6 +1,7 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # make empty list with names pre-defined.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 emptyList <- function(names) {
   return(sapply(names,function(x) NULL))
 }
@@ -8,8 +9,38 @@ emptyList <- function(names) {
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # interpret factors as a vector of character arrays. Factors are an invention of Satan.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 remove_factors <- function(x) {
   return(levels(x)[x])
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+get_sample_info <- function(dat, map){
+  tmp <- dat %>% select(Run, Channel, Condition) %>% distinct %>% 
+    left_join(map, by='Condition') %>% 
+    mutate(Run.short=factor(stri_replace(Run, fixed='Mixture', 'Mix')), 
+           Sample=Run:Channel,
+           Sample.short=Run.short:Channel) %>% 
+    relocate(Run.short, .after=Run) %>%
+    relocate(c(Sample, Sample.short), .after=Channel) %>% arrange(Sample)
+  return(tmp)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# return a character vector with peptide sequences identified in every MS run
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+get_inner_peptides <- function(dat){
+  unique.pep=dat %>% 
+    group_by(Run) %>%
+    distinct(Peptide) %>% 
+    mutate(val=1)
+  unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
+  tmp <- apply(unique.pep, 1, function(x) all(x==1))
+  return(rownames(unique.pep)[tmp])
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -34,7 +65,7 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# function performing mean or median aggregation of variables specified in var.names argument
+# function performing mean or median aggregation on variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 aggFunc=function(dat, var.names, agg.method='mean'){
@@ -53,12 +84,7 @@ aggFunc=function(dat, var.names, agg.method='mean'){
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# dat <- dat.norm.l[[2]]
-# mod.formula='response ~ Condition + (1|Run:Channel)'
-# referenceCondition
-
-# beautiful! this saves a lot of space in the notebook
-mixed.model.dea <- function(dat, mod.formula, referenceCondition){
+lmm_dea <- function(dat, mod.formula, referenceCondition){
   
   mod.formula <- as.formula(mod.formula)
   
@@ -70,14 +96,15 @@ mixed.model.dea <- function(dat, mod.formula, referenceCondition){
   n.conditions <- length(condition.levels)
   
   contrast.names <- condition.levels[-match(referenceCondition,condition.levels)]
-  # what is possib_mod? can we pick a better name?
-  possib_mod <- possibly(function(x) lmer(mod.formula, data=dat[dat$Protein==x, ], control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning")), otherwise=NULL)
   
+  # wrap up lmer call with 'possibly' function to continue the for loop despite errors
+  lmer_safe <- possibly(function(x) lmer(mod.formula, data=dat[dat$Protein==x, ], control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning")),
+                         otherwise=NULL)
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions-1)
   t.mod <- p.mod <- logFC
   
   for (i in seq_along(proteins)){
-    mod <- possib_mod(proteins[i])
+    mod <- lmer_safe(proteins[i])
     if (!is.null(mod)){
       sum.mod <- summary(mod)
       logFC[i,]=sum.mod$coefficients[-1,1] # estimate of the log2-fold-change corresponding to the effect size
@@ -110,7 +137,7 @@ mixed.model.dea <- function(dat, mod.formula, referenceCondition){
 # function for printing # of up/down/not regulated proteins
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
+regulated_proteins <- function(dea.mat, score.var, conditions, cut.off){
   cat('numerator condition:', conditions[1],', ' , 'denominator condition:', conditions[2], '\n')
   c(`Up`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']>0),
     `Down`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']<0),
@@ -120,15 +147,8 @@ regulated.proteins <- function(dea.mat, score.var, conditions, cut.off){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # wrapper on confusionMatrix from caret package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# remove bosolete code
-# example function arguments below for quicker development and debugging
-# dat=dat.dea
-# score.var='q.mod'
-# cut.off <- 0.05
 
-# rename cut.off, e.g. significance or pval.threshold
-conf.mat <- function(dat, score.var, cut.off, spiked.proteins){
-  
+conf_mat <- function(dat, score.var, significane.threshold, spiked.proteins){
   # extract contrast names
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
@@ -154,7 +174,7 @@ conf.mat <- function(dat, score.var, cut.off, spiked.proteins){
     tab[] <- NA
     stats[] <- NA
     for (j in 1:n.variants){
-      pred.class <- factor(ifelse(dat[[j]][, score.vars[i]]<cut.off, 'DE','not_DE'), levels=c('not_DE', 'DE'))
+      pred.class <- factor(ifelse(dat[[j]][, score.vars[i]]<significane.threshold, 'DE','not_DE'), levels=c('not_DE', 'DE'))
       true.class<- factor(ifelse(rownames(dat[[j]]) %in% spiked.proteins, 'DE','not_DE'), levels=c('not_DE', 'DE'))
       tmp=caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
       tab[[j]] <- tmp$table
@@ -167,31 +187,21 @@ conf.mat <- function(dat, score.var, cut.off, spiked.proteins){
   }
   return(results)
 }
-# obsolete code?
-# use case (not run)
-# cm <- conf.mat(dat.dea[[1]], 'q.mod', contrast.names, 0.05)
-# xtable(cm$tab, type='html')
-# xtable(cm$metrics, type='html')
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# print conf.mat output
+# print conf_mat output
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-print.conf.mat <- function(dat){
-  
+print_conf_mat <- function(dat){
   myHeader1 <- c(1, rep(2, length(variant.names)))
   names(myHeader1) <- c(" ",variant.names)
-  
   # dat is a list of size equal to # of contrasts
   # output is presented by contrasts
   for (i in 1:length(dat)){
-    
     myHeader2 <- c(1, 2*length(variant.names))
     names(myHeader2) <- c(" ", names(dat)[i])
-    
     myHeader3 <- c(1, length(variant.names))
     names(myHeader3) <- c(" ", names(dat)[i])
-    
     # print confusion table counts  
     print(
       kable(dat[[i]]$tab) %>%
@@ -199,7 +209,6 @@ print.conf.mat <- function(dat){
         add_header_above(myHeader1) %>%
         add_header_above(myHeader2)
     )
-    
     # print confusion table statistics
     print(
       kable(dat[[i]]$stats, digits=3) %>%
@@ -287,17 +296,18 @@ moderated_ttest <- function(dat, design, scale) {
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# Wilcoxon test
+# Wilcoxon rank-sum test
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Wilcoxon rank-sum test (equivalent to Mann–Whitney U test) comparing outcomes between 
+# two independent groups of samples. For each protein separately, the test is applied to each otherCondition w.r.t. referenceCondition.
+# Wilcoxon rank-sum test employs ranks of quantification values, therefore logFC must be computed manually:
+#   if scale='log': difference of arithmetic means computed on log2 scale
+#   if scale='raw': log2 ratio of arithmetic means computed on raw scale
 
-wilcoxon_test <- function(dat, referenceCondition, otherConditions){
-  # please write some documentation (e.g.: the usual wilcoxon test, applied to each otherCondition w.r.t. referenceCondition)
-  
+wilcoxon_test <- function(dat, referenceCondition, otherConditions, scale='raw'){
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
-  
   n.conditions <- length(otherConditions)
-  
   refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
     distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
   
@@ -310,11 +320,12 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions){
     
     wilcox.results=row_wilcoxon_twosample(x=dat[,CondCols], y=dat[,refCondCols])
     
-    # this depends on the scale of the input data. Perhaps add this as a function arg and work out separate cases?
-    #logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
-    num <- rowMeans(2^dat[,CondCols], na.rm = T)
-    denom <- rowMeans(2^dat[,refCondCols], na.rm = T)
-    logFC[,i] <- ifelse(denom!=0, log2(num/denom), NA) 
+    if (scale=='log') {logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)} 
+    else if (scale=='raw') {
+      num <- rowMeans(2^dat[,CondCols], na.rm = T)
+      denom <- rowMeans(2^dat[,refCondCols], na.rm = T)
+      logFC[,i] <- ifelse(denom!=0, log2(num/denom), NA) 
+    }
     t.mod[,i] <- wilcox.results$statistic
     p.mod[,i] <- wilcox.results$pvalue
   }
@@ -330,56 +341,42 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions){
   colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
   results <- data.frame(logFC, t.mod, p.mod, q.mod)
   rownames(results) <- proteins
-  
   return(results)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# Permutation test
+# permutation test
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# obsolete?
-# dat <- dat.norm.summ.w2[[1]]
-# referenceCondition
-# otherConditions
-# seed=2998
-# B=1000
 
-# what is B? remove seed, just set it in the notebook (or at least make it optional).
-permutation_test <- function(dat, referenceCondition, otherConditions, B, seed){
-  # please write some documentation. Is this with replacement?
-  
-  set.seed(seed)
-  
+# Two-group protein-by-protein permutation test based on the difference in arithmetic means. 
+# Columns of the m x n quantification matrix (m proteins and n biological samples) 
+# are B times randomly shuffled (drawing n column indices without replacement) in order to generate the null distribution 
+# of the test statistic. P-values are computed by comparing the observed test statistic value with the null distribution.
+permutation_test <- function(dat, referenceCondition, otherConditions, B=1000){
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
-  
   n.conditions <- length(otherConditions)
-  
-  # code block is duplicate of code in wilcoxon_test. Generalize?
-  allCols <- colnames(dat)[-1]
+  #allCols <- colnames(dat)[-1]
   refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
     distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
   refCondColsLen <- length(refCondCols)
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
   t.mod <- p.mod <- logFC
-  # what is permStat? it it obvious for people who know permutation testing?
   permStat <- matrix(NA, nrow=nproteins, ncol=B)
   
   for (i in 1:n.conditions){
     
     CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
       distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
-    # what is obsStat? it it obvious for people who know permutation testing?
+    # the observed test statistic value (difference in arithmetic means)
     obsStat <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
     
     for (b in 1:B){
-      
       shuffledChannels <- sample(c(refCondCols, CondCols))
-      
       datRef <- dat[, shuffledChannels[1:refCondColsLen]]
       datCond <- dat[, shuffledChannels[(refCondColsLen+1):length(shuffledChannels)]]
-      
+      # test statistic value (difference in arithmetic means) computed on permuted data
       permStat[,b] <- rowMeans(datCond, na.rm=TRUE)-rowMeans(datRef, na.rm=TRUE)
     }
     
