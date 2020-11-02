@@ -126,15 +126,14 @@ dat.norm.l <- lapply(dat.summ.l, function(x) {
   x$response <- residuals(mod)
   return(x)
 })
-
 ```
 
 # QC plots
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', 'mean')) # Raw (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # Normalized
+dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'mean')) # Raw (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'mean')) # Normalized
 
 # now create data sets in wide format
 # Raw
@@ -229,11 +228,10 @@ for (i in 1: n.comp.variants){
 # create a shorter version of run variable to present on legend
 run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.summplot.w[[1]]), fixed=':'), function(x) x[1])), fixed='Mixture', 'Mix')
 
-spiked.peptides <- dat.l %>% filter(Protein %in% spiked.proteins) %>% distinct(Peptide) %>% pull
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    pcaplot.ils(dat.summplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'), scale=T)
-    pcaplot.ils(dat.normplot.w[[i]][spiked.peptides, ], run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
+    pcaplot.ils(dat.summplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'), scale=T)
+    pcaplot.ils(dat.normplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -244,8 +242,8 @@ for (i in 1: n.comp.variants){
 sample.labels <- stri_replace(colnames(dat.summplot.w[[1]]), fixed='Mixture', 'Mix')
 for (i in 1: n.comp.variants){
   par(mfrow=c(1, 2))
-    dendrogram.ils(dat.summplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('Raw', variant.names[i], sep='_'))
-    dendrogram.ils(dat.normplot.w[[i]][spiked.peptides, ], sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
+    dendrogram.ils(dat.summplot.w[[i]], sample.labels, cols.vec, paste('Raw', variant.names[i], sep='_'))
+    dendrogram.ils(dat.normplot.w[[i]], sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
@@ -254,30 +252,11 @@ for (i in 1: n.comp.variants){
 
 ## mixed model (intra-protein correlation) + eBayes
 
-```{r, cache=TRUE}
-# !!! only 1000 first record selected to speed up knitting, remove in the final version!!!
+```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
-  out <- mixed.model.dea(dat=x[1:1000,], mod.formula='response ~ Condition + (1|Run:Channel)', conditions=c('1', referenceCondition)) 
+  out <- mixed.model.dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition)
   return(out)
 })
-# create fake variables to mimic the output format of Joris's moderated t-test function - this part will be removed
-condition.levels <- levels(dat.norm.l[[1]]$Condition)
-ref.condition <- condition.levels[1]
-contrast.names <- paste0('cond', condition.levels[-1], '-cond', ref.condition)
-dea.vars <- c('logFC','t.ord','t.mod','p.ord','p.mod','q.ord','q.mod')
-
-for (i in 1: length(dat.dea)){
-    dat1 <- dat.dea[[i]][, dea.vars]
-    dat2 <- dat1
-    dat3 <- dat1
-    colnames(dat1) <- paste(colnames(dat1), contrast.names[1], sep='_')
-    colnames(dat2) <- paste(colnames(dat2), contrast.names[2], sep='_')
-    colnames(dat3) <- paste(colnames(dat3), contrast.names[3], sep='_')
-    rnames <-  rownames(dat.dea[[i]])
-    dat.dea[[i]] <- bind_cols(dat1, dat2, dat3)
-    rownames(dat.dea[[i]]) <- rnames
-}
-# 
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
@@ -328,8 +307,6 @@ violinplot.ils(lapply(dat.spiked.logfc.l, filter, condition != referenceConditio
 ```{r}
 sessionInfo()
 ```
-
-
 
 
 
