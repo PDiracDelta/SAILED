@@ -1,5 +1,4 @@
-library(gridExtra)
-library(dendextend)
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -62,7 +61,7 @@ boxplot.w <- function(dat, study.design, title, ...){
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   # convert to long format again because ggplot for wide data is excruciating
   dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
-  
+
   boxplot.ils(dat, title, ...)  
 }
 
@@ -203,12 +202,10 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
   violin.plots <- emptyList(names(dat.spiked.logfc.l))
   for (i in seq_along(violin.plots)) {
-    p <- ggplot(dat.spiked.logfc.l[[i]], aes(x=condition, y=logFC)) + 
+    violin.plots[[i]] <- ggplot(dat.spiked.logfc.l[[i]], aes(x=condition, y=logFC)) + 
       geom_violin(draw_quantiles = TRUE) + ggtitle(names(dat.spiked.logfc.l)[i]) + 
       geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
-                   color = 'red', linetype = 'dashed')
-    violin.plots[[i]] <- p
-  }
+                   color = 'red', linetype = 'dashed') }
   do.call(grid.arrange, violin.plots)
 }
 
@@ -261,23 +258,20 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 # dat <- dat.dea
 # cols <- q.cols
 # stat <- 'p-values'
-# title <- 'test'
+
 
 scatterplot.ils <- function(dat, cols, stat){
-
+  
   select.stat <- match.arg(stat, c('p-values', 'log2FC'))
-  title <- paste("Perason's correlation of", select.stat)
+  title <- paste("Spearman's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
-  
-  # fix the order of proteins
-  ord=rownames(dat[[1]])
-  dat=lapply(dat, function(x) x[ord, ])  
+
   
   for (i in 1:length(cols)){
     # names(dat) <- NULL # this line generates variant names on the plot
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame %>% drop_na()
-    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='pearson', lm=T, ellipses=F)
+    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
   }
 }
 
