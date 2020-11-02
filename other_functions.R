@@ -41,23 +41,7 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# dat=dat.summ.l
-# var.names='response'
-# group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide')
 
-aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
-  
-  library(dtplyr)
-  select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
-  
-  dat2 <- lazy_dt(dat)
-  out.dat=dat %>%
-      group_by(across(all_of(group.vars))) %>%
-      summarize_at(var.names, eval(parse(text=select.met))) %>%
-    as_tibble()
-    
-  return(out.dat)
-}
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for mixed models DEA (without empirical bayes moderation)
