@@ -123,7 +123,7 @@ We apply NOMAD on the PSM level instead of the peptide level.
 
 ```{r}
 # doRobust=F: use means, like CONSTANd; doLog=F: values are already transformed.
-dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel), doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
+dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel) %>% as.data.frame, doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
 dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
 # get rid of factors
