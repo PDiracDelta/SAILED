@@ -25,18 +25,12 @@ knitr::opts_chunk$set(
 ```
 
 ```{r}
-library(caret)
-# library(DEP)
-# library(nlme)
-# library(lme4)
-# library(lmerTest)
-library(limma)
 library(ggplot2)
 library(stringi)
-library(RColorBrewer)
 library(gridExtra)
-library(psych)
+library(dendextend)
 library(kableExtra)
+library(limma)
 library(psych)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
@@ -78,9 +72,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 ```{r}
 # specify # of varying component variants and their names
 n.comp.variants <- 3
-variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
-# pick reference channel and condition for making plots / doing DEA
-referenceChannel <- '127C'
+variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
+scale.vec <- c('log', 'raw', 'raw')  # ratios are considered raw, because they are basically mean-normalized intensities
+# pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 ```
 
@@ -101,14 +95,15 @@ dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intens
 dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
 
-## log2-transformation of intensity ratios (channel 127C in denominator)
+## intensity ratios (with respect to average within run)
+
+Calculate ratio's (per PSM) with respect to average intensity within run, 
+or in other words: each value is divided by the row mean.
 
 ```{r}
-# or we can try another channel as reference
-denom.df <- dat.l %>% filter(Channel==referenceChannel) %>% rename(denom=Intensity) %>%
-  select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity)) # response=log2(Intensity/denom)
-# log2ratio=0 for the reference channel, NA are generated in CONSTANd normalization - fix this bug
+# group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
+denom.df <- dat.l %>% group_by(Run, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
+dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) # response=log2(Intensity/denom)
 ```
 
 # Normalization component
@@ -220,7 +215,6 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
 # use wide2 format
 for (i in 1: n.comp.variants){
   p1 <- maplot.ils(dat.nonnorm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
@@ -235,7 +229,6 @@ for (i in 1: n.comp.variants){
 
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
 channels.num <- colors.condition.map %>% filter(Condition=='1') %>% select(Channel) %>% pull
 channels.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% select(Channel) %>% pull
 for (i in 1: n.comp.variants){
@@ -320,9 +313,6 @@ for (i in seq_along(dat.norm.summ.w2)){
 
 ## Moderated t-test
 
-TODO:
-- Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
-  - done. remove this code?
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
@@ -345,14 +335,14 @@ for (i in seq_along(dat.norm.summ.w2)) {
 
 # Results comparison
 
-Confusion matrix
+## Confusion matrix
 
 ```{r, results='asis'}
 cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
 print.conf.mat(cm)
 ```
 
-Scatter plots
+## Scatter plots
 
 ```{r}
 # character vectors containing logFC and p-values columns
@@ -365,7 +355,7 @@ scatterplot.ils(dat.dea, q.cols, 'p-values')
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots
+## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -373,7 +363,7 @@ for (i in 1:n.contrasts){
 }
 ```
 
-Violin plots
+## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}

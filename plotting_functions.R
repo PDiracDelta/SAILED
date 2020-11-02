@@ -1,4 +1,3 @@
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -61,7 +60,6 @@ boxplot.w <- function(dat, study.design, title, ...){
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   # convert to long format again because ggplot for wide data is excruciating
   dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
-
   boxplot.ils(dat, title, ...)  
 }
 
@@ -259,14 +257,12 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 # cols <- q.cols
 # stat <- 'p-values'
 
-
 scatterplot.ils <- function(dat, cols, stat){
   
   select.stat <- match.arg(stat, c('p-values', 'log2FC'))
   title <- paste("Spearman's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
-
   
   for (i in 1:length(cols)){
     # names(dat) <- NULL # this line generates variant names on the plot

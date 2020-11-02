@@ -25,19 +25,13 @@ knitr::opts_chunk$set(
 ```
 
 ```{r}
-library(caret)
-# library(DEP)
-# library(nlme)
-# library(lme4)
-# library(lmerTest)
-library(limma)
 library(ggplot2)
 library(stringi)
-library(RColorBrewer)
 library(gridExtra)
-library(psych)
+library(dendextend)
 library(kableExtra)
 library(psych)
+library(limma)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
@@ -129,7 +123,7 @@ We apply NOMAD on the PSM level instead of the peptide level.
 
 ```{r}
 # doRobust=F: use means, like CONSTANd; doLog=F: values are already transformed.
-dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel), doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
+dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel) %>% as.data.frame, doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
 dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
 # get rid of factors
@@ -143,22 +137,6 @@ dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condi
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
-```
-
-TO DO:
-- remove next code block i changed parameter values to avoid errors in subsequent code blocks
-```{r}
-# specify # of varying component variants and their names
-n.comp.variants <- 3
-#n.comp.variants <- 2
-variant.names <- c('CONSTANd', 'NOMAD', 'medianSweeping')
-#variant.names <- c('CONSTANd', 'NOMAD')
-scale.vec <- c('log', 'log', 'log') 
-#scale.vec <- c('log', 'log') 
-```
-
-```{r}
-#dat.norm.w$medianSweeping <- NULL # do_mediansweeping
 ```
 
 # Summarization component
@@ -251,7 +229,7 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot.ils function 
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], 'Raw')
+p[[1]] <- maplot.ils(dat.nonnorm.summ.w2, '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
 
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot.ils(dat.norm.summ.w2[[i]], '127C_Mixture2_1', '129N_Mixture1_2', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
@@ -375,14 +353,14 @@ dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Prot
 
 # Results comparison
 
-Confusion matrix
+## Confusion matrix
 
 ```{r, results='asis'}
 cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
 print.conf.mat(cm)
 ```
 
-Scatter plots
+## Scatter plots
 TO DO: Piotr: constant NOMAD i RAW q-values (approx. 1) generate error in scatterplots
 ```{r}
 # character vectors containing logFC and p-values columns
@@ -395,7 +373,7 @@ n.contrasts <- length(logFC.cols)
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-Volcano plots
+## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -403,7 +381,7 @@ for (i in 1:n.contrasts){
 }
 ```
 
-Violin plots
+## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}

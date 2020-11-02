@@ -1,5 +1,3 @@
-library(tidyverse)
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # make empty list with names pre-defined.
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -31,9 +29,7 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
     x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
     relocate(TechRepMixture, .after=Mixture) %>%
     relocate(Condition, .after=TechRepMixture) %>%
-    relocate(BioReplicate, .after=Condition)  
-    # %>%  select(-X) # is this needed?
-  }
+    relocate(BioReplicate, .after=Condition) }
   return(x)
 }
 
@@ -41,7 +37,17 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 # function performing mean or median aggregation of variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-
+aggFunc=function(dat, var.names, agg.method='mean'){
+  select.met=match.arg(agg.method, c('mean', 'median', 'sum'))
+  
+  dat2 <- lazy_dt(dat)
+  out.dat=dat2 %>%
+      group_by(Mixture, TechRepMixture, Run, Channel, Condition, BioReplicate, Protein, Peptide) %>%
+      summarize_at(var.names, eval(parse(text=select.met))) %>%
+    as_tibble()
+    
+  return(out.dat)
+}
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for mixed models DEA (without empirical bayes moderation)
@@ -227,8 +233,7 @@ get_design_matrix <- function(referenceCondition, study.design) {
   rownames(design) <- all_channels
   colnames(design) <- c(referenceCondition, otherConditions)
   for (i in 1:N_channels) {  # for each channel in each condition, put a "1" in the design matrix.
-    design[study.design.unitedchannel$Channel[i], study.design.unitedchannel$Condition[i]] = 1
-  }
+    design[study.design.unitedchannel$Channel[i], study.design.unitedchannel$Condition[i]] = 1 }
   return(design)
 }
 
@@ -237,7 +242,6 @@ get_design_matrix <- function(referenceCondition, study.design) {
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 moderated_ttest <- function(dat, design, scale) {
-  library(limma)
   # This version makes MAXIMAL use of limma. It is an extension of eb.fit, but 
   # with terminology from moderated_ttest_extracted, which returns 
   # output for more than 1 sample comparison.
@@ -393,44 +397,4 @@ permutation_test <- function(dat, referenceCondition, otherConditions, B, seed){
   results <- data.frame(logFC, t.mod, p.mod, q.mod)
   rownames(results) <- proteins
   return(results)
-}
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# DEqMS
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-# dat <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
-# design <- get_design_matrix(referenceCondition, study.design)
-
-deqms_test <- function(dat, design) {
-  library(DEqMS)
-  design <- design[match(colnames(dat), rownames(design)),]  
-  ngenes <- dim(dat)[1]
-  fit <- eBayes(lmFit(dat, design))
-  fit$count = PSMcounts.df[rownames(fit$coefficients),]
-  fit = spectraCounteBayes(fit)
-  logFC <- fit$coefficients 
-  reference_condition <- colnames(design)[colSums(design) == nrow(design)]
-  reference_averages <- fit$coefficients[,reference_condition]
-  logFC[,reference_condition] <- logFC[,reference_condition] - reference_averages 
-  t.mod <- fit$sca.t 
-  p.mod <- fit$sca.p 
-  if(ngenes>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else q.mod <- p.mod 
-  colnames(logFC) <- paste0('logFC_', colnames(logFC))
-  colnames(t.mod) <- paste0('t.mod', '_', colnames(t.mod))
-  colnames(p.mod) <- paste0('p.mod', '_', colnames(p.mod))
-  colnames(q.mod) <- paste0('q.mod', '_', colnames(q.mod))
-  results <- data.frame(logFC, t.mod, p.mod, q.mod)
-  return(results %>% select(-contains(reference_condition)))
-}
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# ANOVA using moderated_ttest
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-get_anova <- function(dat){
-  dat <- dat[,!stri_detect(colnames(dat), fixed='mod')] # drop the modified columns
-  colnames(dat) <- stri_replace(colnames(dat), replacement = 'mod', fixed='ord') # rename ordinary values into mod
-  # to be consistent with other functions
-  return(dat)
 }
