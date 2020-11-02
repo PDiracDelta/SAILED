@@ -1,16 +1,8 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# dat.beforenorm <- dat.summplot.l
-# dat.afternorm <- dat.normplot.l
-# comp <- 'unit'
-
-# fix the issue with variable height of run labels
 
 boxplot.ils <- function(dat, title, ...){  
-    
   # first make sure that Run and Channel are factors 
   dat$Run <- as.factor(dat$Run)
   dat$Channel <- as.factor(dat$Channel)
@@ -64,44 +56,29 @@ boxplot.w <- function(dat, study.design, title, ...){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # maplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# what is 'correctness of MA plots' ?
-# investigate correctness of MA plots for model-based normalized data
+# geometric mean function for computing logFC on raw scale
 
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# design.look <- dat.l %>% distinct(Run, Channel, Condition)
-# dat <- dat.summplot.w[[1]] # before normalization
-# samples.num <- 'Mixture1_1:130N' # condition1
-# samples.denom <- 'Mixture2_2:128C' # condition 0.125
-# scale <- 'log' #or raw
-# title <- 'Before normalization'
-
-# what does 'gm' in gm_mean stand for?
 gm_mean = function(x, na.rm=TRUE){
   exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
 
 maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
-  
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
   denom <- as.matrix(dat[, samples.denom])
 
   if (select.scale=='log'){
-    
     num <- apply(num, 1, mean)
     denom <- apply(denom, 1, mean)
     FC <- num-denom
     AVE <- (num+denom)/2
     
   } else if (select.scale=='raw') {
-    
     num <- apply(num, 1, gm_mean)
     denom <- apply(denom, 1, gm_mean)
     FC <- log2(num/denom)
     AVE <- (log2(num)+log2(denom))/2
-    
   }
   
   df <- data.frame(FC, AVE)
@@ -117,31 +94,14 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
     geom_hline(yintercept = -1.0, color = "black", linetype = "dotted") # 2-fold down
 }
 
-# obsolete?
-# use case (not run)
-# samples.num <- dat.summplot.l[[1]] %>% filter(Condition=='1') %>% distinct(Run:Channel) %>% pull
-# samples.denom <- dat.summplot.l[[1]] %>% filter(Condition=='0.125') %>% distinct(Run:Channel) %>% pull 
-# p1 <- maplot.ils(dat.summplot.w[[1]], samples.num, samples.denom, scale='log', 'Before normalization')
-# p2 <- maplot.ils(dat.normplot.w[[1]], samples.num, samples.denom, scale='log', 'After normalization')
-# grid.arrange(p1, p2, ncol=2)
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # pcaplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# todo
-# think of a better way to allocate legend
-# conditions are not sorted properly
-
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# dat <- dat.summplot.w[[1]]
-# run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat), fixed=':'), function(x) x[1])), fixed='Mixture', 'Mix')
-# condition.labels <- conditions.vec
-# colour.labels <- cols.vec
-# title <- 'Before normalization'
-
-pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, scale=F){
+pcaplot.ils=function(dat, info, title, scale=F){
+  # fix columns order (as in 'info' arg)
+  dat <- dat[, match(sample.info$Sample, colnames(dat))]
+  
   # drop NA values (they are due to proteins not detected in all runs.)
   pc.cr <- prcomp(t(dat %>% drop_na()), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
@@ -151,47 +111,30 @@ pcaplot.ils=function(dat, run.labels, condition.labels, colour.labels, title, sc
   Ux1<-as.vector(pc.cr$x[,1])
   Ux2<-as.vector(pc.cr$x[,2])
   
-  legend.map <- cbind(run=run.labels, run.shape=as.numeric(as.factor(run.labels)), 
-                     condition=condition.labels, colour=colour.labels) %>% as.data.frame 
-  # points shape passed to 'pch' argument, starts from 15
-  legend.map$run.shape <- as.numeric(legend.map$run.shape)+14 
+  legend.run <- info %>% distinct(Run.short) %>% pull
+  legend.cond <- info %>% distinct(Condition, Colour) %>% arrange(Condition)
   
-  legend1 <- legend.map %>% distinct(run, run.shape)
-  legend2 <- legend.map %>% distinct(condition, colour)
-  
-  plot(Ux1,Ux2, col=colour.labels, pch=legend.map$run.shape, 
+  plot(Ux1,Ux2, col=info$Colour, pch=as.numeric(legend.run)+15, 
        main=title, xlab=axis.lab[1], ylab=axis.lab[2], cex=1.5)
-  legend('bottomleft', legend=legend1$run, pch=legend1$run.shape, bty = "n", cex=1.1) # run
-  legend('bottomright', legend=legend2$condition, text.col=as.character(legend2$colour), bty = "n", cex=1.1) # condition
+  
+  legend('bottomleft', legend=legend.run, pch=as.numeric(legend.run)+15, bty = "n", cex=1.1) # run legend
+  legend('bottomright', legend=legend.cond$Condition, text.col=legend.cond$Colour, bty = "n", cex=1.1) # condition legend
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # dendrogram.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# todo
-# add legend
-
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# dat <- dat.normplot.w[[1]][1:100, ]
-# sample.labels <- stri_replace(colnames(dat), fixed='Mixture', 'Mix')
-# colour.labels <- cols.vec
-# title <- 'Before normalization'
-
-dendrogram.ils <- function(dat, sample.labels, colour.labels, title){
-  
-  colnames(dat) <- sample.labels
+dendrogram.ils <- function(dat, info, title){
+  # fix columns order (as in 'info' arg)
+  dat <- dat[, match(sample.info$Sample, colnames(dat))]
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
   dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
-  labels_colors(dend_raw) <- colour.labels
+  labels_colors(dend_raw) <- info$Colour
   plot(dend_raw, horiz=TRUE, main=title)
   par(mar=par.mar.org) 
 }
-
-# use case (not run)
-# dendrogram.ils(dat.normplot.w[[1]][1:100, ], sample.labels, cols.vec, 'Before normalization')
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # violinplot.ils: violin plot for each condition and dashed line with expected fold change
@@ -212,31 +155,19 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # CVplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-# feature.group argument can be set to 'Protein' or 'Peptide' depending on which level CV should be computed
-# xaxis.group argument defines the groups for which CV will be computed separately. It can be set to: 
-# 'Condition', 'Run', 'Mixture', interactions of these.
-
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# dat <- dat.summplot.l[[1]]
-# title <- 'Before normalization'
-# feature.group <- 'Protein' 
-# xaxis.group <- 'Condition'
-# rmCVquan=0.99
-# abs.val <- T
+# feature.group arg can be set to 'Protein' or 'Peptide', depending on which level CV should be computed
+# xaxis.group arg specifies the groups for which CV will be computed separately. It can be set to, e.g., 
+# 'Condition' or 'Run' or 'Mixture' or ...
 
 cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
-  
   dat <- dat %>% ungroup
-  
   # compute CV per feature (Protein/Peptide) 
   if (abs.val){
     CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(abs(response), na.rm=TRUE)/mean(abs(response), na.rm=TRUE))
   } else {
     CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response, na.rm=TRUE)/mean(response, na.rm=TRUE))
   }
-  # compute CV quantile within groups
+  # compute CV quantile within the groups
   CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan, na.rm=TRUE))
   
   # filter out features with CV larger greater than the quantile
@@ -247,22 +178,11 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
   boxplot(ff, data=CV.df, main=title, notch=T, xlab=xaxis.group, ...)  
 }
 
-# use case (not run)
-# CVplot.ils(dat=dat.summplot.l[[1]], feature.group='Peptide', xaxis.group='Condition', 
-#            title='Before normalization')
-
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # scatterplot.ils: wrapper function on pairs.panels from 'psych' package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# obsolete?
-# example function arguments' below for quicker development and debugging
-# dat <- dat.dea
-# cols <- q.cols
-# stat <- 'p-values'
-
 scatterplot.ils <- function(dat, cols, stat){
-  
   select.stat <- match.arg(stat, c('p-values', 'log2FC'))
   title <- paste("Spearman's correlation of", select.stat)
   
@@ -279,12 +199,7 @@ scatterplot.ils <- function(dat, cols, stat){
 # volcanoplot.ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# obsolete?
-# dat=dat.dea
-# contrast.num=1
-
 volcanoplot.ils <- function(dat, contrast.num, spiked.proteins){
-  
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
   q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
@@ -312,9 +227,6 @@ volcanoplot.ils <- function(dat, contrast.num, spiked.proteins){
       geom_vline(xintercept = -1, color = "black", linetype = "dashed") +
       theme(legend.position = "none")
   }
-  
-  # put contrast specific volcano plots in 1x3 grid
-  # do.call(grid.arrange, volcano.plots)
   grid.arrange(grobs = volcano.plots, ncol=length(volcano.plots))
 }
 
