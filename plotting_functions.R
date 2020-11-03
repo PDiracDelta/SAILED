@@ -1,8 +1,8 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# boxplot.ils
+# boxplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-boxplot.ils <- function(dat, title, ...){  
+boxplot_ils <- function(dat, title, ...){  
   # first make sure that Run and Channel are factors 
   dat$Run <- as.factor(dat$Run)
   dat$Channel <- as.factor(dat$Channel)
@@ -44,17 +44,17 @@ boxplot.ils <- function(dat, title, ...){
 # boxplot.w
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-boxplot.w <- function(dat, study.design, title, ...){  
+boxplot_w <- function(dat, study.design, title, ...){  
   # remove reference cols if still present
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   # convert to long format again because ggplot for wide data is excruciating
   dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
-  boxplot.ils(dat, title, ...)  
+  boxplot_ils(dat, title, ...)  
 }
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# maplot.ils
+# maplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # geometric mean function for computing logFC on raw scale
 
@@ -62,7 +62,7 @@ gm_mean = function(x, na.rm=TRUE){
   exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
 
-maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
+maplot_ils <- function(dat, samples.num, samples.denom, scale, title){
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
@@ -95,13 +95,12 @@ maplot.ils <- function(dat, samples.num, samples.denom, scale, title){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# pcaplot.ils
+# pcaplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-pcaplot.ils=function(dat, info, title, scale=F){
+pcaplot_ils=function(dat, info, title, scale=F){
   # fix columns order (as in 'info' arg)
   dat <- dat[, match(sample.info$Sample, colnames(dat))]
-  
   # drop NA values (they are due to proteins not detected in all runs.)
   pc.cr <- prcomp(t(dat %>% drop_na()), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
@@ -122,10 +121,10 @@ pcaplot.ils=function(dat, info, title, scale=F){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# dendrogram.ils
+# dendrogram_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-dendrogram.ils <- function(dat, info, title){
+dendrogram_ils <- function(dat, info, title){
   # fix columns order (as in 'info' arg)
   dat <- dat[, match(sample.info$Sample, colnames(dat))]
   par.mar.org <- par('mar')
@@ -137,10 +136,10 @@ dendrogram.ils <- function(dat, info, title){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# violinplot.ils: violin plot for each condition and dashed line with expected fold change
+# violinplot_ils: violin plot for each condition and dashed line with expected fold change
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-violinplot.ils <- function(dat.spiked.logfc.l) {
+violinplot_ils <- function(dat.spiked.logfc.l) {
   conditions.num <- sort(as.numeric(unique(dat.spiked.logfc.l[[1]]$condition)))
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
   violin.plots <- emptyList(names(dat.spiked.logfc.l))
@@ -153,13 +152,13 @@ violinplot.ils <- function(dat.spiked.logfc.l) {
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# CVplot.ils
+# CVplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # feature.group arg can be set to 'Protein' or 'Peptide', depending on which level CV should be computed
 # xaxis.group arg specifies the groups for which CV will be computed separately. It can be set to, e.g., 
 # 'Condition' or 'Run' or 'Mixture' or ...
 
-cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
+cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, abs.val=T, ...){  
   dat <- dat %>% ungroup
   # compute CV per feature (Protein/Peptide) 
   if (abs.val){
@@ -179,10 +178,10 @@ cvplot.ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# scatterplot.ils: wrapper function on pairs.panels from 'psych' package
+# scatterplot_ils: wrapper function on pairs.panels from 'psych' package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-scatterplot.ils <- function(dat, cols, stat){
+scatterplot_ils <- function(dat, cols, stat){
   select.stat <- match.arg(stat, c('p-values', 'log2FC'))
   title <- paste("Spearman's correlation of", select.stat)
   
@@ -196,10 +195,10 @@ scatterplot.ils <- function(dat, cols, stat){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# volcanoplot.ils
+# volcanoplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-volcanoplot.ils <- function(dat, contrast.num, spiked.proteins){
+volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
   q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
