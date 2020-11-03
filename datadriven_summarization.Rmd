@@ -73,8 +73,8 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.comp.variants <- 3
 variant.names <- c('median', 'iPQF', 'sum')
+n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
 quanCols <- remove_factors(unique(dat.l$Channel))
