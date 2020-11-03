@@ -86,7 +86,7 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
 
 # create 'Sample' variable, which is Run by Channel interaction
-dat.l <- dat.l %>% mutate(Sample=Run:Channel) %>% relocate(Sample, .after=Channel)
+# dat.l <- dat.l %>% mutate(Sample=Run:Channel) %>% relocate(Sample, .after=Channel)
  
 ### finally, remove the proteins overlapped between spiked-in proteins and background proteins
 # extract the list of spiked-in proteins
