@@ -65,6 +65,20 @@ to_long_format<-function(x, study.design, merge_study_design=T) {
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# function to switch name order of quantification columns,e.g.
+# 127C:Mixture1_1 changed to Mixture1_1:127C, or vice-versa
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+flip_colnames=function(dat, fixed.cols, sep=':'){
+  col.dat <- colnames(dat)
+  ind <- !(col.dat %in% fixed.cols)
+  x <- stri_split(col.dat[ind], fixed=sep)
+  unlist(lapply(x, function(y) paste(y[2], y[1], sep=sep)))  
+  colnames(dat)[ind]=unlist(lapply(x, function(y) paste(y[2], y[1], sep=sep)))  
+  return(dat)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function performing mean or median aggregation on variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
