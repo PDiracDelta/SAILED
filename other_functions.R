@@ -244,7 +244,8 @@ get_design_matrix <- function(referenceCondition, study.design) {
   study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
   
   otherConditions = setdiff(unique(study.design$Condition), referenceCondition)
-  study.design.unitedchannel <- study.design %>% unite(Channel, c(Channel,Run))
+  #study.design.unitedchannel <- study.design %>% unite(Channel, c(Channel,Run))
+  study.design.unitedchannel <- study.design %>% unite(Channel, c(Run,Channel), sep=':')
   all_channels = study.design.unitedchannel %>% select(Channel) %>% pull
   N_channels = length(all_channels) 
   N_conditions = 1+length(otherConditions)
