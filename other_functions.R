@@ -316,27 +316,27 @@ moderated_ttest <- function(dat, design, scale) {
 # Wilcoxon rank-sum test (equivalent to Mann–Whitney U test) comparing outcomes between 
 # two independent groups of samples. For each protein separately, the test is applied to each otherCondition w.r.t. referenceCondition.
 # Wilcoxon rank-sum test employs ranks of quantification values, therefore logFC must be computed manually:
-#   if scale='log': difference of arithmetic means computed on log2 scale
-#   if scale='raw': log2 ratio of arithmetic means computed on raw scale
+#   if logFC.method='diff': difference of arithmetic means computed on log2 scale
+#   if logFC.method='ratio': log2 ratio of arithmetic means computed on raw scale
 
-wilcoxon_test <- function(dat, referenceCondition, otherConditions, scale='raw'){
+wilcoxon_test <- function(dat, referenceCondition, otherConditions, logFC.method='ratio'){
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
   refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
-    distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+    distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
   t.mod <- p.mod <- logFC
   
   for (i in 1:n.conditions){
     CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
-      distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+      distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
     
     wilcox.results=row_wilcoxon_twosample(x=dat[,CondCols], y=dat[,refCondCols])
     
-    if (scale=='log') {logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)} 
-    else if (scale=='raw') {
+    if (logFC.method=='diff') {logFC[,i] <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)} 
+    else if (logFC.method=='ratio') {
       num <- rowMeans(2^dat[,CondCols], na.rm = T)
       denom <- rowMeans(2^dat[,refCondCols], na.rm = T)
       logFC[,i] <- ifelse(denom!=0, log2(num/denom), NA) 
@@ -367,13 +367,16 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions, scale='raw')
 # Columns of the m x n quantification matrix (m proteins and n biological samples) 
 # are B times randomly shuffled (drawing n column indices without replacement) in order to generate the null distribution 
 # of the test statistic. P-values are computed by comparing the observed test statistic value with the null distribution.
-permutation_test <- function(dat, referenceCondition, otherConditions, B=1000){
+permutation_test <- function(dat, referenceCondition, otherConditions, B=1000, seed=NULL){
+  
+  if (!is.null(seed)) set.seed(seed)
+  
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
   #allCols <- colnames(dat)[-1]
   refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
-    distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+    distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
   refCondColsLen <- length(refCondCols)
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
@@ -383,7 +386,7 @@ permutation_test <- function(dat, referenceCondition, otherConditions, B=1000){
   for (i in 1:n.conditions){
     
     CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
-      distinct(Channel, Run) %>% mutate(sample=paste(Channel,Run,sep='_')) %>% pull(sample)
+      distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
     # the observed test statistic value (difference in arithmetic means)
     obsStat <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
     
