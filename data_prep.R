@@ -1,8 +1,6 @@
 library(tidyverse)
 library(stringi)
 
-# path.data='G:/My Drive/Isobaric labeling strategies/data'
-#dat.raw <- read.delim('PSMs_cleaned.csv', sep = ',')  # create symlink
 dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
 dat.raw.org <- dat.raw
 
@@ -86,6 +84,9 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 
 # convert character variables to factors and drop unused factor levels
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
+
+# create 'Sample' variable, which is Run by Channel interaction
+dat.l <- dat.l %>% mutate(Sample=Run:Channel) %>% relocate(Sample, .after=Channel)
  
 ### finally, remove the proteins overlapped between spiked-in proteins and background proteins
 # extract the list of spiked-in proteins

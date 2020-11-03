@@ -26,21 +26,20 @@ knitr::opts_chunk$set(
 
 ```{r}
 library(caret)
-#library(DEP)
-#library(nlme)
 library(lme4)
 library(lmerTest)
-library(limma)
 library(ggplot2)
 library(stringi)
-library(RColorBrewer)
 library(gridExtra)
 library(ggfortify)
 library(dendextend)
 library(psych)
-library(xtable)
 library(kableExtra)
 library(tidyverse)
+library(dtplyr)
+
+source('other_functions.R')
+source('plotting_functions.R')
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes model-based normalization [data-driven normalization]. 
@@ -48,13 +47,8 @@ This notebook presents isobaric labeling data analysis strategy that includes mo
 We will check how varying analysis components [unit/summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('other_functions.R')
-source('plotting_functions.R')
-
-# you should either make a symbolic link in this directory
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
-dat.w <- data.list$dat.w # data in semi-wide format (wide only within runs)
 
 # keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
@@ -62,23 +56,27 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
-# which peptides were identified in each MS run?
-unique.pep=dat.l %>% 
-  group_by(Run) %>%
-  distinct(Peptide) %>% 
-  mutate(val=1)
-unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
-tmp <- apply(unique.pep, 1, function(x) all(x==1))
-inner.peptides <- rownames(unique.pep)[tmp]
+#TEMP -remove!
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l2 <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 ```
 
 ```{r}
 # specify # of varying component variants and their names
 n.comp.variants <- 3
-variant.names <- c('log2Intensity', 'Intensity', 'log2Ratio')
-# pick reference channel and condition for making plots / doing DEA
-referenceChannel <- '127C'
+variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
+scale.vec <- c('log', 'raw', 'raw') # ratios are considered raw, because they are basically mean-normalized intensities
+# pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
+# specify colours corresponding to biological conditions
+condition.colour <- tribble(
+  ~Condition, ~Colour,
+  "0.125", 'black',
+  "0.5", 'blue',
+  "0.667", 'green',
+  "1", 'red' )
+# create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
+sample.info <- get_sample_info(dat.l, condition.colour)
 ```
 
 # Unit component
@@ -90,21 +88,23 @@ dat.unit.l <- emptyList(variant.names)
 ## log2 transformation of reporter ion intensities
 
 ```{r}
-dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l$log2Intensity <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
 ## original scale (not log2-transformed) of reporter ion intensities
 ```{r}
-dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
+dat.unit.l$Intensity <- dat.l %>% rename(response=Intensity)
 ```
 
-## log2-transformation of intensity ratios (channel 127C in denominator)
+## intensity ratios (with respect to average within run)
+
+Calculate ratio's (per PSM) with respect to average intensity within run, 
+or in other words: each value is divided by the row mean.
 
 ```{r}
-# or we can try another channel as reference
-denom.df <- dat.l %>% filter(Channel==referenceChannel) %>% rename(denom=Intensity) %>%
-  select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=log2(Intensity/denom)) %>% select(-c(Intensity))
+# group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
+denom.df <- dat.l %>% group_by(Run, Peptide, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
+dat.unit.l$Ratio <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) # response=log2(Intensity/denom)
 ```
 
 # Summarization component
@@ -120,132 +120,109 @@ dat.summ.l <- dat.unit.l
 
 ## mixed model spec 1
 
-```{r, cache=TRUE}
+```{r}
 dat.norm.l <- lapply(dat.summ.l, function(x) {
   mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=x)
   x$response <- residuals(mod)
-  return(x)
-})
+
+  return(x)})
+
 ```
 
 # QC plots
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'mean')) # Raw (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'mean')) # Normalized
+dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', 'mean')) # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # after normalization
 
 # now create data sets in wide format
-# Raw
+# before normalization
 dat.summplot.w <- lapply(dat.summplot.l, function(x) {
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
-  return(dat.tmp)
-})
+  return(dat.tmp) } )
 
-# Normalized
+# after normalization
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
   dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
-  return(dat.tmp)
-})
-
-# make vectors with condition labels and color coding corresponding to samples in wide format data
-colors.condition <- tribble(
-  ~Condition, ~Col,
-  "0.125", 'black',
-  "0.5", 'blue',
-  "0.667", 'green',
-  "1", 'red'
-)
-# sufficient to do that only on the first items of dat.normplot.l and dat.normplot.w lists
-colors.condition.map <- dat.normplot.l[[1]] %>% distinct(Run:Channel, Condition) %>% left_join(colors.condition, by='Condition')
-ord <- match(colnames(dat.normplot.w[[1]]), colors.condition.map$`Run:Channel`)
-
-# important: these two vectors contain colors and condition labels corresponding to data in wide format
-cols.vec <- colors.condition.map[ord, 'Col']  %>% pull
-conditions.vec <- colors.condition.map[ord, 'Condition']  %>% pull
+  return(dat.tmp) } )
 ```
 
 ## Boxplot:
 
 ```{r}
-for (i in 1: n.comp.variants){
-  par(mfrow=c(1,2))
-    boxplot.ils(dat.summ.l[[i]], paste('Raw', variant.names[i], sep='_'))
-    boxplot.ils(dat.norm.l[[i]], paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1,1))
-}
+
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  boxplot.ils(dat.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
+  boxplot.ils(dat.norm.l[[i]], paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1,1))
+
 ```
 
-## MA plot:
+## MA plots
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
 # different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
-
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
-  
-  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
-  
-  grid.arrange(p1, p2, ncol=2)  
-}
+
+  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  grid.arrange(p1, p2, ncol=2)}  
+
 ```
 
 MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
 # different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
-scale.vec <- c('log', 'raw', 'log') 
-samples.num <- colors.condition.map %>% filter(Condition=='1') %>% distinct(`Run:Channel`) %>% pull
-samples.denom <- colors.condition.map %>% filter(Condition=='0.125') %>% distinct(`Run:Channel`) %>% pull
+samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
+samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'))
-  
-  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
-  
-  grid.arrange(p1, p2, ncol=2)  
-}
+
+  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  grid.arrange(p1, p2, ncol=2)}
+
 ```
 
-## CV (coefficient of variation) plot:
+## CV (coefficient of variation) plots
 
 ```{r}
+par(mfrow=c(1,2))
 for (i in 1: n.comp.variants){
-  par(mfrow=c(1, 2))
-    cvplot.ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
-               title=paste('Raw', variant.names[i], sep='_'))
-    cvplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+
+
+  cvplot.ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
+  cvplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
+par(mfrow=c(1,1))
+
 ```
 
-## PCA plot:
+## PCA plots
 
 ```{r}
-# create a shorter version of run variable to present on legend
-run.labels <- stri_replace(unlist(lapply(stri_split(colnames(dat.summplot.w[[1]]), fixed=':'), function(x) x[1])), fixed='Mixture', 'Mix')
 
-for (i in 1: n.comp.variants){
-  par(mfrow=c(1, 2))
-    pcaplot.ils(dat.summplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Raw', variant.names[i], sep='_'), scale=T)
-    pcaplot.ils(dat.normplot.w[[i]], run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  pcaplot.ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
+  pcaplot.ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1,1))
+
 ```
 
-## HC (hierarchical clustering) plot:
+HC (hierarchical clustering) plots
 
 ```{r}
-sample.labels <- stri_replace(colnames(dat.summplot.w[[1]]), fixed='Mixture', 'Mix')
+
+par(mfrow=c(1,2))
 for (i in 1: n.comp.variants){
-  par(mfrow=c(1, 2))
-    dendrogram.ils(dat.summplot.w[[i]], sample.labels, cols.vec, paste('Raw', variant.names[i], sep='_'))
-    dendrogram.ils(dat.normplot.w[[i]], sample.labels, cols.vec, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+  dendrogram.ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
+  dendrogram.ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+
 ```
 
 # DEA component
@@ -254,9 +231,9 @@ for (i in 1: n.comp.variants){
 
 ```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
-  out <- mixed.model.dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition)
-  return(out)
-})
+
+  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
+
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
@@ -267,29 +244,28 @@ n.contrasts <- length(logFC.cols)
 
 # Results comparison
 
-## Confusion matrix:
+## Confusion matrix
 
 ```{r, results='asis'}
-cm <- conf.mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
-print.conf.mat(cm)
+cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
+print_conf_mat(cm)
 ```
 
-## Scatter plot:
+## Scatter plots
 
 ```{r}
 scatterplot.ils(dat.dea, q.cols, 'p-values')
 scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
-## Volcano plot:
+## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot.ils(dat.dea, i, spiked.proteins)
-}
+  volcanoplot.ils(dat.dea, i, spiked.proteins) }
 ```
 
-## Violin plot:
+## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}
