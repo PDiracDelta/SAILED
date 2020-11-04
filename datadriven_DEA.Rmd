@@ -1,6 +1,6 @@
 ---
 title: "Choosing a DEA strategy for Data-driven analysis of isobarically labeled proteomic data."
-author: "Joris Van Houtven"
+author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:
