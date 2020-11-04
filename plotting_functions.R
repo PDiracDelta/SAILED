@@ -44,11 +44,9 @@ boxplot_ils <- function(dat, title, ...){
 # boxplot.w
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-boxplot_w <- function(dat, study.design, title, ...){  
-  # remove reference cols if still present
-  study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
+boxplot_w <- function(dat, sample.info, title, ...){  
   # convert to long format again because ggplot for wide data is excruciating
-  dat <- to_long_format(dat, study.design = study.design, merge_study_design = F)
+  dat <- to_long_format(dat, sample.info = sample.info, merge_study_design = F)
   boxplot_ils(dat, title, ...)  
 }
 

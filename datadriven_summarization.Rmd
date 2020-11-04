@@ -46,7 +46,6 @@ source('./other_functions.R')
 source('./plotting_functions.R')
 
 # you should either make a symbolic link in this directory
-study.design=read.delim('msstatstmt_studydesign.csv')
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # dat.w <- data.list$dat.w # data in wide format
@@ -241,8 +240,8 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 # use (half-)wide format
 for (i in 1: n.comp.variants){
   par(mfrow=c(1,2))
-    boxplot_w(dat.nonnorm.summ.w[[i]],study.design, paste('Raw', variant.names[i], sep='_'))
-    boxplot_w(dat.norm.summ.w[[i]], study.design, paste('Normalized', variant.names[i], sep='_'))
+    boxplot_w(dat.nonnorm.summ.w[[i]],sample.info, paste('Raw', variant.names[i], sep='_'))
+    boxplot_w(dat.norm.summ.w[[i]], sample.info, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1,1))
 }
 ```
@@ -280,15 +279,8 @@ for (i in 1: n.comp.variants){
 
 ## CV (coefficient of variation) plots
 ```{r}
-dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, function(x){
-  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
-})
-
-dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
-  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
-})
+dat.nonnorm.summ.l <- lapply(list(dat.nonnorm.summ.w), to_long_format, sample.info)
+dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
@@ -347,7 +339,7 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
-design.matrix <- get_design_matrix(referenceCondition, study.design)
+design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
