@@ -42,10 +42,6 @@ This notebook presents isobaric labeling data analysis strategy that includes da
 We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.R')
-source('./plotting_functions.R')
-
-# you should either make a symbolic link in this directory
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # dat.w <- data.list$dat.w # data in wide format
@@ -75,9 +71,7 @@ inner.peptides <- rownames(unique.pep)[tmp]
 variant.names <- c('median', 'iPQF', 'sum')
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log')
-# pick reference channel and condition for making plots / doing DEA
-quanCols <- remove_factors(unique(dat.l$Channel))
-referenceChannel <- '127C'
+# pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
 condition.colour <- tribble(
@@ -88,6 +82,12 @@ condition.colour <- tribble(
   "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
+channelNames <- remove_factors(unique(sample.info$Channel))
+```
+```{r,echo=TRUE}
+sample.info
+referenceCondition
+channelNames
 ```
 
 # Unit component
@@ -130,10 +130,10 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 ## CONSTANd
 
 ```{r}
-# dat.unit.l entries are in long format so all have same colnames and no quanCols
+# dat.unit.l entries are in long format so all have same colnames and no channelNames
 x.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- CONSTANd(y[,quanCols])$normalized_data
+  y[,channelNames] <- CONSTANd(y[,channelNames])$normalized_data
   return(y)
 })
 dat.norm.w <- bind_rows(x.split.norm)
@@ -154,7 +154,7 @@ dat.nonnorm.summ.w <- emptyList(variant.names)
 median_summarization <- function(dat) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
   # add select() statement because summarise_at is going bananas over character columns
-  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup())
+  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup())
 }
 
 # normalized data
@@ -176,8 +176,8 @@ dat.nonnorm.summ.w$median <- median_summarization(dat.unit.w)
 iPQF_summarization <- function(x) {
   dat <- split(x, x$Run)  # apply iPQF to each Run separately
   # first make an MSnSet object
-  exprs <- lapply(dat, function(y) as.matrix(y[,quanCols]))
-  fdata <- lapply(dat, function(y) as.data.frame(y %>% select(-quanCols)) %>% rename(sequence='Peptide', accession='Protein', charge='Charge', modifications='PTM', mass_to_charge='DeltaMZ', search_engine_score='Ions.Score', Intensity='TotalIntensity'))
+  exprs <- lapply(dat, function(y) as.matrix(y[,channelNames]))
+  fdata <- lapply(dat, function(y) as.data.frame(y %>% select(-channelNames)) %>% rename(sequence='Peptide', accession='Protein', charge='Charge', modifications='PTM', mass_to_charge='DeltaMZ', search_engine_score='Ions.Score', Intensity='TotalIntensity'))
   mss <- emptyList(names(dat))
   for (i in seq_along(mss)) { mss[[i]] <- MSnSet(exprs = exprs[[i]], fData = fdata[[i]]) }
   # then summarize
@@ -201,7 +201,7 @@ dat.nonnorm.summ.w$iPQF <- iPQF_summarization(dat.unit.w)
 sum_summarization <- function(dat) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
   # add select() statement because summarise_at is going bananas over character columns
-  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = sum) %>% ungroup())
+  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = sum) %>% ungroup())
 }
 # normalized data
 dat.norm.summ.w$sum <- sum_summarization(dat.norm.w)
@@ -221,14 +221,14 @@ dat.nonnorm.summ.w$sum <- sum_summarization(dat.unit.w)
 # make data completely wide (also across runs)
 ## non-normalized data
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x){
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":") 
+  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_sep = ":") 
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
   return(dat.tmp)
 }) 
 
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
+  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_sep = ":")
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
   return(dat.tmp)
 })
