@@ -279,7 +279,7 @@ for (i in 1: n.comp.variants){
 
 ## CV (coefficient of variation) plots
 ```{r}
-dat.nonnorm.summ.l <- lapply(list(dat.nonnorm.summ.w), to_long_format, sample.info)
+dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, to_long_format, sample.info)
 dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 
 par(mfrow=c(1, 2))
