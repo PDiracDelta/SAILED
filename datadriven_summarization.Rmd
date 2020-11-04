@@ -1,5 +1,5 @@
 ---
-title: "Data-driven analysis of isobaric labels data. Summarization component."
+title: "Choosing a Summarization strategy for Data-driven analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
