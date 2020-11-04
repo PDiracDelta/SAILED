@@ -195,7 +195,7 @@ dat.norm.summ.w$iPQF <- iPQF_summarization(dat.norm.w)
 dat.nonnorm.summ.w$iPQF <- iPQF_summarization(dat.unit.w)
 ```
 
-## sum (mean) normalization
+## sum (mean) summarization
 
 ```{r}
 sum_summarization <- function(dat) {
