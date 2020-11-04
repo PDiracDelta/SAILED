@@ -62,8 +62,8 @@ dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], s
 
 ```{r}
 # specify # of varying component variants and their names
-n.comp.variants <- 3
 variant.names <- c('log2Intensity', 'Intensity', 'Ratio')
+n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'raw', 'raw') # ratios are considered raw, because they are basically mean-normalized intensities
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'

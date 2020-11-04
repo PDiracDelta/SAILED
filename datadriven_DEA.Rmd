@@ -72,8 +72,8 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.comp.variants <- 3
 variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test')
+n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
 referenceChannel <- '127C'

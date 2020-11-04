@@ -33,6 +33,7 @@ library(kableExtra)
 library(psych)
 library(limma)
 library(tidyverse)
+library(preprocessCore)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
 ```
@@ -73,9 +74,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-n.comp.variants <- 3
-variant.names <- c('CONSTANd', 'NOMAD', 'medianSweeping')
-scale.vec <- c('log', 'log', 'log')
+variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping')
+n.comp.variants <- length(variant.names)
+scale.vec <- c('log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
 quanCols <- unique(dat.l$Channel)
 referenceChannel <- '127C'
@@ -112,6 +113,23 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 
 ```{r}
 dat.norm.w <- emptyList(variant.names)
+```
+
+## Quantile
+
+We apply quantile normalization to each Run separately, and then re-scale the observations so that the mean observation within in each run is set equal to the mean observation across all runs.
+
+```{r}
+grand_average <- mean(as.matrix(dat.unit.w[,quanCols]))
+x.split <- split(dat.unit.w, dat.unit.w$Run)  
+x.split.norm <- lapply(x.split, function(y) {
+  # apply normalizeQuantiles to each Run separately
+  y[,quanCols] <- normalize.quantiles(as.matrix(y[,quanCols]))
+  # make averages of all runs equal.
+  y[,quanCols] <- y[,quanCols] / mean(colMeans(y[,quanCols])) * grand_average
+  return(y)
+})
+dat.norm.w$quantile <- bind_rows(x.split.norm)
 ```
 
 ## CONSTANd
@@ -206,12 +224,12 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 
 ```{r}
 # use (half-)wide format
-par(mfrow=c(2,2))
-  boxplot_w(dat.nonnorm.summ.w,study.design, 'Raw')
-  for (i in 1: n.comp.variants){
-    boxplot_w(dat.norm.summ.w[[i]], study.design, paste('Normalized', variant.names[i], sep='_'))
-  }
-par(mfrow=c(1,1))
+par(mfrow=c(3,2))
+boxplot_w(dat.nonnorm.summ.w,study.design, 'Raw')
+for (i in 1: n.comp.variants){
+  boxplot_w(dat.norm.summ.w[[i]], study.design, paste('Normalized', variant.names[i], sep='_'))
+}
+par(mfrow=c(1, 1))
 ```
 
 ## MA plots
@@ -219,20 +237,23 @@ par(mfrow=c(1,1))
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
+par(mfrow=c(3,2))
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
+p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], 'Raw')
 
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }
-grid.arrange(grobs = p, ncol=2, nrow=2)  
+grid.arrange(grobs = p, ncol=2, nrow=3)
+par(mfrow=c(1, 1))
 ```
 
 MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
+par(mfrow=c(3,2))
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
@@ -243,12 +264,14 @@ p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale.ve
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }
-grid.arrange(grobs = p, ncol=2, nrow=2)  
+grid.arrange(grobs = p, ncol=2, nrow=3)
+par(mfrow=c(1, 1))
 ```
 
 ## CV (coefficient of variation) plots
 
 ```{r}
+par(mfrow=c(3,2))
 dat.nonnorm.summ.l <- lapply(list(dat.nonnorm.summ.w), function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
   x <- to_long_format(x, study.design)
@@ -274,7 +297,7 @@ par(mfrow=c(1, 1))
 
 ### Using all proteins
 ```{r}
-par(mfrow=c(2, 2))
+par(mfrow=c(3,2))
   pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
   
 for (i in seq_along(dat.norm.summ.w2)){
@@ -286,7 +309,7 @@ par(mfrow=c(1, 1))
 
 ### Using spiked proteins only
 ```{r}
-par(mfrow=c(2, 2))
+par(mfrow=c(3,2))
   pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
   
 for (i in seq_along(dat.norm.summ.w2)){
@@ -301,7 +324,7 @@ par(mfrow=c(1, 1))
 Only use spiked proteins
 
 ```{r}
-par(mfrow=c(2, 2))
+par(mfrow=c(3,2))
   dendrogram_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, 'Raw')
 
 for (i in seq_along(dat.norm.summ.w2)){
