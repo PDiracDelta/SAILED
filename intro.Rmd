@@ -1,7 +1,8 @@
 ---
-title: "Introduction to Isobaric Labeling Strategies notebooks"
-author: "Piotr Prostko"
-date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
+title: "The anatomy of workflows for analyzing isobarically labeled mass spectrometry
+  data in proteomics"
+author: "Piotr Prostko, Joris Van Houtven"
+date: '`r format(Sys.time(), "%B %d, %Y")`'
 output: 
   html_document:
     toc: true
@@ -9,6 +10,9 @@ output:
     toc_float: true
     number_sections: true
     theme: flatly
+    code_folding: "hide"    
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
