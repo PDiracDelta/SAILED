@@ -37,7 +37,6 @@ library(psych)
 library(kableExtra)
 library(tidyverse)
 library(dtplyr)
-
 source('other_functions.R')
 source('plotting_functions.R')
 ```
@@ -145,9 +144,9 @@ dat.normplot.w <- lapply(dat.normplot.l, function(x) {
 
 ```{r}
 par(mfrow=c(2,2))
-boxplot.ils(dat.summ.l, 'Before normalization')
+boxplot_ils(dat.summ.l, 'Before normalization')
 for (i in 1: n.comp.variants){
-  boxplot.ils(dat.norm.l[[i]], paste(variant.names[i], 'normalization', sep=' ')) }
+  boxplot_ils(dat.norm.l[[i]], paste(variant.names[i], 'normalization', sep=' ')) }
 par(mfrow=c(1,1))
 ```
 
@@ -156,24 +155,24 @@ par(mfrow=c(1,1))
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
 p <- emptyList(c('raw', names(dat.normplot.w)))
-p[[1]] <- maplot.ils(dat.summplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization')
+p[[1]] <- maplot_ils(dat.summplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization')
 for (i in 1: n.comp.variants){
-  p[[i+1]] <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('After normalization', variant.names[i], sep='_'))}
+  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('After normalization', variant.names[i], sep='_'))}
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
 MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
 samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
 samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
 p <- emptyList(c('raw', names(dat.normplot.w)))
-p[[1]] <- maplot.ils(dat.summplot.w, samples.num, samples.denom, scale='log', 'Before normalization')
+p[[1]] <- maplot_ils(dat.summplot.w, samples.num, samples.denom, scale='log', 'Before normalization')
 for (i in 1: n.comp.variants){
-  p[[i+1]] <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale='log', paste('After normalization', variant.names[i], sep='_')) }
+  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], samples.num, samples.denom, scale='log', paste('After normalization', variant.names[i], sep='_')) }
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
@@ -181,11 +180,9 @@ grid.arrange(grobs = p, ncol=2, nrow=2)
 
 ```{r}
 par(mfrow=c(2,2))
-cvplot.ils(dat=dat.summplot.l, feature.group='Peptide', xaxis.group='Condition', 
-           title='Before normalization')
+cvplot_ils(dat=dat.summplot.l, feature.group='Peptide', xaxis.group='Condition', title='Before normalization')
 for (i in 1: n.comp.variants){
-  cvplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', 
-             title=paste('After normalization', variant.names[i], sep='_'))}
+  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
 ```
 
@@ -194,9 +191,9 @@ par(mfrow=c(1,1))
 ### Using all proteins
 ```{r}
 par(mfrow=c(2, 2))
-pcaplot.ils(dat.summplot.w[[1]], sample=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w, info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-  pcaplot.ils(dat.normplot.w[[i]], sample=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.normplot.w[[i]], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -205,9 +202,9 @@ par(mfrow=c(1, 1))
 ```{r}
 spiked.peptides <- dat.l %>% filter(Protein %in% spiked.proteins) %>% distinct(Peptide) %>% pull
 par(mfrow=c(2, 2))
-  pcaplot.ils(dat.summplot.w[[1]][rownames(dat.summplot.w[[1]]) %in% spiked.peptides, ], sample=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-  pcaplot.ils(dat.normplot.w[[i]][rownames(dat.summplot.w[[1]]) %in% spiked.peptides, ], sample=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -215,14 +212,14 @@ par(mfrow=c(1, 1))
 
 ```{r}
 dat.norm.l.spk <- emptyList(variant.names)
-dat.norm.l.spk <- lapply(dat.norm.l.spk, function(x) x[[1]] <- dat.summ.l[[1]] %>% filter(Protein %in% spiked.proteins))
-LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l[[1]] %>% filter(Protein %in% spiked.proteins))
+dat.norm.l.spk <- lapply(dat.norm.l.spk, function(x) x[[1]] <- dat.summ.l %>% filter(Protein %in% spiked.proteins))
+LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l %>% filter(Protein %in% spiked.proteins))
 dat.norm.l.spk[[1]]$response <- residuals(LMM1)
 
-LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l[[1]] %>% filter(Protein %in% spiked.proteins))
+LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l %>% filter(Protein %in% spiked.proteins))
 dat.norm.l.spk[[2]]$response <- residuals(LMM2)
 
-LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l[[1]] %>% filter(Protein %in% spiked.proteins))
+LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l %>% filter(Protein %in% spiked.proteins))
 dat.norm.l.spk[[3]]$response <- residuals(LMM3)
 
 dat.normplot.spk.l <- lapply(dat.norm.l.spk, function(x) aggFunc(x, 'response', 'mean')) 
@@ -232,9 +229,9 @@ dat.normplot.spk.w <- lapply(dat.normplot.spk.l, function(x) {
 })
 
 par(mfrow=c(2,2))
-pcaplot.ils(dat.summplot.w[[1]][rownames(dat.summplot.w[[1]]) %in% spiked.peptides, ], sample=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-  pcaplot.ils(dat.normplot.spk.w[[i]], run.labels, conditions.vec, cols.vec, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.normplot.spk.w[[i]], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
 ```
 
@@ -245,21 +242,21 @@ par(mfrow=c(1,1))
 ```{r}
 #create weights to increase the importance of the spiked- proteins
 # (n1+n2)/n1 for spiked, and (n1+n2)/n2 for background proteins, where n1-# of spiked, n2-# of background
-dat.summ.l[[1]] <- dat.summ.l[[1]] %>% mutate(protein.type=ifelse(Protein %in% spiked.proteins, 'spiked', 'background'))
-wgts <- dat.summ.l[[1]] %>% group_by(protein.type) %>% summarise(nn=n_distinct(Protein))
+dat.summ.l <- dat.summ.l %>% mutate(protein.type=ifelse(Protein %in% spiked.proteins, 'spiked', 'background'))
+wgts <- dat.summ.l %>% group_by(protein.type) %>% summarise(nn=n_distinct(Protein))
 n.background <- wgts[wgts$protein.type=='background', 'nn'] %>% pull
 n.spiked <- wgts[wgts$protein.type=='spiked', 'nn'] %>% pull
 wgt.spiked <- (n.spiked+n.background)/n.spiked
 wgt.background <- (n.spiked+n.background)/n.background
-dat.summ.l[[1]]$weights <- ifelse(dat.summ.l[[1]]$protein.type=='spiked', wgt.spiked, wgt.background)
+dat.summ.l$weights <- ifelse(dat.summ.l$protein.type=='spiked', wgt.spiked, wgt.background)
 
 dat.norm.l.wgt <- emptyList(variant.names)
-dat.norm.l.wgt <- lapply(dat.norm.l, function(x) x[[1]] <- dat.summ.l[[1]])
-LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l[[1]], weights=weights)
+dat.norm.l.wgt <- lapply(dat.norm.l, function(x) x[[1]] <- dat.summ.l)
+LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l, weights=weights)
 dat.norm.l.wgt[[1]]$response <- residuals(LMM1)
-LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l[[1]], weights=weights)
+LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l, weights=weights)
 dat.norm.l.wgt[[2]]$response <- residuals(LMM2)
-LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l[[1]], weights=weights)
+LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l, weights=weights)
 dat.norm.l.wgt[[3]]$response <- residuals(LMM3)
 
 dat.normplot.wgt.l <- lapply(dat.norm.l.wgt, function(x) aggFunc(x, 'response', 'mean')) 
@@ -269,9 +266,9 @@ dat.normplot.wgt.w <- lapply(dat.normplot.wgt.l, function(x) {
 })
 
 par(mfrow=c(2, 2))
-pcaplot.ils(dat.summplot.w[[1]][rownames(dat.summplot.w[[1]]) %in% spiked.peptides, ], sample=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-    pcaplot.ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[1]]) %in% spiked.peptides, ], sample=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+    pcaplot_ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[1]]) %in% spiked.peptides, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -279,9 +276,9 @@ par(mfrow=c(1, 1))
 
 ```{r}
 par(mfrow=c(2,2))
-dendrogram.ils(dat.summplot.w, info=sample.info, 'Before normalization')
+dendrogram_ils(dat.summplot.w, info=sample.info, 'Before normalization')
 for (i in 1: n.comp.variants){
-  dendrogram.ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -311,15 +308,15 @@ print_conf_mat(cm)
 ## Scatter plots
 
 ```{r}
-scatterplot.ils(dat.dea, q.cols, 'p-values')
-scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
 ## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot.ils(dat.dea, i, spiked.proteins)}
+  volcanoplot_ils(dat.dea, i, spiked.proteins)}
 ```
 
 ## Violin plots
@@ -330,7 +327,7 @@ Let's see whether the spiked protein fold changes make sense
 dat.spiked.logfc <- lapply(dat.dea, function(x) x[spiked.proteins,logFC.cols])
 dat.spiked.logfc.l <- lapply(dat.spiked.logfc, function(x) {
   x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
-violinplot.ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
+violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
 ```
 
 # Conclusions
