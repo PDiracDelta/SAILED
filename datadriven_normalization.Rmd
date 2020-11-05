@@ -74,9 +74,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping')
+variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'CycLoessVSN')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log', 'log')
+scale.vec <- c('log', 'log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
 quanCols <- unique(dat.l$Channel)
 referenceChannel <- '127C'
@@ -166,6 +166,17 @@ dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
 ```
 
+## Cyclic loess normalization 
+
+```{r}
+x.split <- split(dat.unit.w, dat.unit.w$Run)  
+x.split.norm  <- lapply(x.split, function(y) {
+  y[,quanCols] <- normalizeCyclicLoess(y[,quanCols])
+  return(y)
+})
+dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
+```
+
 # Summarization component
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
@@ -242,7 +253,6 @@ par(mfrow=c(3,2))
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
 p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], 'Raw')
-
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }

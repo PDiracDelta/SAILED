@@ -37,7 +37,6 @@ library(psych)
 library(kableExtra)
 library(tidyverse)
 library(dtplyr)
-
 source('other_functions.R')
 source('plotting_functions.R')
 ```
@@ -58,7 +57,7 @@ spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, f
 
 #TEMP -remove!
 tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-dat.l2 <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 ```
 
 ```{r}
@@ -75,7 +74,7 @@ condition.colour <- tribble(
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
+# create data frame with sample info (distinct Run,Channel, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
 ```
 
@@ -122,11 +121,9 @@ dat.summ.l <- dat.unit.l
 
 ```{r}
 dat.norm.l <- lapply(dat.summ.l, function(x) {
-  mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=x)
+  mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)
   x$response <- residuals(mod)
-
   return(x)})
-
 ```
 
 # QC plots
@@ -151,13 +148,11 @@ dat.normplot.w <- lapply(dat.normplot.l, function(x) {
 ## Boxplot:
 
 ```{r}
-
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  boxplot.ils(dat.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
-  boxplot.ils(dat.norm.l[[i]], paste('After normalization', variant.names[i], sep='_'))}
+  boxplot_ils(dat.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
+  boxplot_ils(dat.norm.l[[i]], paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
-
 ```
 
 ## MA plots
@@ -165,27 +160,23 @@ par(mfrow=c(1,1))
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
 for (i in 1: n.comp.variants){
-
-  p1 <- maplot.ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
-  p2 <- maplot.ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p1 <- maplot_ils(dat.summplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p2 <- maplot_ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
   grid.arrange(p1, p2, ncol=2)}  
-
 ```
 
 MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot.ils function 
-samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
-samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
+# different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
+samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Run:Channel) %>% pull
+samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Run:Channel) %>% pull
 for (i in 1: n.comp.variants){
-
-  p1 <- maplot.ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
-  p2 <- maplot.ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
+  p1 <- maplot_ils(dat.summplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('Before normalization', variant.names[i], sep='_'))
+  p2 <- maplot_ils(dat.normplot.w[[i]], samples.num, samples.denom, scale=scale.vec[i], paste('After normalization', variant.names[i], sep='_'))
   grid.arrange(p1, p2, ncol=2)}
-
 ```
 
 ## CV (coefficient of variation) plots
@@ -193,36 +184,29 @@ for (i in 1: n.comp.variants){
 ```{r}
 par(mfrow=c(1,2))
 for (i in 1: n.comp.variants){
-
-
-  cvplot.ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
-  cvplot.ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
+  cvplot_ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
+  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
 par(mfrow=c(1,1))
-
 ```
 
 ## PCA plots
 
 ```{r}
-
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  pcaplot.ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
-  pcaplot.ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
+  pcaplot_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
-
 ```
 
 HC (hierarchical clustering) plots
 
 ```{r}
-
 par(mfrow=c(1,2))
 for (i in 1: n.comp.variants){
-  dendrogram.ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
-  dendrogram.ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
+  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
-
 ```
 
 # DEA component
@@ -231,9 +215,7 @@ par(mfrow=c(1, 1))
 
 ```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
-
-  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
-
+return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
@@ -254,15 +236,15 @@ print_conf_mat(cm)
 ## Scatter plots
 
 ```{r}
-scatterplot.ils(dat.dea, q.cols, 'p-values')
-scatterplot.ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
 ## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot.ils(dat.dea, i, spiked.proteins) }
+  volcanoplot_ils(dat.dea, i, spiked.proteins) }
 ```
 
 ## Violin plots
@@ -273,7 +255,7 @@ Let's see whether the spiked protein fold changes make sense
 dat.spiked.logfc <- lapply(dat.dea, function(x) x[spiked.proteins,logFC.cols])
 dat.spiked.logfc.l <- lapply(dat.spiked.logfc, function(x) {
   x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
-violinplot.ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
+violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
 ```
 
 # Conclusions
