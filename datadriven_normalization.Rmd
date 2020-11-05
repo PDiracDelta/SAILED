@@ -74,9 +74,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping')
+variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'CycLoessVSN')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log', 'log')
+scale.vec <- c('log', 'log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
 quanCols <- unique(dat.l$Channel)
 referenceChannel <- '127C'
@@ -166,6 +166,20 @@ dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
 ```
 
+## Cyclic loess normalization 
+
+```{r}
+dat.tmp <- dat.unit.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = '{Run}:{.value}')
+quanColsLogic <- colnames(dat.tmp) %in% sample.info$Sample
+dat.tmp[,quanColsLogic] <- normalizeCyclicLoess(dat.tmp[,quanColsLogic])
+# VSN is generalized log transform, so the method has to be applied on raw data
+#library(vsn)
+#normalizeVSN(dat.tmp[,quanColsLogic])
+# switch from wide format to (half-)wide format data (with an intermediate step-switching to long format)
+dat.norm.w$CycLoessVSN <- dat.tmp %>% pivot_longer(cols=colnames(dat.tmp)[quanColsLogic], names_to='Sample', values_to='response') %>% left_join(sample.info[,c('Run','Condition','Channel','Sample')], by='Sample') %>% drop_na(response) %>% 
+  pivot_wider(id_cols=-one_of(c('Condition', 'Sample')), names_from=Channel, values_from=response)
+```
+
 # Summarization component
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
@@ -242,7 +256,6 @@ par(mfrow=c(3,2))
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
 p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], 'Raw')
-
 for (i in 1: n.comp.variants){
  p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
 }
