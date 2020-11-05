@@ -36,6 +36,7 @@ library(tidyverse)
 library(preprocessCore)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
+library(vsn)
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
@@ -169,12 +170,14 @@ dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCol
 ## Cyclic loess normalization 
 
 ```{r}
-x.split <- split(dat.unit.w, dat.unit.w$Run)  
+x.split <- split(dat.unit.w, dat.unit.w$Run)
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- normalizeCyclicLoess(y[,quanCols])
+  y[,quanCols] <- normalizeCyclicLoess(y[,quanCols], span=0.005, iterations=15)
   return(y)
 })
 dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
+vsn.tmp <- vsn2(as.matrix(dat.unit.w[,quanCols]), strata=dat.unit.w$Run)
+dat.norm.w$CycLoessVSN[,quanCols] <- vsn.tmp@hx
 ```
 
 # Summarization component
@@ -229,6 +232,12 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
   return(dat.tmp)
 })
+```
+
+```{r}
+# additional VSN on protein level data applied to all runs 
+vsn.tmp <- vsn2(as.matrix(dat.norm.summ.w2$CycLoessVSN %>% select(-Protein)))
+dat.norm.summ.w2$CycLoessVSN[, colnames(dat.norm.summ.w2$CycLoessVSN)!='Protein'] <- vsn.tmp@hx
 ```
 
 ## Boxplots
