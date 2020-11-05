@@ -47,20 +47,15 @@ get_inner_peptides <- function(dat){
 # convert data to long format (assume Run, Mixture columns already present)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-to_long_format<-function(x, study.design, merge_study_design=T) {
-  # remove reference cols if still present
-  study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
-  quan.cols = unique(study.design$Channel)
+to_long_format<-function(x, sample.info, merge_study_design=T) {
+  quan.cols = unique(sample.info$Channel)
   x <- x %>% pivot_longer(cols=quan.cols, names_to='Channel', values_to='response', values_drop_na=FALSE)
   
-  # merge Condition, TechRepMixture, BioReplicate variables from study.design
+  # merge Condition from sample.info
   # remove cols to add if already present to avoid errors.
   if (merge_study_design) {
-    x <- x[,!(colnames(x) %in% c('Condition', 'TechRepMixture', 'BioReplicate'))]
-    x <- left_join(x, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
-    relocate(TechRepMixture, .after=Mixture) %>%
-    relocate(Condition, .after=TechRepMixture) %>%
-    relocate(BioReplicate, .after=Condition) }
+    x <- x[,!(colnames(x) %in% c('Condition'))]
+    x <- left_join(x, sample.info, by=c('Run', 'Channel')) }
   return(x)
 }
 
@@ -236,17 +231,11 @@ print_conf_mat <- function(dat){
 # get design matrix for use in moderated t-test
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-get_design_matrix <- function(referenceCondition, study.design) {
+get_design_matrix <- function(referenceCondition, sample.info) {
   # ANOVA-like design matrix for use in moderated_ttest, indicating group 
   # (condition) membership of each entry in all_channels.
-  
-  # remove internal reference cols if still present
-  study.design <- study.design[!(study.design$Channel %in% c('126', '131')),]
-  
-  otherConditions = setdiff(unique(study.design$Condition), referenceCondition)
-  #study.design.unitedchannel <- study.design %>% unite(Channel, c(Channel,Run))
-  study.design.unitedchannel <- study.design %>% unite(Channel, c(Run,Channel), sep=':')
-  all_channels = study.design.unitedchannel %>% select(Channel) %>% pull
+  otherConditions = setdiff(unique(sample.info$Condition), referenceCondition)
+  all_channels = sample.info$Sample
   N_channels = length(all_channels) 
   N_conditions = 1+length(otherConditions)
   design = matrix(rep(0,N_channels*N_conditions), c(N_channels, N_conditions))
@@ -254,7 +243,7 @@ get_design_matrix <- function(referenceCondition, study.design) {
   rownames(design) <- all_channels
   colnames(design) <- c(referenceCondition, otherConditions)
   for (i in 1:N_channels) {  # for each channel in each condition, put a "1" in the design matrix.
-    design[study.design.unitedchannel$Channel[i], study.design.unitedchannel$Condition[i]] = 1 }
+    design[sample.info$Sample[i], sample.info$Condition[i]] <- 1 }
   return(design)
 }
 

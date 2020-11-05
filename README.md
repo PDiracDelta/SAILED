@@ -1,3 +1,2 @@
-# isobaric labeling strategies
-
-collection of strategies on how to analyze isobarically labeled tandem-MS data, in the format of jupyter notebooks 
+In this notebook series, we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry.
+Start by reading the intro, and then pick a notebook of your interest!

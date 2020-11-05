@@ -107,4 +107,5 @@ dat.l <- dat.l %>% filter(!shared.peptide)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
 
 # save data in wide and long format
+if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
 saveRDS(list(dat.l=dat.l, dat.w=dat.w), 'input_data.rds')  # make symlink

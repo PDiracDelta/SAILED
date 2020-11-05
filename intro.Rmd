@@ -1,7 +1,8 @@
 ---
-title: "Introduction to Isobaric Labeling Strategies notebooks"
-author: "Piotr Prostko"
-date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
+title: "The anatomy of workflows for analyzing isobarically labeled mass spectrometry
+  data in proteomics"
+author: "Piotr Prostko, Joris Van Houtven"
+date: '`r format(Sys.time(), "%B %d, %Y")`'
 output: 
   html_document:
     toc: true
@@ -9,35 +10,71 @@ output:
     toc_float: true
     number_sections: true
     theme: flatly
+    code_folding: "hide"    
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
-library(DEP)
-library(nlme)
-library(lme4)
-library(lmerTest)
-library(limma)
 library(tidyverse)
 library(ggplot2)
 library(stringi)
 library(venn)
 ```
 
+# General intro
 *The text below is just a quick and dirty sketch of the future content*
 
-In this notebook we will present aims of this study and describe briefly the study data. 
+In this notebook series, we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry.
+Each analysis strategy or 'workflow' can be divided up into different components.
+In this notebook specifically, we give an overview of the different workflow components and briefly describe the data set used.
 
-- Let's give a similar explanation why we want to do this study by repeating the skeleton of our future manuscript (on google drive). Introduce the strategy components and our dichotomization of workflows (data-driven and model-based normalization).
-- Say a few words on the proteomic data structure (e.g. hierarchy, redundancy).
-- Introduce the selected data set from MSSstatsTMT (design, subsetting to mixtures 1,2 and techreps 1,2). 
-- Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
-- Some data vizualizations.
+Analyzing this kind of data is not a simple matter, because there is quite some complexity and experimental variability involved due to the pooling of samples and combining of data from different intrument runs, respectively. On top of that, the data is also quite hierarchical in nature. 
+
+<details>
+  <summary>If you need a refresher on any of those, expand this section.</summary>
+  _stuff about proteins, sample pooling, and the large amount of variability between MS runs (as opposed to, e.g. NGS data. You can copy that info from this paper: https://drive.google.com/file/d/1TE_2e_tWsIU5fNtPpIwN7CjJsetgPqP5/view?usp=sharing)_
+</details>  
+
+# Workflow components
+
+The table below shows an overview of the many components that make up a workflow for performing a differential expression analysis (DEA). This list is probably not exhaustive, but for each of those components a decision has to be made.
+Note that we have made a dichotomy between data-driven and model-based approaches.
+
+<!-- USE tablesgenerator.com TO MAKE THIS TABLE (copy from ILS excel sheet)-->
+
+| Data-driven approach   |                                     |           |                       | Model-based approach   |                                     |                                                                              |                           |      |
+|------------------------|-------------------------------------|-----------|-----------------------|------------------------|-------------------------------------|------------------------------------------------------------------------------|---------------------------|------|
+| Component              | Default                             | Variant 1 | Variant 2             | Component              | Default                             | Variant 1                                                                    | Variant 2                 | ...  |
+| **unit scale**             | intensity+log2                      | intensity | ratio+log2            | **unit scale**             | intensity+log2                      | intensity                                                                    | ratio+log2                | VSN? |
+| imputation             | none                                |           |                       | imputation             | none                                |                                                                              |                           |      |
+| imputation-level       | none                                |           |                       | imputation-level       | none                                |                                                                              |                           |      |
+| "thresholding"         | remove NA and isolationInterference |           |                       | "thresholding"         | remove NA and isolationInterference |                                                                              |                           |      |
+| outliers               | none                                |           |                       | outliers               | none                                |                                                                              |                           |      |
+| normalisation-level    | PSM                                 |           |                       | sumerization level     | none                                | PSM to peptide                                                               | PSM to peptide            |      |
+| **normalisation**          | **CONSTANd**                            | NOMAD     | median sweeping       | **summarization**          | none                                | median                                                                       | sum                       |      |
+| sumerization level     | PSM to peptide to protein           |           |                       | normalisation-level    | PSM                                 | peptide                                                                      | peptide                   |      |
+| **summarization**          | median                              | iPQF      | sum                   | **normalisation**          | LMM formulation from Piotr's thesis | Vary main effects, interactions, fixed or random effects, variance structure |                           |      |
+| visualization level    | protein                             |           |                       | visualization level    | protein                             |                                                                              |                           |      |
+| **DEA**                    | moderated ttest                     | wilcoxon  | some permutation test | **DEA**                    | LMM (peptide:run + LIMMA)           | DEqMS (no within-protein correlation correction)                             | LMM (protein:run + LIMMA) |      |
+| multiple testing corr. | BH                                  |           |                       | multiple testing corr. | BH                                  |                                                                              |                           |      |
+| reference sample       | no                                  |           |                       | reference sample       | no                                  |                                                                              |                           |      |
+| modeling framework     | frequentist                         |           |                       | modeling framework     | frequentist                         |                                                                              |                           |      |
+Each of the notebooks in this series takes the default approach, except for one component for which different variants are explored in detail. We chose the **unit scale**, **normalization method**, **summarization method** and **DEA method** as most interesting components to investigate, because on one hand we expect them to be impactful and on the other hand they are the ones we see varied and published about the most. We have made a non-systematic, non-exhaustive, [publicly available list of publications and software packages](https://docs.google.com/spreadsheets/d/1P6yCwUPVIxLb6w3oHiH-xptKBXe_17D_KUkBbLJ6p4w/edit?pli=1#gid=0) related to analyzing proteomics data. You are very welcome to suggest edits and additions to this public repository.
+
+# Data set
+
+The data used in this notebook series is a subset of the SpikeIn-5mix-MS2 (Five controlled mixtures with technical replicates) data set used in the initial [publication](https://doi.org/10.1074/mcp.RA120.002105) on [MSstatsTMT](http://msstats.org/msstatstmt/).
+As shown in the figure below, we use only ............subsetting to mixtures 1,2 and techreps 1,2
+
+![](design_ILS_as_subset.png)
 
 Below the first few records of the data (in wide format) are printed out to see what we will be dealing with.
 
+- DATA WAS FILTERED IN data_prep.R: Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
+
 ```{r, echo=FALSE}
-path.data <- 'G:/My Drive/Isobaric labeling strategies/data'
-data.list <- readRDS(paste0(path.data, '/input_data.rds'))
+data.list <- readRDS('input_data.rds')  # create symlink
 dat.l <- data.list$dat.l
 dat.w <- data.list$dat.w
 head(dat.w)

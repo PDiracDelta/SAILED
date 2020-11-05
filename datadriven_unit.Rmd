@@ -1,6 +1,6 @@
 ---
-title: "Data-driven analysis of isobaric labels data. Unit component."
-author: "Joris Van Houtven"
+title: "Choosing an appropriate unit scale for Data-driven analysis of isobarically labeled proteomic data."
+author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:

@@ -1,6 +1,6 @@
 ---
-title: "Data-driven analysis of isobaric labels data. Normalization component."
-author: "Joris Van Houtven"
+title: "Choosing a Summarization strategy for Data-driven analysis of isobarically labeled proteomic data."
+author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:
@@ -196,6 +196,18 @@ dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
 })
 ```
 
+```{r}
+# make data completely wide (also across runs)
+## normalized data
+dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
+  return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
+})
+colnames(dat.norm.summ.w2)
+# apply normalizeQuantiles again, now to the data from all runs simultaneously
+dat.norm.summ.w2$quantile[,sample.info$Sample] <- normalize.quantiles(as.matrix(dat.norm.summ.w2$quantile[,sample.info$Sample]))
+dat.norm.summ.w2
+```
+
 Notice that the row sums are not equal to Ncols anymore, because the median summarization
 does not preserve them (but mean summarization does).
 
@@ -223,8 +235,8 @@ dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 # make data completely wide (also across runs)
 
 ## non-normalized data
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-dat.nonnorm.summ.w2 <- flip_colnames(dat.nonnorm.summ.w2, 'Protein')
+# we alreaady did this earlier, right before the second stage of quantile normalization!
+#dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
 
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
