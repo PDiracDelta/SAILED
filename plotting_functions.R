@@ -98,7 +98,7 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title){
 
 pcaplot_ils=function(dat, info, title, scale=F){
   # fix columns order (as in 'info' arg)
-  dat <- dat[, match(sample.info$Sample, colnames(dat))]
+  dat <- dat[, match(remove_factors(sample.info$Sample), colnames(dat))]
   # drop NA values (they are due to proteins not detected in all runs.)
   pc.cr <- prcomp(t(dat %>% drop_na()), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
@@ -111,7 +111,7 @@ pcaplot_ils=function(dat, info, title, scale=F){
   legend.run <- info %>% distinct(Run.short) %>% pull
   legend.cond <- info %>% distinct(Condition, Colour) %>% arrange(Condition)
   
-  plot(Ux1,Ux2, col=info$Colour, pch=as.numeric(legend.run)+15, 
+  plot(Ux1,Ux2, col=info$Colour, pch=match(info$Run.short, legend.run)+15, 
        main=title, xlab=axis.lab[1], ylab=axis.lab[2], cex=1.5)
   
   legend('bottomleft', legend=legend.run, pch=as.numeric(legend.run)+15, bty = "n", cex=1.1) # run legend
