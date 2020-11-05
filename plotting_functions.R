@@ -180,7 +180,7 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 scatterplot_ils <- function(dat, cols, stat){
-  select.stat <- match.arg(stat, c('p-values', 'log2FC'))
+  select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
   title <- paste("Spearman's correlation of", select.stat)
   
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
