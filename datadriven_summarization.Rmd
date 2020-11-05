@@ -436,7 +436,7 @@ violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceConditio
 
 # Conclusions
 
-For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. The QC plots suggest that the Sum summarization obfuscates any work done by the normalization. This may be explained by the fact that sum summarization promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity.
+For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. The QC plots suggest that the Sum summarization obfuscates any work done by the normalization. This may be explained by the fact that sum summarization promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity. Therefore, Sum summarization does not work when you have data from multiple runs. In such a case, it would be advised to use mean normalization instead.
 
 # Session information
 
