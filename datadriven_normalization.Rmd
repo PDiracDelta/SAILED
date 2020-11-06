@@ -1,5 +1,5 @@
 ---
-title: "Choosing a Summarization strategy for Data-driven analysis of isobarically labeled proteomic data."
+title: "Normalization strategy comparison for Data-driven analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
