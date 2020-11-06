@@ -308,18 +308,18 @@ moderated_ttest <- function(dat, design, scale) {
 #   if logFC.method='diff': difference of arithmetic means computed on log2 scale
 #   if logFC.method='ratio': log2 ratio of arithmetic means computed on raw scale
 
-wilcoxon_test <- function(dat, referenceCondition, otherConditions, logFC.method='ratio'){
+wilcoxon_test <- function(dat, sample.info, referenceCondition, otherConditions, logFC.method='ratio'){
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
-  refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
+  refCondCols <- sample.info %>% filter(Condition==referenceCondition) %>% 
     distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
   t.mod <- p.mod <- logFC
   
   for (i in 1:n.conditions){
-    CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
+    CondCols <- sample.info %>% filter(Condition==otherConditions[i]) %>% 
       distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
     
     wilcox.results=row_wilcoxon_twosample(x=dat[,CondCols], y=dat[,refCondCols])
@@ -356,7 +356,7 @@ wilcoxon_test <- function(dat, referenceCondition, otherConditions, logFC.method
 # Columns of the m x n quantification matrix (m proteins and n biological samples) 
 # are B times randomly shuffled (drawing n column indices without replacement) in order to generate the null distribution 
 # of the test statistic. P-values are computed by comparing the observed test statistic value with the null distribution.
-permutation_test <- function(dat, referenceCondition, otherConditions, B=1000, seed=NULL){
+permutation_test <- function(dat, sample.info, referenceCondition, otherConditions, B=1000, seed=NULL){
   
   if (!is.null(seed)) set.seed(seed)
   
@@ -364,7 +364,7 @@ permutation_test <- function(dat, referenceCondition, otherConditions, B=1000, s
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
   #allCols <- colnames(dat)[-1]
-  refCondCols <- study.design %>% filter(Condition==referenceCondition) %>% 
+  refCondCols <- sample.info %>% filter(Condition==referenceCondition) %>% 
     distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
   refCondColsLen <- length(refCondCols)
   
@@ -374,7 +374,7 @@ permutation_test <- function(dat, referenceCondition, otherConditions, B=1000, s
   
   for (i in 1:n.conditions){
     
-    CondCols <- study.design %>% filter(Condition==otherConditions[i]) %>% 
+    CondCols <- sample.info %>% filter(Condition==otherConditions[i]) %>% 
       distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
     # the observed test statistic value (difference in arithmetic means)
     obsStat <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
