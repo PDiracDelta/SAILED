@@ -44,11 +44,10 @@ This notebook presents isobaric labeling data analysis strategy that includes da
 We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.R')
-source('./plotting_functions.R')
+source('other_functions.R')
+source('plotting_functions.R')
 
 # you should either make a symbolic link in this directory
-study.design=read.delim('msstatstmt_studydesign.csv')
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # dat.w <- data.list$dat.w # data in wide format
