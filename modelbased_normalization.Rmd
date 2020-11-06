@@ -200,10 +200,9 @@ par(mfrow=c(1, 1))
 ### Using spiked proteins only
 
 ```{r}
-par(mfrow=c(2, 2))
 pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.normplot.w[[i]]) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -265,19 +264,21 @@ dat.normplot.wgt.w <- lapply(dat.normplot.wgt.l, function(x) {
 })
 
 par(mfrow=c(2, 2))
-pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins,], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-    pcaplot_ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[1]]) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+    pcaplot_ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[i]]) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
 ## HC (hierarchical clustering) plots
 
+Only use spiked proteins
+
 ```{r}
 par(mfrow=c(2,2))
-dendrogram_ils(dat.summplot.w, info=sample.info, 'Before normalization')
+dendrogram_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Before normalization')
 for (i in 1: n.comp.variants){
-  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.normplot.w[[i]][rownames(dat.normplot.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 

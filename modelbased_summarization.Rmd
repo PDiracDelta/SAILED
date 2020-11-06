@@ -189,6 +189,8 @@ par(mfrow=c(1, 1))
 
 ## PCA plots
 
+### Using all proteins
+
 ```{r}
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
@@ -197,13 +199,25 @@ for (i in 1: n.comp.variants){
 par(mfrow=c(1, 1))
 ```
 
-HC (hierarchical clustering) plots
+### Using spiked proteins only
 
 ```{r}
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
-  dendrogram_ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
-  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.summplot.w[[i]][rownames(dat.summplot.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
+  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.normplot.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
+HC (hierarchical clustering) plots
+
+Only use spiked proteins
+
+```{r}
+par(mfrow=c(1, 2))
+for (i in 1: n.comp.variants){
+  dendrogram_ils(dat.summplot.w[[i]][rownames(dat.summplot.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
+  dendrogram_ils(dat.normplot.w[[i]][rownames(dat.normplot.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
