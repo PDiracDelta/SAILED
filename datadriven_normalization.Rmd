@@ -44,11 +44,10 @@ This notebook presents isobaric labeling data analysis strategy that includes da
 We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-source('./other_functions.R')
-source('./plotting_functions.R')
+source('other_functions.R')
+source('plotting_functions.R')
 
 # you should either make a symbolic link in this directory
-#study.design=read.delim('msstatstmt_studydesign.csv')
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # dat.w <- data.list$dat.w # data in wide format
@@ -177,7 +176,7 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
-vsn.tmp <- vsn2(as.matrix(dat.unit.w[,quanCols]), strata=dat.unit.w$Run)
+vsn.tmp <- vsn2(as.matrix(dat.norm.w$CycLoessVSN[,quanCols]), strata=dat.norm.w$CycLoessVSN$Run)
 dat.norm.w$CycLoessVSN[,quanCols] <- vsn.tmp@hx
 ```
 
@@ -200,9 +199,6 @@ dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
 ```{r}
 # make data completely wide (also across runs)
 ## normalized data
-str(dat.norm.summ.w)
-x=dat.norm.summ.w[[1]]
-
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
 })
