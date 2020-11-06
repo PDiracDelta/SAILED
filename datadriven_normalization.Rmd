@@ -235,10 +235,10 @@ dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 # make data completely wide (also across runs)
 
 ## non-normalized data
-# we alreaady did this earlier, right before the second stage of quantile normalization!
-#dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
+dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
 
 ## normalized data
+# we already did this earlier, right before the second stage of quantile normalization!
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
