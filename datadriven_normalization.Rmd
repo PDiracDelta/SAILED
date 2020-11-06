@@ -175,7 +175,7 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
-vsn.tmp <- vsn2(as.matrix(dat.unit.w[,quanCols]), strata=dat.unit.w$Run)
+vsn.tmp <- vsn2(as.matrix(dat.norm.w$CycLoessVSN[,quanCols]), strata=dat.norm.w$CycLoessVSN$Run)
 dat.norm.w$CycLoessVSN[,quanCols] <- vsn.tmp@hx
 ```
 
