@@ -36,7 +36,6 @@ library(tidyverse)
 library(preprocessCore)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
-library(vsn)
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
@@ -74,9 +73,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'CycLoessVSN')
+variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log', 'log', 'log')
+scale.vec <- c('log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
 quanCols <- unique(dat.l$Channel)
 referenceChannel <- '127C'
@@ -106,9 +105,6 @@ dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```{r}
 # switch to wide format
 dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
-# dat.unit.w2 <- lapply(dat.unit.l, function(x) {
-#   pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=c('Run','Channel'), values_from=response)
-# })
 ```
 
 
@@ -154,9 +150,6 @@ We apply NOMAD on the PSM level instead of the peptide level.
 dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel) %>% as.data.frame, doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
 dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
-# get rid of factors
-#factornames <- names(dat.norm.w$NOMAD)[sapply(dat.norm.w$NOMAD, is.factor)]
-#dat.norm.w$NOMAD <- dat.norm.w$NOMAD %>% mutate(across(factornames, remove_factors))
 ```
 
 ## medianSweeping
@@ -165,19 +158,6 @@ dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condi
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
-```
-
-## Cyclic loess normalization 
-
-```{r}
-x.split <- split(dat.unit.w, dat.unit.w$Run)
-x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- normalizeCyclicLoess(y[,quanCols], span=0.005, iterations=15)
-  return(y)
-})
-dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
-vsn.tmp <- vsn2(as.matrix(dat.norm.w$CycLoessVSN[,quanCols]), strata=dat.norm.w$CycLoessVSN$Run)
-dat.norm.w$CycLoessVSN[,quanCols] <- vsn.tmp@hx
 ```
 
 # Summarization component
