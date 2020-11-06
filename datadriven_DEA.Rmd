@@ -76,6 +76,7 @@ variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test')
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
+quanCols <- remove_factors(unique(dat.l$Channel))
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
@@ -130,7 +131,6 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 
 ```{r}
 # normalized data
-study.design=read.delim('msstatstmt_studydesign.csv')
 # group by (run,)protein,peptide then summarize twice (once on each level)
 dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup() 
 ```
@@ -163,8 +163,8 @@ dat.norm.summ.w2 <- flip_colnames(dat.norm.summ.w2, 'Protein')
 ```{r}
 # use (half-)wide format
 par(mfrow=c(1,2))
-  boxplot_w(dat.nonnorm.summ.w,study.design, 'Raw')
-  boxplot_w(dat.norm.summ.w, study.design, 'Normalized')
+  boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
+  boxplot_w(dat.norm.summ.w, sample.info, 'Normalized')
 par(mfrow=c(1,1))
 ```
 
@@ -196,10 +196,10 @@ grid.arrange(p1, p2, ncol=2)
 
 ```{r}
 dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, study.design)
+dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
 
 dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.norm.summ.l <- to_long_format(dat.norm.summ.w, study.design)
+dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 
 par(mfrow=c(1, 2))
   cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw', abs=F)
@@ -246,7 +246,7 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
-design.matrix <- get_design_matrix(referenceCondition, study.design)
+design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
 this_scale <- scale.vec[1]
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
@@ -258,13 +258,13 @@ dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
 ```{r}
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
-dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, referenceCondition, otherConditions, logFC.method='ratio')
+dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, logFC.method='ratio')
 ```
 
 ## Permutation test
 
 ```{r}
-dat.dea$permutation_test<- permutation_test(dat.norm.summ.w2, referenceCondition, otherConditions, B=1000, seed=seed)
+dat.dea$permutation_test<- permutation_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, B=1000, seed=seed)
 ```
 
 # Results comparison
@@ -285,7 +285,7 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
-scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, q.cols, 'q-values')
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
