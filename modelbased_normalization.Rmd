@@ -1,6 +1,6 @@
 ---
-title: "Model-based analysis of isobaric labels data. Normalization component."
-author: "Piotr Prostko"
+title: "Normalization strategy comparison for Model-based analysis of isobarically labeled proteomic data."
+author: "Piotr Prostko, Joris Van Houtven"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:

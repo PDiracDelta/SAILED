@@ -1,6 +1,6 @@
 ---
-title: "Model-based analysis of isobaric labels data. Unit component."
-author: "Piotr Prostko"
+title: "Unit transformation strategy comparison for Model-based analysis of isobarically labeled proteomic data."
+author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:
