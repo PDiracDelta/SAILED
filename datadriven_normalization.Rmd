@@ -226,6 +226,12 @@ x.split.norm  <- lapply(x.split, function(y) {
 dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 ```
 
+```{r}
+# additional VSN on protein level data applied to all runs 
+vsn.tmp <- vsn2(as.matrix(dat.norm.summ.w2$CycLoessVSN %>% select(-Protein)))
+dat.norm.summ.w2$CycLoessVSN[, colnames(dat.norm.summ.w2$CycLoessVSN)!='Protein'] <- vsn.tmp@hx
+```
+
 # QC plots
 
 ```{r}
@@ -241,12 +247,6 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
   return(dat.tmp)
 })
-```
-
-```{r}
-# additional VSN on protein level data applied to all runs 
-vsn.tmp <- vsn2(as.matrix(dat.norm.summ.w2$CycLoessVSN %>% select(-Protein)))
-dat.norm.summ.w2$CycLoessVSN[, colnames(dat.norm.summ.w2$CycLoessVSN)!='Protein'] <- vsn.tmp@hx
 ```
 
 ## Boxplots
