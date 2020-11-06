@@ -77,12 +77,12 @@ flip_colnames=function(dat, fixed.cols, sep=':'){
 # function performing mean or median aggregation on variables specified in var.names argument
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-aggFunc=function(dat, var.names, agg.method='mean'){
+aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
   select.method=match.arg(agg.method, c('mean', 'median', 'sum'))
   
   dat2 <- lazy_dt(dat)
-  out.dat=dat2 %>%
-    group_by(Mixture, TechRepMixture, Run, Channel, Condition, BioReplicate, Protein, Peptide) %>%
+  out.dat=dat %>%
+    group_by(across(all_of(group.vars))) %>%
     summarize_at(var.names, eval(parse(text=select.method))) %>%
     as_tibble()
     

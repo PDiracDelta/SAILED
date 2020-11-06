@@ -48,7 +48,7 @@ source('./other_functions.R')
 source('./plotting_functions.R')
 
 # you should either make a symbolic link in this directory
-study.design=read.delim('msstatstmt_studydesign.csv')
+#study.design=read.delim('msstatstmt_studydesign.csv')
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # dat.w <- data.list$dat.w # data in wide format
@@ -91,6 +91,7 @@ condition.colour <- tribble(
   "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
+channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
 # Unit component
@@ -199,6 +200,9 @@ dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
 ```{r}
 # make data completely wide (also across runs)
 ## normalized data
+str(dat.norm.summ.w)
+x=dat.norm.summ.w[[1]]
+
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
 })
@@ -257,9 +261,9 @@ dat.norm.summ.w2$CycLoessVSN[, colnames(dat.norm.summ.w2$CycLoessVSN)!='Protein'
 ```{r}
 # use (half-)wide format
 par(mfrow=c(3,2))
-boxplot_w(dat.nonnorm.summ.w,study.design, 'Raw')
+boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
 for (i in 1: n.comp.variants){
-  boxplot_w(dat.norm.summ.w[[i]], study.design, paste('Normalized', variant.names[i], sep='_'))
+  boxplot_w(dat.norm.summ.w[[i]], sample.info, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))
 ```
@@ -305,12 +309,12 @@ par(mfrow=c(1, 1))
 par(mfrow=c(3,2))
 dat.nonnorm.summ.l <- lapply(list(dat.nonnorm.summ.w), function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
+  x <- to_long_format(x, sample.info)
 })
 
 dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
+  x <- to_long_format(x, sample.info)
 })
 
 par(mfrow=c(2, 2))
@@ -374,7 +378,7 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
-design.matrix <- get_design_matrix(referenceCondition, study.design)
+design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
