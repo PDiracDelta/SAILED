@@ -127,16 +127,16 @@ dat.norm.l$LMM3$response <- residuals(LMM3)
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consistent, other normalization plots will be based on the aggregated data
-dat.summplot.l <- aggFunc(dat.summ.l, 'response', 'mean') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', 'mean')) # after normalization
+dat.summplot.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'),  'mean') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean')) # after normalization
 
 # now create data sets in wide format
 # before normalization
-dat.summplot.w <- pivot_wider(data=dat.summplot.l, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+dat.summplot.w <- pivot_wider(data=dat.summplot.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   
 # after normalization
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
-  dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+  dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   return(dat.tmp)})
 ```
 
@@ -180,9 +180,9 @@ grid.arrange(grobs = p, ncol=2, nrow=2)
 
 ```{r}
 par(mfrow=c(2,2))
-cvplot_ils(dat=dat.summplot.l, feature.group='Peptide', xaxis.group='Condition', title='Before normalization')
+cvplot_ils(dat=dat.summplot.l, feature.group='Protein', xaxis.group='Condition', title='Before normalization')
 for (i in 1: n.comp.variants){
-  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'))}
+  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
 ```
 
@@ -200,11 +200,10 @@ par(mfrow=c(1, 1))
 ### Using spiked proteins only
 
 ```{r}
-spiked.peptides <- dat.l %>% filter(Protein %in% spiked.proteins) %>% distinct(Peptide) %>% pull
 par(mfrow=c(2, 2))
-pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.normplot.w[[i]][rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
@@ -222,14 +221,14 @@ dat.norm.l.spk[[2]]$response <- residuals(LMM2)
 LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l %>% filter(Protein %in% spiked.proteins))
 dat.norm.l.spk[[3]]$response <- residuals(LMM3)
 
-dat.normplot.spk.l <- lapply(dat.norm.l.spk, function(x) aggFunc(x, 'response', 'mean')) 
+dat.normplot.spk.l <- lapply(dat.norm.l.spk, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean')) 
 dat.normplot.spk.w <- lapply(dat.normplot.spk.l, function(x) {
-  dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+  dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   return(dat.tmp)
 })
 
 par(mfrow=c(2,2))
-pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
   pcaplot_ils(dat.normplot.spk.w[[i]], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1,1))
@@ -259,16 +258,16 @@ dat.norm.l.wgt[[2]]$response <- residuals(LMM2)
 LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l, weights=weights)
 dat.norm.l.wgt[[3]]$response <- residuals(LMM3)
 
-dat.normplot.wgt.l <- lapply(dat.norm.l.wgt, function(x) aggFunc(x, 'response', 'mean')) 
+dat.normplot.wgt.l <- lapply(dat.norm.l.wgt, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean')) 
 dat.normplot.wgt.w <- lapply(dat.normplot.wgt.l, function(x) {
-  dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+  dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   return(dat.tmp)
 })
 
 par(mfrow=c(2, 2))
-pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.peptides, ], info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
-    pcaplot_ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[1]]) %in% spiked.peptides, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+    pcaplot_ils(dat.normplot.wgt.w[[i]][rownames(dat.normplot.wgt.w[[1]]) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 

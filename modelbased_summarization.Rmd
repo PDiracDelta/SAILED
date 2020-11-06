@@ -100,13 +100,13 @@ dat.summ.l$no_summ <- dat.unit.l
 ## PSM to peptide summarization using median
 
 ```{r}
-dat.summ.l$median_summ <- aggFunc(dat.unit.l, 'response', 'median')
+dat.summ.l$median_summ <- aggFunc(dat.unit.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein',  'Peptide'), 'median')
 ```
 
 ## PSM to peptide summarization using sum
 
 ```{r}
-dat.summ.l$sum_summ <- aggFunc(dat.unit.l, 'response', 'sum')
+dat.summ.l$sum_summ <- aggFunc(dat.unit.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein',  'Peptide'), 'sum')
 ```
 
 # Normalization component
@@ -126,22 +126,20 @@ dat.norm.l <- lapply(dat.summ.l, function(x) {
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
 
 # before normalization
-dat.summplot.l <- dat.summ.l
-dat.summplot.l$no_summ <- aggFunc(dat.summ.l$no_summ, 'response', 'mean') # only first variant requires aggregation to peptide level
+dat.summplot.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean'))
 
 # after normalization
-dat.normplot.l <- dat.norm.l
-dat.normplot.l$no_summ <- aggFunc(dat.norm.l$no_summ, 'response', 'mean') # only first variant requires aggregation to peptide level
+dat.normplot.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean'))
 
 # now create data sets in wide format
 # before normalization
 dat.summplot.w <- lapply(dat.summplot.l, function(x) {
-  dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+  dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   return(dat.tmp) } )
 
 # after normalization
 dat.normplot.w <- lapply(dat.normplot.l, function(x) {
-  dat.tmp <- pivot_wider(data=x, id_cols=Peptide, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Peptide')
+  dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
   return(dat.tmp) } )
 ```
 
@@ -184,8 +182,8 @@ for (i in 1: n.comp.variants){
 ```{r}
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
-  cvplot_ils(dat=dat.summplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
-  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Peptide', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
+  cvplot_ils(dat=dat.summplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
+  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
 par(mfrow=c(1, 1))
 ```
 
