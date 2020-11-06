@@ -104,30 +104,22 @@ dat.unit.l <- dat.l
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
-# Normalization component
+# Normalization component: medianSweeping (1)
 
 ```{r}
 # switch to wide format
 dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response) 
 ```
 
-## CONSTANd
-
 ```{r}
-# dat.unit.l entries are in long format so all have same colnames and no quanCols
-quanCols = setdiff(colnames(dat.unit.w), colnames(dat.unit.l))
-dat.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
-dat.split.norm  <- lapply(dat.split, function(x) {
-    x[,quanCols] <- CONSTANd(x[,quanCols])$normalized_data
-    return(x) } )
-dat.norm.w <- bind_rows(dat.split.norm)
+# subtract the spectrum median log2intensity from the observed log2intensities
+dat.norm.w <- dat.unit.w
+dat.norm.w[,quanCols] <- sweep(dat.norm.w[,quanCols], 1, apply(dat.norm.w[,quanCols], 1, median) )
 ```
 
-# Summarization component
+# Summarization component: Median summarization
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
-
-## Median summarization (PSM to peptide to protein)
 
 ```{r}
 # normalized data
@@ -142,6 +134,19 @@ Let's also summarize the non-normalized data for comparison in the next section.
 # non-normalized data
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+```
+
+# Normalization component: medianSweeping (2)
+
+```{r}
+# medianSweeping: in each channel, subtract median computed across all proteins within the channel
+# do the above separately for each MS run
+x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
+x.split.norm  <- lapply(x.split, function(y) {
+  y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median) )
+  return(y)
+})
+dat.norm.summ.w <- bind_rows(x.split.norm)
 ```
 
 # QC plots
