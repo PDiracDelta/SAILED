@@ -463,3 +463,20 @@ deqms_test <- function(dat, design, scale, psm.counts) {
   return(results %>% select(-contains(reference_condition)))
 }
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# get_anova
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# extracts ordinary linear model output from the moderated_ttest call and renames all columns 
+# containing .ord to .mod (for consistency - .mod columns are used in confusion matrix, scatter plots, 
+# volcano plots, violin plots)
+
+get_anova <- function(dat, design, scale){
+  mod <- moderated_ttest(dat, design, scale)
+  allcols <- colnames(mod)
+  ind <- stri_detect(allcols, fixed='.mod')
+  # select columns corresponding to ordinary linear model only
+  mod <- mod[,!ind & !(colnames(mod) %in% c("df.r", "df.0", "s2.0", "s2.post"))]
+  # rename '.ord' to '.mod'
+  colnames(mod) <- stri_replace(colnames(mod), fixed='.ord', replacement='.mod')
+  return(mod)
+}
