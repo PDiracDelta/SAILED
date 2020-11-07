@@ -93,9 +93,7 @@ sample.info <- get_sample_info(dat.l, condition.colour)
 channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
-# Unit component
-
-## log2 transformation of reporter ion intensities
+# Unit component: log2 transformation of reporter ion intensities
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
@@ -113,7 +111,7 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 dat.norm.w <- emptyList(variant.names)
 ```
 
-## Quantile
+## Quantile (1)
 
 We apply quantile normalization to each Run separately, and then re-scale the observations so that the mean observation within in each run is set equal to the mean observation across all runs.
 
@@ -153,7 +151,7 @@ dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
 ```
 
-## medianSweeping
+## medianSweeping (1)
 
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
@@ -161,7 +159,7 @@ dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
 ```
 
-## Cyclic loess normalization 
+## Cyclic loess + VSN normalization (1)
 
 ```{r}
 x.split <- split(dat.unit.w, dat.unit.w$Run)
@@ -190,6 +188,13 @@ dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
 })
 ```
 
+Let's also summarize the non-normalized data for in the comparison section.
+```{r}
+# non-normalized data
+# add select() statement because summarise_at is going bananas over character columns
+dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+```
+
 ```{r}
 # make data completely wide (also across runs)
 ## normalized data
@@ -199,25 +204,20 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 colnames(dat.norm.summ.w2)
 ```
 
+# Normalization component (2)
+
+## Quantile (2)
+
 ```{r}
 # apply normalizeQuantiles again, now to the data from all runs simultaneously
 dat.norm.summ.w2$quantile[,sample.info$Sample] <- normalize.quantiles(as.matrix(dat.norm.summ.w2$quantile[,sample.info$Sample]))
 dat.norm.summ.w2
 ```
 
-Notice that the row sums are not equal to Ncols anymore, because the median summarization
-does not preserve them (but mean summarization does).
-
-Let's also summarize the non-normalized data for comparison in the next section.
-```{r}
-# non-normalized data
-# add select() statement because summarise_at is going bananas over character columns
-dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
-```
+## MedianSweeping (2)
 
 ```{r}
-# medianSweeping: in each channel, subtract median computed across all proteins within the channel
-# do the above separately for each MS run
+# medianSweeping: in each channel, subtract median computed across all proteins within the channel, separately for each MS run.
 x.split <- split(dat.norm.summ.w$medianSweeping, dat.norm.summ.w$medianSweeping$Run)  
 x.split.norm  <- lapply(x.split, function(y) {
   y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median) )
@@ -225,6 +225,8 @@ x.split.norm  <- lapply(x.split, function(y) {
 })
 dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 ```
+
+## VSN (2)
 
 ```{r}
 # additional VSN on protein level data applied to all runs 
@@ -361,9 +363,7 @@ for (i in seq_along(dat.norm.summ.w2)){
 par(mfrow=c(1, 1))  
 ```
 
-# DEA component
-
-## Moderated t-test
+# DEA component: Moderated t-test
 
 TODO:
 - Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
