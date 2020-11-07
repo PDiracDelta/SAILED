@@ -92,13 +92,11 @@ sample.info <- get_sample_info(dat.l, condition.colour)
 seed=9987
 ```
 
-# Unit component
+# Unit component: log2 transformation of reporter ion intensities
 
 ```{r}
 dat.unit.l <- dat.l
 ```
-
-## log2 transformation of reporter ion intensities
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
