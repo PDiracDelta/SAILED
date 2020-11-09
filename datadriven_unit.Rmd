@@ -87,24 +87,26 @@ condition.colour <- tribble(
 sample.info <- get_sample_info(dat.l, condition.colour)
 ```
 
-# Unit component
+# Unit scale component
+
+Which scale are the reporter ion intensities on?
 
 ```{r}
 dat.unit.l <- emptyList(variant.names)
 ```
 
-## log2 transformation of reporter ion intensities
+## log2 intensity
 
 ```{r}
 dat.unit.l[[1]] <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
-## original scale (not log-transformed) of reporter ion intensities
+## original intensity
 ```{r}
 dat.unit.l[[2]] <- dat.l %>% rename(response=Intensity)
 ```
 
-## intensity ratios (with respect to average within run)
+## intensity ratios
 
 Calculate ratio's (per PSM) with respect to average intensity within run, 
 or in other words: each value is divided by the row mean.
@@ -132,11 +134,9 @@ dat.norm.w <- lapply(dat.norm.w, function(x) {
   return(x) } )
 ```
 
-# Summarization component
+# Summarization component: Median summarization
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
-
-## Median summarization (PSM to peptide to protein)
 
 ```{r}
 # normalized data
@@ -293,9 +293,7 @@ for (i in seq_along(dat.norm.summ.w2)){
 }
 ```
 
-# DEA component
-
-## Moderated t-test
+# DEA component: Moderated t-test
 
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
