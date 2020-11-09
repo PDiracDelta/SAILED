@@ -178,16 +178,12 @@ dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x) {
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-  dat.tmp <- flip_colnames(dat.tmp, 'Protein')
-  return(dat.tmp)
+  return( x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}") )
 })
 
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-  dat.tmp <- flip_colnames(dat.tmp, 'Protein')
-  return(dat.tmp)
+  return( x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}") )
 })
 ```
 

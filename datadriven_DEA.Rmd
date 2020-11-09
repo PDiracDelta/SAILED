@@ -153,12 +153,10 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 # make data completely wide (also across runs)
 
 ## non-normalized data
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-dat.nonnorm.summ.w2 <- flip_colnames(dat.nonnorm.summ.w2, 'Protein')
+dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
 
 ## normalized data
-dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-dat.norm.summ.w2 <- flip_colnames(dat.norm.summ.w2, 'Protein')
+dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
 ```
 
 ## Boxplots
