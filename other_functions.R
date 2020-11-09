@@ -93,7 +93,7 @@ aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-lmm_dea <- function(dat, mod.formula, referenceCondition){
+lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
   
   mod.formula <- as.formula(mod.formula)
   
@@ -116,9 +116,14 @@ lmm_dea <- function(dat, mod.formula, referenceCondition){
     mod <- lmer_safe(proteins[i])
     if (!is.null(mod)){
       sum.mod <- summary(mod)
-      logFC[i,]=sum.mod$coefficients[-1,1] # estimate of the log2-fold-change corresponding to the effect size
-      t.mod[i,]=sum.mod$coefficients[-1,4] # moderated t-statistic
-      p.mod[i,]=sum.mod$coefficients[-1,5] # moderated p-value corresonding to the moderated t-statistic
+      # estimate of the log2-fold-change corresponding to the effect size
+      if (scale=='log') logFC[i,]=sum.mod$coefficients[-1,1] else if (scale=='raw'){
+        rat <- (sum.mod$coefficients[-1,1]+sum.mod$coefficients[1,1])/sum.mod$coefficients[1,1]
+        logFC[i, rat>0]=log2(rat[rat>0]); logFC[i, rat<=0] <- NA # some of the calculated ratios may be negative!
+        }
+      t.mod[i,]=sum.mod$coefficients[-1,4] # t-statistic
+      p.mod[i,]=sum.mod$coefficients[-1,5] # p-value
+      
     } else {
       logFC[i,] <- rep(NA, n.conditions-1)
       t.mod[i,] <- rep(NA, n.conditions-1)
