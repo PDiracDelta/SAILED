@@ -78,7 +78,6 @@ variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'CycLoessV
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
-quanCols <- unique(dat.l$Channel)
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
@@ -116,13 +115,13 @@ dat.norm.w <- emptyList(variant.names)
 We apply quantile normalization to each Run separately, and then re-scale the observations so that the mean observation within in each run is set equal to the mean observation across all runs.
 
 ```{r}
-grand_average <- mean(as.matrix(dat.unit.w[,quanCols]))
+grand_average <- mean(as.matrix(dat.unit.w[,channelNames]))
 x.split <- split(dat.unit.w, dat.unit.w$Run)  
 x.split.norm <- lapply(x.split, function(y) {
   # apply normalizeQuantiles to each Run separately
-  y[,quanCols] <- normalize.quantiles(as.matrix(y[,quanCols]))
+  y[,channelNames] <- normalize.quantiles(as.matrix(y[,channelNames]))
   # make averages of all runs equal.
-  y[,quanCols] <- y[,quanCols] / mean(colMeans(y[,quanCols])) * grand_average
+  y[,channelNames] <- y[,channelNames] / mean(colMeans(y[,channelNames])) * grand_average
   return(y)
 })
 dat.norm.w$quantile <- bind_rows(x.split.norm)
@@ -131,10 +130,10 @@ dat.norm.w$quantile <- bind_rows(x.split.norm)
 ## CONSTANd
 
 ```{r}
-# dat.unit.l entries are in long format so all have same colnames and no quanCols
+# dat.unit.l entries are in long format so all have same colnames and no channelNames
 x.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- CONSTANd(y[,quanCols])$normalized_data
+  y[,channelNames] <- CONSTANd(y[,channelNames])$normalized_data
   return(y)
 })
 dat.norm.w$CONSTANd <- bind_rows(x.split.norm)
@@ -156,7 +155,7 @@ dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condi
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w$medianSweeping <- dat.unit.w
-dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCols], 1, apply(dat.norm.w$medianSweeping[,quanCols], 1, median) )
+dat.norm.w$medianSweeping[,channelNames] <- sweep(dat.norm.w$medianSweeping[,channelNames], 1, apply(dat.norm.w$medianSweeping[,channelNames], 1, median) )
 ```
 
 ## Cyclic loess + VSN normalization (1)
@@ -164,12 +163,12 @@ dat.norm.w$medianSweeping[,quanCols] <- sweep(dat.norm.w$medianSweeping[,quanCol
 ```{r}
 x.split <- split(dat.unit.w, dat.unit.w$Run)
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- normalizeCyclicLoess(y[,quanCols], span=0.005, iterations=15)
+  y[,channelNames] <- normalizeCyclicLoess(y[,channelNames], span=0.005, iterations=15)
   return(y)
 })
 dat.norm.w$CycLoessVSN <- bind_rows(x.split.norm)
-vsn.tmp <- vsn2(as.matrix(dat.norm.w$CycLoessVSN[,quanCols]), strata=dat.norm.w$CycLoessVSN$Run)
-dat.norm.w$CycLoessVSN[,quanCols] <- vsn.tmp@hx
+vsn.tmp <- vsn2(as.matrix(dat.norm.w$CycLoessVSN[,channelNames]), strata=dat.norm.w$CycLoessVSN$Run)
+dat.norm.w$CycLoessVSN[,channelNames] <- vsn.tmp@hx
 ```
 
 # Summarization component
@@ -183,7 +182,7 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
   # add select() statement because summarise_at is going bananas over character columns
-  y <- x %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+  y <- x %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
   return(y)
 })
 ```
@@ -192,7 +191,7 @@ Let's also summarize the non-normalized data for in the comparison section.
 ```{r}
 # non-normalized data
 # add select() statement because summarise_at is going bananas over character columns
-dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
 ```
 
 ```{r}
@@ -220,7 +219,7 @@ dat.norm.summ.w2
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel, separately for each MS run.
 x.split <- split(dat.norm.summ.w$medianSweeping, dat.norm.summ.w$medianSweeping$Run)  
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median) )
+  y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median) )
   return(y)
 })
 dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
@@ -240,12 +239,12 @@ dat.norm.summ.w2$CycLoessVSN[, colnames(dat.norm.summ.w2$CycLoessVSN)!='Protein'
 # make data completely wide (also across runs)
 
 ## non-normalized data
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
+dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 
 ## normalized data
 # we already did this earlier, right before the second stage of quantile normalization!
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
-  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
+  dat.tmp <- x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_sep = ":")
   dat.tmp <- flip_colnames(dat.tmp, 'Protein')
   return(dat.tmp)
 })
