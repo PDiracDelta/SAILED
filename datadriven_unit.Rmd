@@ -208,30 +208,26 @@ for (i in 1: n.comp.variants){
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
+# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function
 # use wide2 format
 for (i in 1: n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
-  
   p2 <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
-  
-  grid.arrange(p1, p2, ncol=2)  
+  grid.arrange(p1, p2, ncol=2)
 }
 ```
 
 ## MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
+# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 
 for (i in 1: n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'))
-  
   p2 <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
-  
-  grid.arrange(p1, p2, ncol=2)  
+  grid.arrange(p1, p2, ncol=2)
 }
 ```
 
@@ -252,10 +248,10 @@ par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
     cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
                title=paste('Raw', variant.names[i], sep='_'), abs=F)
-    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
+    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
                title=paste('Normalized', variant.names[i], sep='_'), abs=F)
 }
-par(mfrow=c(1, 1))  
+par(mfrow=c(1, 1))
 ```
 
 ## PCA plots
@@ -267,7 +263,7 @@ for (i in seq_along(dat.norm.summ.w2)){
   pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
   pcaplot_ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
 }
-par(mfrow=c(1, 1))  
+par(mfrow=c(1, 1))
 ```
 
 ### Using spiked proteins only
@@ -276,7 +272,7 @@ for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
     pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
     pcaplot_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
+  par(mfrow=c(1, 1))
 }
 ```
 
@@ -289,7 +285,7 @@ for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
     dendrogram_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
     dendrogram_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
+  par(mfrow=c(1, 1))
 }
 ```
 
