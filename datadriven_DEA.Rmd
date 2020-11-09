@@ -76,7 +76,6 @@ variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test')
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
-quanCols <- remove_factors(unique(dat.l$Channel))
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
@@ -88,6 +87,7 @@ condition.colour <- tribble(
   "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
+channelNames <- remove_factors(unique(sample.info$Channel))
 # set seed for permutation test
 seed=9987
 ```
@@ -112,7 +112,7 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
-dat.norm.w[,quanCols] <- sweep(dat.norm.w[,quanCols], 1, apply(dat.norm.w[,quanCols], 1, median) )
+dat.norm.w[,channelNames] <- sweep(dat.norm.w[,channelNames], 1, apply(dat.norm.w[,channelNames], 1, median) )
 ```
 
 # Summarization component: Median summarization
@@ -122,7 +122,7 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 ```{r}
 # normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
-dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup() 
+dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
 ```
 
 Notice that the row sums are not equal to Ncols anymore, because the median summarization does not preserve them (but mean summarization does).
@@ -131,7 +131,7 @@ Let's also summarize the non-normalized data for comparison in the next section.
 ```{r}
 # non-normalized data
 # add select() statement because summarise_at is going bananas over character columns
-dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
 ```
 
 # Normalization component: medianSweeping (2)
@@ -141,7 +141,7 @@ dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(
 # do the above separately for each MS run
 x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median) )
+  y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median) )
   return(y)
 })
 dat.norm.summ.w <- bind_rows(x.split.norm)
@@ -153,10 +153,10 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 # make data completely wide (also across runs)
 
 ## non-normalized data
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
+dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 
 ## normalized data
-dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}")
+dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 ```
 
 ## Boxplots
