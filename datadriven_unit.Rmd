@@ -141,7 +141,6 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 
 ```{r}
 # normalized data
-study.design=read.delim('msstatstmt_studydesign.csv')
 dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
   y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
@@ -198,8 +197,8 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 # use (half-)wide format
 for (i in 1: n.comp.variants){
   par(mfrow=c(1,2))
-    boxplot_w(dat.nonnorm.summ.w[[i]],study.design, paste('Raw', variant.names[i], sep='_'))
-    boxplot_w(dat.norm.summ.w[[i]], study.design, paste('Normalized', variant.names[i], sep='_'))
+    boxplot_w(dat.nonnorm.summ.w[[i]],sample.info, paste('Raw', variant.names[i], sep='_'))
+    boxplot_w(dat.norm.summ.w[[i]], sample.info, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1,1))
 }
 ```
@@ -241,12 +240,12 @@ for (i in 1: n.comp.variants){
 ```{r}
 dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
+  x <- to_long_format(x, sample.info)
 })
 
 dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, study.design)
+  x <- to_long_format(x, sample.info)
 })
 
 par(mfrow=c(1, 2))
@@ -307,7 +306,7 @@ variant.names <- names(dat.norm.summ.w2)
 scale.vec <- c(scale.vec, 'log')
 n.comp.variants <- n.comp.variants + 1
 #}
-design.matrix <- get_design_matrix(referenceCondition, study.design)
+design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
