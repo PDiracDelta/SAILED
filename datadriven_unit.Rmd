@@ -143,7 +143,7 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 study.design=read.delim('msstatstmt_studydesign.csv')
 dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
-  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% ungroup()
   return(y)
 })
 ```
@@ -156,7 +156,7 @@ Let's also summarize the non-normalized data for comparison in the next section.
 # non-normalized data
 dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
-  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% ungroup()
   return(y)
 })
 ```
