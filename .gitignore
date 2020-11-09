@@ -3,8 +3,10 @@
 .RData
 .Ruserdata
 .Rproj
-input_data.rds
 PSMs.csv
 PSMs_cleaned.csv
 .idea
 datadriven_normalization_files
+datadriven_summarization_files
+datadriven_DEA_files
+datadriven_unit_files

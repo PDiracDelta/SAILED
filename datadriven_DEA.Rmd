@@ -87,52 +87,42 @@ condition.colour <- tribble(
   "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
+channelNames <- remove_factors(unique(sample.info$Channel))
 # set seed for permutation test
 seed=9987
 ```
 
-# Unit component
+# Unit component: log2 transformation of reporter ion intensities
 
 ```{r}
 dat.unit.l <- dat.l
 ```
 
-## log2 transformation of reporter ion intensities
-
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 ```
 
-# Normalization component
+# Normalization component: medianSweeping (1)
 
 ```{r}
 # switch to wide format
 dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response) 
 ```
 
-## CONSTANd
-
 ```{r}
-# dat.unit.l entries are in long format so all have same colnames and no quanCols
-quanCols = setdiff(colnames(dat.unit.w), colnames(dat.unit.l))
-dat.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
-dat.split.norm  <- lapply(dat.split, function(x) {
-    x[,quanCols] <- CONSTANd(x[,quanCols])$normalized_data
-    return(x) } )
-dat.norm.w <- bind_rows(dat.split.norm)
+# subtract the spectrum median log2intensity from the observed log2intensities
+dat.norm.w <- dat.unit.w
+dat.norm.w[,channelNames] <- sweep(dat.norm.w[,channelNames], 1, apply(dat.norm.w[,channelNames], 1, median) )
 ```
 
-# Summarization component
+# Summarization component: Median summarization
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
 
-## Median summarization (PSM to peptide to protein)
-
 ```{r}
 # normalized data
-study.design=read.delim('msstatstmt_studydesign.csv')
 # group by (run,)protein,peptide then summarize twice (once on each level)
-dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup() 
+dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
 ```
 
 Notice that the row sums are not equal to Ncols anymore, because the median summarization does not preserve them (but mean summarization does).
@@ -141,7 +131,20 @@ Let's also summarize the non-normalized data for comparison in the next section.
 ```{r}
 # non-normalized data
 # add select() statement because summarise_at is going bananas over character columns
-dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% select(Run, Protein, quanCols) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
+dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
+```
+
+# Normalization component: medianSweeping (2)
+
+```{r}
+# medianSweeping: in each channel, subtract median computed across all proteins within the channel
+# do the above separately for each MS run
+x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
+x.split.norm  <- lapply(x.split, function(y) {
+  y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median) )
+  return(y)
+})
+dat.norm.summ.w <- bind_rows(x.split.norm)
 ```
 
 # QC plots
@@ -150,12 +153,10 @@ dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(
 # make data completely wide (also across runs)
 
 ## non-normalized data
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-dat.nonnorm.summ.w2 <- flip_colnames(dat.nonnorm.summ.w2, 'Protein')
+dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 
 ## normalized data
-dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_sep = ":")
-dat.norm.summ.w2 <- flip_colnames(dat.norm.summ.w2, 'Protein')
+dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 ```
 
 ## Boxplots
@@ -163,8 +164,8 @@ dat.norm.summ.w2 <- flip_colnames(dat.norm.summ.w2, 'Protein')
 ```{r}
 # use (half-)wide format
 par(mfrow=c(1,2))
-  boxplot_w(dat.nonnorm.summ.w,study.design, 'Raw')
-  boxplot_w(dat.norm.summ.w, study.design, 'Normalized')
+  boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
+  boxplot_w(dat.norm.summ.w, sample.info, 'Normalized')
 par(mfrow=c(1,1))
 ```
 
@@ -196,10 +197,10 @@ grid.arrange(p1, p2, ncol=2)
 
 ```{r}
 dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, study.design)
+dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
 
 dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.norm.summ.l <- to_long_format(dat.norm.summ.w, study.design)
+dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 
 par(mfrow=c(1, 2))
   cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw', abs=F)
@@ -246,7 +247,7 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
-design.matrix <- get_design_matrix(referenceCondition, study.design)
+design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
 this_scale <- scale.vec[1]
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
@@ -258,13 +259,13 @@ dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
 ```{r}
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
-dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, referenceCondition, otherConditions, logFC.method='ratio')
+dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, logFC.method='ratio')
 ```
 
 ## Permutation test
 
 ```{r}
-dat.dea$permutation_test<- permutation_test(dat.norm.summ.w2, referenceCondition, otherConditions, B=1000, seed=seed)
+dat.dea$permutation_test<- permutation_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, B=1000, seed=seed)
 ```
 
 # Results comparison
@@ -285,7 +286,7 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
-scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, q.cols, 'q-values')
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
