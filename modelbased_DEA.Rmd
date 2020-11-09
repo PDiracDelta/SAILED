@@ -57,14 +57,14 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 #TEMP -remove!
-tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 ```
 
 ```{r}
 # specify # of varying component variants and their names
 #variant.names <- c('LMM', 'DEqMS', 'ANOVA')
-variant.names <- c('LMM', 'DEqMS', 'ANOVA')
+variant.names <- c('LMM1', 'LMM2', 'LMM3', 'DEqMS', 'ANOVA')
 n.comp.variants <- length(variant.names)
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
@@ -195,16 +195,28 @@ par(mfrow=c(1, 1))
 dat.dea <- emptyList(variant.names)
 ```
 
-## mixed model (intra-protein correlation) + eBayes (PSM level data)
+## mixed model (intra-protein correlation modeled with 1|Run:Channel)
 
 ```{r}
-dat.dea$LMM <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition) 
+dat.dea$LMM1 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log') 
 # character vectors containing logFC and p-values columns
-dea.cols <- colnames(dat.dea$LMM)
+dea.cols <- colnames(dat.dea$LMM1)
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
-q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
+q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 ```
+
+## mixed model (intra-protein correlation modeled with 1|Peptide)
+
+```{r}
+dat.dea$LMM2 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Peptide)', referenceCondition, scale='log') 
+```
+
+<!-- ## mixed model (intra-protein correlation modeled with 1|Run:Channel:Peptide) -->
+
+# ```{r}
+# dat.dea$LMM3 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel:Peptide)', referenceCondition) 
+# ```
 
 ## DEqMS
 
@@ -275,11 +287,4 @@ violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceConditio
 ```{r}
 sessionInfo()
 ```
-
-
-
-
-
-
-
 
