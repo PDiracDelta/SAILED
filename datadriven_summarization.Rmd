@@ -100,9 +100,9 @@ dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
 dat.unit.l
 ```
 
-# Normalization component: CONSTANd
+# Normalization component: medianSweeping (1)
 
-Since CONSTANd needs to be applied on matrix-like data, let's switch to wide format. 
+Since medianSweeping needs to be applied on matrix-like data, let's switch to wide format. 
 (Actually, this is semi-wide, since the Channel columns still have contributions form all Runs, but that's OK because in the next step we split by Run.)
 
 ```{r}
@@ -111,16 +111,12 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 dat.unit.w
 ```
 
-Now let's apply CONSTANd to each Run separately, and then combine the results into a semi-wide dataframe again.
+Now let's sweep the medians of all the rows. No need to split this per Run, because each row contains only values from one Run and each median calculation is independent of the other rows. We will sweep the columns on the protein level -- as suggested by HERBRICH ET AL -- after summarization.
 
 ```{r}
-# dat.unit.l entries are in long format so all have same colnames and no channelNames
-x.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
-x.split.norm  <- lapply(x.split, function(y) {
-  y[,channelNames] <- CONSTANd(y[,channelNames])$normalized_data
-  return(y)
-})
-dat.norm.w <- bind_rows(x.split.norm)
+# subtract the spectrum median log2intensity from the observed log2intensities
+dat.norm.w <- dat.unit.w
+dat.norm.w[,channelNames] <- sweep(dat.norm.w[,channelNames], 1, apply(dat.norm.w[,channelNames], 1, median) )
 dat.norm.w
 ```
 
@@ -205,6 +201,22 @@ dat.norm.summ.w$sum <- sum_summarization(dat.norm.w)
 ```{r}
 # non-normalized data
 dat.nonnorm.summ.w$sum <- sum_summarization(dat.unit.w)
+```
+
+# Normalization component: medianSweeping (2)
+
+Now that the data is on the protein level, let's sweep all values separately per protein in the columns/samples. This is _slightly_ different from sweeping before the summarization step because the median of medians is not the same as the grand median, but this does not introduce bias.
+
+```{r}
+# medianSweeping: in each channel, subtract median computed across all proteins within the channel
+# do the above separately for each MS run
+dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
+  x.split <- split(x, x$Run)
+  x.split.norm  <- lapply(x.split, function(y) {
+    y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median, na.rm=T) )
+    return(y) } )
+  dat.norm.summ.w <- bind_rows(x.split.norm)
+} )
 ```
 
 # QC plots
@@ -407,8 +419,6 @@ scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 
 
 ## Volcano plots
-
-_volcano plots are narrow due to constand+log2_
 
 The volcano plot combines information on fold changes and statistical significance. The spike-in proteins are colored blue, and immediately it is clear that their fold changes dominate the region of statistical significance, which suggests the experiment and analysis were carried out successfully.
 
