@@ -85,6 +85,7 @@ condition.colour <- tribble(
   "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
+channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
 # Unit scale component
@@ -112,7 +113,7 @@ Calculate ratio's (per PSM) with respect to average intensity within run,
 or in other words: each value is divided by the row mean.
 
 ```{r}
-# group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
+# group by run and spectrum ID (RT), take mean of all intensities (channelNames) then ungroup runs again.
 denom.df <- dat.l %>% group_by(Run, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
 dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) # response=log2(Intensity/denom)
 ```
@@ -130,7 +131,7 @@ dat.unit.w <- lapply(dat.unit.l, function(x) {
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w <- lapply(dat.norm.w, function(x) {
-  x[,quanCols] <- sweep(x[,quanCols], 1, apply(x[,quanCols], 1, median, na.rm=T))
+  x[,channelNames] <- sweep(x[,channelNames], 1, apply(x[,channelNames], 1, median, na.rm=T))
   return(x) } )
 ```
 
@@ -143,7 +144,7 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 study.design=read.delim('msstatstmt_studydesign.csv')
 dat.norm.summ.w <- lapply(dat.norm.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
-  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% ungroup()
+  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)
 })
 ```
@@ -156,7 +157,7 @@ Let's also summarize the non-normalized data for comparison in the next section.
 # non-normalized data
 dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
-  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% summarise_at(.vars = quanCols, .funs = median, na.rm=T) %>% ungroup()
+  y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)
 })
 ```
@@ -169,7 +170,7 @@ dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
 dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
   x.split <- split(x, x$Run)
   x.split.norm  <- lapply(x.split, function(y) {
-    y[,quanCols] <- sweep(y[,quanCols], 2, apply(y[,quanCols], 2, median, na.rm=T) )
+    y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median, na.rm=T) )
     return(y) } )
   dat.norm.summ.w <- bind_rows(x.split.norm)
 } )
@@ -182,12 +183,12 @@ dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x) {
-  return( x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}") )
+  return( x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") )
 })
 
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
-  return( x %>% pivot_wider(names_from = Run, values_from = all_of(quanCols), names_glue = "{Run}:{.value}") )
+  return( x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") )
 })
 ```
 
@@ -300,8 +301,8 @@ NOTE:
 ```{r}
 #{ INVESTIGATE late log2 transform
 dat.norm.summ.w2$Intensity_lateLog2 <- dat.norm.summ.w2$Intensity
-quanCols.prefixed <- colnames(dat.norm.summ.w2$Intensity %>% select(-Protein))
-dat.norm.summ.w2$Intensity_lateLog2[,quanCols.prefixed] <- log2(dat.norm.summ.w2$Intensity[,quanCols.prefixed])
+channelNames.prefixed <- colnames(dat.norm.summ.w2$Intensity %>% select(-Protein))
+dat.norm.summ.w2$Intensity_lateLog2[,channelNames.prefixed] <- log2(dat.norm.summ.w2$Intensity[,channelNames.prefixed])
 variant.names <- names(dat.norm.summ.w2)
 scale.vec <- c(scale.vec, 'log')
 n.comp.variants <- n.comp.variants + 1
