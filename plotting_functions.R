@@ -182,8 +182,14 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.99, ab
 scatterplot_ils <- function(dat, cols, stat){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
   title <- paste("Spearman's correlation of", select.stat)
-  
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
+  
+  # align rows (proteins) between DEA variants
+  if (length(unique(unlist(lapply(dat, nrow))))>1) stop('Unequal number of analysed proteins across different DEA methods')
+  rw <- rownames(dat[[1]])
+  dat=lapply(dat, function(x){
+    ord <- match(rw, rownames(x))
+    return(x[ord,])})
   
   for (i in 1:length(cols)){
     # names(dat) <- NULL # this line generates variant names on the plot
