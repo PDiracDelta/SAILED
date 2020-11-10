@@ -125,6 +125,8 @@ pcaplot_ils=function(dat, info, title, scale=F){
 dendrogram_ils <- function(dat, info, title){
   # fix columns order (as in 'info' arg)
   dat <- dat[, match(sample.info$Sample, colnames(dat))]
+  # columns are already aligned with 'info', so we can use shorter labels from there 
+  colnames(dat) <- sample.info$Sample.short 
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
   dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
