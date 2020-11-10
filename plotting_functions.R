@@ -128,7 +128,8 @@ dendrogram_ils <- function(dat, info, title){
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
   dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
-  labels_colors(dend_raw) <- info$Colour
+  dendcolors = info$Colour[order.dendrogram(dend_raw)]
+  labels_colors(dend_raw) <- dendcolors
   plot(dend_raw, horiz=TRUE, main=title)
   par(mar=par.mar.org) 
 }
