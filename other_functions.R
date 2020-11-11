@@ -361,10 +361,8 @@ wilcoxon_test <- function(dat, sample.info, referenceCondition, otherConditions,
 # Columns of the m x n quantification matrix (m proteins and n biological samples) 
 # are B times randomly shuffled (drawing n column indices without replacement) in order to generate the null distribution 
 # of the test statistic. P-values are computed by comparing the observed test statistic value with the null distribution.
-permutation_test <- function(dat, sample.info, referenceCondition, otherConditions, B=1000, seed=NULL){
-  
+permutation_test_manual <- function(dat, sample.info, referenceCondition, otherConditions, B=1000, seed=NULL){
   if (!is.null(seed)) set.seed(seed)
-  
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
@@ -375,8 +373,7 @@ permutation_test <- function(dat, sample.info, referenceCondition, otherConditio
   
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
   t.mod <- p.mod <- logFC
-  permStat <- matrix(NA, nrow=nproteins, ncol=B)
-  
+
   for (i in 1:n.conditions){
     
     CondCols <- sample.info %>% filter(Condition==otherConditions[i]) %>% 
@@ -384,6 +381,7 @@ permutation_test <- function(dat, sample.info, referenceCondition, otherConditio
     # the observed test statistic value (difference in arithmetic means)
     obsStat <- rowMeans(dat[,CondCols], na.rm = T)-rowMeans(dat[,refCondCols], na.rm = T)
     
+    permStat <- matrix(NA, nrow=nproteins, ncol=B)
     for (b in 1:B){
       shuffledChannels <- sample(c(refCondCols, CondCols))
       datRef <- dat[, shuffledChannels[1:refCondColsLen]]
@@ -408,6 +406,52 @@ permutation_test <- function(dat, sample.info, referenceCondition, otherConditio
   colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
   colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
   results <- data.frame(logFC, t.mod, p.mod, q.mod)
+  rownames(results) <- proteins
+  return(results)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Fisher-Pitman permutation test from 'coin' package.
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# dat should be data in long format
+# ... pass arguments to oneway_test function from 'coin' package. this will be mainly used
+# to specify how to compute p-values:
+# distribution='exact'
+# distribution=approximate(nresample=10000)
+# distribution='asymptotic'
+
+permutation_test <- function(dat, referenceCondition, otherConditions, seed=NULL, ...){
+  if (!is.null(seed)) set.seed(seed)
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
+  nproteins <- length(proteins)
+  n.conditions <- length(otherConditions)
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions); rownames(logFC)=proteins
+  p.mod <- logFC
+  dat$Condition <- relevel(as.factor(dat$Condition), referenceCondition)
+  dat$Protein <- remove_factors(dat$Protein)
+  
+  for (i in 1:n.conditions){
+    sdat <- dat %>% filter(Condition %in% c(referenceCondition, otherConditions[i]))  
+    sdat.split <- split(sdat, sdat$Protein)  
+    
+    p.tmp <- sapply(sdat.split, function(x){
+      return(pvalue(oneway_test(response~Condition, data=x, ...)))
+    })
+    p.mod[names(p.tmp),i] <- p.tmp
+    logFC.tmp <- sapply(sdat.split, function(x){
+      a <- mean(x$response[x$Condition==referenceCondition], na.rm=TRUE)
+      b <- mean(x$response[x$Condition==otherConditions[i]], na.rm=TRUE)
+      return(b-a)})
+    logFC[names(logFC.tmp),i] <- logFC.tmp
+  }
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', otherConditions)
+  colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
+  colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
+  results <- data.frame(logFC, p.mod, q.mod)
   rownames(results) <- proteins
   return(results)
 }
