@@ -356,11 +356,11 @@ wilcoxon_test <- function(dat, sample.info, referenceCondition, otherConditions,
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # permutation test
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
 # Two-group protein-by-protein permutation test based on the difference in arithmetic means. 
 # Columns of the m x n quantification matrix (m proteins and n biological samples) 
 # are B times randomly shuffled (drawing n column indices without replacement) in order to generate the null distribution 
 # of the test statistic. P-values are computed by comparing the observed test statistic value with the null distribution.
+
 permutation_test_manual <- function(dat, sample.info, referenceCondition, otherConditions, B=1000, seed=NULL){
   if (!is.null(seed)) set.seed(seed)
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
@@ -452,6 +452,50 @@ permutation_test <- function(dat, referenceCondition, otherConditions, seed=NULL
   colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
   colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
   results <- data.frame(logFC, p.mod, q.mod)
+  rownames(results) <- proteins
+  return(results)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# ROTS
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+rots_test <- function(dat, referenceCondition, otherConditions, seed=NULL, ...){
+  if (!is.null(seed)) set.seed(seed)
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
+  nproteins <- length(proteins)
+  n.conditions <- length(otherConditions)
+  refCondCols <- sample.info %>% filter(Condition==referenceCondition) %>% 
+    distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
+  refCondColsLen <- length(refCondCols)
+  
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions)
+  t.mod <- p.mod <- logFC
+  
+  for (i in 1:n.conditions){
+    CondCols <- sample.info %>% filter(Condition==otherConditions[i]) %>% 
+      distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
+    CondColsLen <- length(CondCols)
+    
+    results = ROTS(dat[,c(refCondCols,CondCols)] 
+                   # the reference group should get smaller group indicator value
+                  ,groups = c(rep(1, refCondColsLen), rep(0, CondColsLen)), seed = seed, ...)
+    
+    logFC[,i] <- results$logfc
+    t.mod[,i] <- results$d
+    p.mod[,i] <- results$pvalue
+  }
+  
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', otherConditions)
+  colnames(t.mod) <- paste0('t.mod', '_', otherConditions)
+  colnames(p.mod) <- paste0('p.mod', '_', otherConditions)
+  colnames(q.mod) <- paste0('q.mod', '_', otherConditions)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod)
   rownames(results) <- proteins
   return(results)
 }
