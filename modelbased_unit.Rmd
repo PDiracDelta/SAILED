@@ -137,7 +137,8 @@ dat.summ.l <- dat.unit.l
 ```{r}
 dat.norm.l <- lapply(dat.summ.l, function(x) {
   mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)
-  x$response <- residuals(mod)
+  x$response <- residuals(mod)+fixef(mod)['(Intercept)']
+  #x$response <- residuals(mod)
   return(x)})
 ```
 
@@ -199,8 +200,8 @@ for (i in 1: n.comp.variants){
 ```{r}
 par(mfrow=c(1,2))
 for (i in 1: n.comp.variants){
-  cvplot_ils(dat=dat.summplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=F)
-  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=F)}
+  cvplot_ils(dat=dat.summplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('Before normalization', variant.names[i], sep='_'), abs=T)
+  cvplot_ils(dat=dat.normplot.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'), abs=T)}
 par(mfrow=c(1,1))
 ```
 
@@ -228,7 +229,17 @@ par(mfrow=c(1,1))
 
 HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
+
+```{r}
+par(mfrow=c(1,2))
+for (i in 1: n.comp.variants){
+  dendrogram_ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
+  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
+### Using spiked proteins only
 
 ```{r}
 par(mfrow=c(1,2))
@@ -243,8 +254,10 @@ par(mfrow=c(1, 1))
 ## mixed model (intra-protein correlation) + eBayes
 
 ```{r}
-dat.dea <- lapply(dat.norm.l, function(x){
-return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
+dat.dea <- emptyList(variant.names)
+for(i in seq_along(dat.dea)){
+  dat.dea[[i]] <- lmm_dea(dat=dat.norm.l[[i]], mod.formula='response ~ Condition + (1|Run:Channel)', scale=scale.vec[i], referenceCondition)
+}
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
@@ -294,9 +307,3 @@ violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceConditio
 ```{r}
 sessionInfo()
 ```
-
-
-
-
-
-

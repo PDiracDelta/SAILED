@@ -211,7 +211,17 @@ par(mfrow=c(1, 1))
 
 HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
+
+```{r}
+par(mfrow=c(1, 2))
+for (i in 1: n.comp.variants){
+  dendrogram_ils(dat.summplot.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'))
+  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
+### Using spiked proteins only
 
 ```{r}
 par(mfrow=c(1, 2))
@@ -227,7 +237,7 @@ par(mfrow=c(1, 1))
 
 ```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
-  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
+  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log'))})
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])

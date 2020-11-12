@@ -56,8 +56,8 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 #TEMP -remove!
-# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 ```
 
 ```{r}
@@ -200,6 +200,7 @@ par(mfrow=c(1, 1))
 ### Using spiked proteins only
 
 ```{r}
+par(mfrow=c(2, 2))
 pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins, ], info=sample.info, 'Raw', scale=T)
 for (i in 1: n.comp.variants){
   pcaplot_ils(dat.normplot.w[[i]][rownames(dat.normplot.w[[i]]) %in% spiked.proteins, ], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
@@ -208,7 +209,17 @@ par(mfrow=c(1, 1))
 
 ## HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
+
+```{r}
+par(mfrow=c(2,2))
+dendrogram_ils(dat.summplot.w, info=sample.info, 'Before normalization')
+for (i in 1: n.comp.variants){
+  dendrogram_ils(dat.normplot.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
+### Using spiked proteins only
 
 ```{r}
 par(mfrow=c(2,2))
@@ -224,7 +235,7 @@ par(mfrow=c(1, 1))
 
 ```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
-  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition))})
+  return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log'))})
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]

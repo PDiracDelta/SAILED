@@ -182,10 +182,21 @@ par(mfrow=c(1, 1))
 
 ## HC (hierarchical clustering) plot:
 
+### Using all proteins
+
 ```{r}
 par(mfrow=c(1, 2))
 dendrogram_ils(dat.summplot.w, info=sample.info, 'Before normalization')
 dendrogram_ils(dat.normplot.w, info=sample.info, 'After normalization')
+par(mfrow=c(1, 1))  
+```
+
+### Using spiked proteins only
+
+```{r}
+par(mfrow=c(1, 2))
+dendrogram_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins,], info=sample.info, 'Before normalization')
+dendrogram_ils(dat.normplot.w[rownames(dat.normplot.w) %in% spiked.proteins,], info=sample.info, 'After normalization')
 par(mfrow=c(1, 1))  
 ```
 
@@ -212,11 +223,6 @@ n.contrasts <- length(logFC.cols)
 dat.dea$LMM2 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Peptide)', referenceCondition, scale='log') 
 ```
 
-<!-- ## mixed model (intra-protein correlation modeled with 1|Run:Channel:Peptide) -->
-
-# ```{r}
-# dat.dea$LMM3 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel:Peptide)', referenceCondition) 
-# ```
 
 ## DEqMS
 
