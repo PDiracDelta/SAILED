@@ -4,11 +4,12 @@
 
 boxplot_ils <- function(dat, title, ...){  
   # first make sure that Run and Channel are factors 
-  dat$Run <- as.factor(dat$Run)
-  dat$Channel <- as.factor(dat$Channel)
+  dat$Run <- factor(dat$Run)
+  dat$Channel <- factor(dat$Channel)
+  dat$Sample <- dat$Run:dat$Channel
   
   # prepare nice run and channel labels
-  run.labels <- paste0('run', 1:length(levels(dat$Run)))
+  run.labels <- stri_replace(levels(dat$Run), fixed='Mixture', replacement='Mix')
   n.run <- length(run.labels)
   channel.labels <- levels(dat$Channel)
   n.channel <- length(channel.labels)
@@ -19,25 +20,27 @@ boxplot_ils <- function(dat, title, ...){
   
   # prepare  y coordinates of vertical lines separating MS runs
   y.range <- range(dat$response)
-  y.range <- c(floor(y.range[1]-1), ceiling(y.range[2]+1))
+  y.range <- c(floor(y.range[1]), ceiling(y.range[2]))
   y.lines <- rep(c(y.range, NA), n.run-1)
   
-  boxplot(response~factor(Run:Channel), data=dat, main=title, 
+  boxplot(response~Sample, data=dat, main=title, 
           notch=TRUE, xlab='sample', xaxt='n', ...)
+  
   abline(h=mean(dat$response), col='red', lwd=1.5) # red vertical line
   lines(x.lines, y.lines, lty=1, lwd=2) # draw vertical lines after each run
   text(x = (1:(n.run))*(n.channel)-n.channel/2, # write run labels
-       y = par('usr')[4]*1.02,
+       y = par('usr')[4]*1.04,
        labels = run.labels,
        xpd = NA,
        cex = 1.2)
   axis(side = 1, labels = FALSE, at=1:(n.run*n.channel)) # add x-axis tick marks
   text(x = 1:(n.run*n.channel), # add x-axis tick labels (channels)
-       y = par("usr")[3] - 0.45,
+       y = par("usr")[3],
        labels = channel.labels,
        xpd = NA,
-       srt = 35, # rotate the labels by 35 degrees.
-       cex = 1)
+       srt = 90, # rotate the labels by 35 degrees.
+       cex = 1,
+      adj=1.2)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
