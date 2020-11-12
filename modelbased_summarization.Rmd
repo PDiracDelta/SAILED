@@ -242,7 +242,7 @@ dat.dea <- lapply(dat.norm.l, function(x){
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
-q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
+p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
 n.contrasts <- length(logFC.cols)
 ```
 
@@ -258,7 +258,7 @@ print_conf_mat(cm, referenceCondition)
 ## Scatter plots
 
 ```{r}
-scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, p.cols, 'p-values')
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 

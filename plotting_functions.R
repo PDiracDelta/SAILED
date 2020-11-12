@@ -210,7 +210,7 @@ scatterplot_ils <- function(dat, cols, stat){
 volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
-  q.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
+  p.cols <- dat.cols[stri_detect(dat.cols, fixed='p.mod')]
   
   # list for storing variant specifc plots
   volcano.plots <- vector('list', length(dat))
@@ -222,13 +222,13 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
   # iterate over variants
   for (j in 1:length(dat)){
     df <- data.frame(logFC=dat[[j]][, logFC.cols[contrast.num]],
-                     q.mod=dat[[j]][, q.cols[contrast.num] ],
+                     p.mod=dat[[j]][, p.cols[contrast.num] ],
                      protein=ifelse(rownames(dat[[j]]) %in% spiked.proteins, 'spiked-in', 'background'))
     
-    volcano.plots[[j]] <- ggplot(df, aes(x = logFC, y = -log10(q.mod), color=protein)) +
+    volcano.plots[[j]] <- ggplot(df, aes(x = logFC, y = -log10(p.mod), color=protein)) +
       geom_point() +
       xlab("log2(FC)") +
-      ylab("-log10(FDR)") +
+      ylab("-log10(p-value)") +
       ggtitle(paste(contrast.names[contrast.num], variant.title[j], sep='_' )) +
       geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
       geom_vline(xintercept =  1, color = "black", linetype = "dashed") +

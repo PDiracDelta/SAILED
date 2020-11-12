@@ -213,7 +213,7 @@ dat.dea$LMM1 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|R
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea$LMM1)
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
-q.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
+p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
 n.contrasts <- length(logFC.cols)
 ```
 
@@ -263,7 +263,7 @@ print_conf_mat(cm, referenceCondition)
 ## Scatter plot:
 
 ```{r}
-scatterplot_ils(dat.dea, q.cols, 'p-values')
+scatterplot_ils(dat.dea, p.cols, 'p-values')
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 
