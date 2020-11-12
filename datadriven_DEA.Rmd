@@ -35,6 +35,8 @@ library(psych)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(matrixTests)
+library(coin)
+library(ROTS)
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
@@ -72,9 +74,9 @@ inner.peptides <- rownames(unique.pep)[tmp]
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test')
+variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log') 
+scale.vec <- c('log', 'log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
 referenceChannel <- '127C'
 referenceCondition <- '0.5'
@@ -89,7 +91,7 @@ condition.colour <- tribble(
 sample.info <- get_sample_info(dat.l, condition.colour)
 channelNames <- remove_factors(unique(sample.info$Channel))
 # set seed for permutation test
-seed=9987
+seed=9107
 ```
 
 # Unit component: log2 transformation of reporter ion intensities
@@ -265,7 +267,13 @@ dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondit
 ## Permutation test
 
 ```{r}
-dat.dea$permutation_test<- permutation_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, B=1000, seed=seed)
+dat.dea$permutation_test <- permutation_test(dat.norm.summ.l, referenceCondition, otherConditions, seed=seed, distribution='exact')
+```
+
+## ROTS
+
+```{r}
+dat.dea$ROTS <- rots_test(dat.norm.summ.w2, referenceCondition, otherConditions)
 ```
 
 # Results comparison
