@@ -162,7 +162,7 @@ regulated_proteins <- function(dea.mat, score.var, conditions, cut.off){
 # wrapper on confusionMatrix from caret package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-conf_mat <- function(dat, score.var, significane.threshold, spiked.proteins){
+conf_mat <- function(dat, score.var, significance.threshold, spiked.proteins){
   # extract contrast names
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
@@ -188,7 +188,7 @@ conf_mat <- function(dat, score.var, significane.threshold, spiked.proteins){
     tab[] <- NA
     stats[] <- NA
     for (j in 1:n.variants){
-      pred.class <- factor(ifelse(dat[[j]][, score.vars[i]]<significane.threshold, 'DE','not_DE'), levels=c('not_DE', 'DE'))
+      pred.class <- factor(ifelse(dat[[j]][, score.vars[i]]<significance.threshold, 'DE','not_DE'), levels=c('not_DE', 'DE'))
       true.class<- factor(ifelse(rownames(dat[[j]]) %in% spiked.proteins, 'DE','not_DE'), levels=c('not_DE', 'DE'))
       tmp=caret::confusionMatrix(data=pred.class, reference=true.class, positive='DE')
       tab[[j]] <- tmp$table
@@ -206,21 +206,22 @@ conf_mat <- function(dat, score.var, significane.threshold, spiked.proteins){
 # print conf_mat output
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-print_conf_mat <- function(dat){
-  myHeader1 <- c(1, rep(2, length(variant.names)))
-  names(myHeader1) <- c(" ",variant.names)
+print_conf_mat <- function(dat, referenceCondition){
+  variant.names <- colnames(dat[[1]]$stats)
+  myHeaderVariant <- c(1, rep(2, length(variant.names)))
+  names(myHeaderVariant) <- c(" ",variant.names)
   # dat is a list of size equal to # of contrasts
   # output is presented by contrasts
   for (i in 1:length(dat)){
     myHeader2 <- c(1, 2*length(variant.names))
-    names(myHeader2) <- c(" ", names(dat)[i])
+    names(myHeader2) <- c(" ", paste0('(',names(dat)[i], ' vs ', referenceCondition, ') contrast'))
     myHeader3 <- c(1, length(variant.names))
-    names(myHeader3) <- c(" ", names(dat)[i])
+    names(myHeader3) <- c(" ", paste0('(',names(dat)[i], ' vs ', referenceCondition, ') contrast'))
     # print confusion table counts  
     print(
       kable(dat[[i]]$tab) %>%
         kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
-        add_header_above(myHeader1) %>%
+        add_header_above(myHeaderVariant) %>%
         add_header_above(myHeader2)
     )
     # print confusion table statistics
