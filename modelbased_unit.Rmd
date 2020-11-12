@@ -101,9 +101,24 @@ Calculate ratio's (per PSM) with respect to average intensity within run,
 or in other words: each value is divided by the row mean.
 
 ```{r}
-# group by run and spectrum ID (RT), take mean of all intensities (quanCols) then ungroup runs again.
-denom.df <- dat.l %>% group_by(Run, Peptide, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
-dat.unit.l$Ratio <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) # response=log2(Intensity/denom)
+# group by run and spectrum ID (RT), take mean of all intensities (channelNames) then ungroup runs again.
+# denom.df <- dat.l %>% group_by(Run, RT) %>% filter(Condition==referenceCondition) %>% mutate(denom=mean(Intensity)) %>% distinct(RT, .keep_all = T) %>% ungroup() %>% select(-c(Intensity)) %>% select(Run, Protein, Peptide, RT, Charge, PTM, denom)
+# dat.unit.l[[3]] <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) #
+
+denom.df=dat.l %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='Intensity')
+# a=denom.df %>% pivot_longer(cols=all_of(paste0(rep(127:130, each=2), c('C','N'))),names_to='Channel', values_to="Intensity")
+denom.df$denom=apply(denom.df[,paste0(rep(127:130, each=2), c('C','N'))], 1, mean)
+denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
+#denom.df %>% group_by(Run, Protein, Peptide, RT, Charge, PTM, denom) %>% summarise(nn=n()) %>% filter(nn>1)
+dat.unit.l$Ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) 
+# a=dat.unit.l[[3]]
+# b=dat.unit.l[[5]]
+# x=dat.unit.l[[3]]$response
+# ind=!is.na(x)
+# x=x[ind]
+# y=dat.unit.l[[5]]$response[ind]
+# head(x)
+# head(y)
 ```
 
 # Summarization component
