@@ -181,6 +181,8 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ab
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # scatterplot_ils: wrapper function on pairs.panels from 'psych' package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
+source('pairs_panels_idline.R')
 
 scatterplot_ils <- function(dat, cols, stat){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
@@ -195,9 +197,9 @@ scatterplot_ils <- function(dat, cols, stat){
     return(x[ord,])})
   
   for (i in 1:length(cols)){
-    # names(dat) <- NULL # this line generates variant names on the plot
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame %>% drop_na()
-    pairs.panels(df, main=paste(title, contrast.names[i], sep='_'), method='spearman', lm=T, pch=16, ellipses=F)
+    pairs.panels.idline(df, main=paste(title, paste0('(',contrast.names[i], ' vs ', referenceCondition, ') contrast'), sep='_')
+                    , method='spearman', lm=T, pch=16, ellipses=F)
   }
 }
 
