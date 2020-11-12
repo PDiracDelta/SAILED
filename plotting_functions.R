@@ -172,13 +172,17 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ab
   }
   # compute CV quantile within the groups
   CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan, na.rm=TRUE))
+
+  # avg of median CV within xaxis.group
+  avgCV <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(medCV=median(CV)) %>% pull %>% mean(na.rm=TRUE)
+  avgCV <- round(avgCV, 4)
   
   # filter out features with CV larger greater than the quantile
   # this is done to get rid of outliers and improve visibility
   CV.df <- left_join(CV.df, CV.quantiles.df, by=xaxis.group) %>% filter(CV<quan)
   
   ff <- formula(paste0('CV~', xaxis.group))
-  boxplot(ff, data=CV.df, main=title, notch=T, xlab=xaxis.group, ...)  
+  boxplot(ff, data=CV.df, main=paste0(title, ' (avg CV=', avgCV,')'), notch=T, xlab=xaxis.group, ...)  
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
