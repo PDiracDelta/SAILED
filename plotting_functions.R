@@ -63,32 +63,32 @@ gm_mean = function(x, na.rm=TRUE){
   exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
 
-maplot_ils <- function(dat, samples.num, samples.denom, scale, title){
+maplot_ils <- function(dat, samples.num, samples.denom, scale, title, xaxis.rank=TRUE){
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
   denom <- as.matrix(dat[, samples.denom])
-
   if (select.scale=='log'){
     num <- apply(num, 1, mean)
     denom <- apply(denom, 1, mean)
     FC <- num-denom
     AVE <- (num+denom)/2
-    
   } else if (select.scale=='raw') {
     num <- apply(num, 1, gm_mean)
     denom <- apply(denom, 1, gm_mean)
     FC <- log2(num/denom)
     AVE <- (log2(num)+log2(denom))/2
   }
-  
+  xaxis.title <- 'Avglog2Intensity'
+  if (xaxis.rank){
+    AVE=rank(AVE) # -length(AVE)+1  descending ranks
+    xaxis.title <- 'rank(Avglog2Intensity)'}
   df <- data.frame(FC, AVE)
-  
   ggplot(df, aes(x = AVE, y = FC)) +
     geom_point() +
     geom_smooth() +
     scale_y_continuous("log2FC") +
-    scale_x_continuous("logAvg_intensity") +
+    scale_x_continuous(xaxis.title) +
     ggtitle(title) + 
     geom_hline(yintercept = 0.0, color = "black") + # one-to-one line
     geom_hline(yintercept = 1.0, color = "black", linetype = "dotted") + # 2-fold up
