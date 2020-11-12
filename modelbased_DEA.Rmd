@@ -103,7 +103,7 @@ dat.summ.l <- dat.unit.l
 ```{r}
 dat.norm.l <- dat.summ.l
 LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
-dat.norm.l$response <- residuals(LMM1)
+dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 ```
 
 # QC plots

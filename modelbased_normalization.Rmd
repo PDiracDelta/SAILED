@@ -106,21 +106,21 @@ dat.norm.l <- lapply(dat.norm.l, function(x) x <- dat.summ.l)
 
 ```{r}
 LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
-dat.norm.l$LMM1$response <- residuals(LMM1)
+dat.norm.l$LMM1$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 ```
 
 ## mixed model spec 2
 
 ```{r}
 LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l)
-dat.norm.l$LMM2$response <- residuals(LMM2)
+dat.norm.l$LMM2$response <- residuals(LMM2) + fixef(LMM2)['(Intercept)']
 ```
 
 ## mixed model spec 3
 
 ```{r}
 LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l)
-dat.norm.l$LMM3$response <- residuals(LMM3)
+dat.norm.l$LMM3$response <- residuals(LMM3) + fixef(LMM3)['(Intercept)']
 ```
 
 # QC plots

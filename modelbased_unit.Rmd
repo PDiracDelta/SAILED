@@ -138,7 +138,6 @@ dat.summ.l <- dat.unit.l
 dat.norm.l <- lapply(dat.summ.l, function(x) {
   mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)
   x$response <- residuals(mod)+fixef(mod)['(Intercept)']
-  #x$response <- residuals(mod)
   return(x)})
 ```
 
