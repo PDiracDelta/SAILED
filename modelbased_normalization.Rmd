@@ -249,7 +249,7 @@ n.contrasts <- length(logFC.cols)
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
-print_conf_mat(cm)
+print_conf_mat(cm, referenceCondition)
 ```
 
 ## Scatter plots

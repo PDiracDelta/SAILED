@@ -257,7 +257,7 @@ dat.dea$ANOVA <- get_anova(d, design.matrix, scale='log')
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins) 
-print_conf_mat(cm)
+print_conf_mat(cm, referenceCondition)
 ```
 
 ## Scatter plot:

@@ -389,7 +389,7 @@ _Piotr, can you do this?_
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
-print_conf_mat(cm)
+print_conf_mat(cm, referenceCondition)
 ```
 
 ## Correlation scatter plots

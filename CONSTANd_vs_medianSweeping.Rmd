@@ -282,7 +282,7 @@ for (i in seq_along(dat.norm.summ.w2)) {
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
-print_conf_mat(cm)
+print_conf_mat(cm, referenceCondition)
 ```
 
 ## Scatter plots
