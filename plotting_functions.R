@@ -194,7 +194,7 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ad
 # pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
 source('pairs_panels_idline.R')
 
-scatterplot_ils <- function(dat, cols, stat){
+scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
   title <- paste("Spearman's correlation of", select.stat)
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
@@ -205,11 +205,14 @@ scatterplot_ils <- function(dat, cols, stat){
   dat=lapply(dat, function(x){
     ord <- match(rw, rownames(x))
     return(x[ord,])})
-  
   for (i in 1:length(cols)){
-    df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame %>% drop_na()
-    pairs.panels.idline(df, main=paste(title, paste0('(',contrast.names[i], ' vs ', referenceCondition, ') contrast'), sep='_')
-                    , method='spearman', lm=T, pch=16, ellipses=F)
+    df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame
+    pairs.panels.idline(df, main=paste(title, paste0(contrast.names[i], ' vs ', referenceCondition, ' contrast'), sep='-')
+                    , method='spearman', lm=T, ellipses = FALSE, 
+                    ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
+                    #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
+                    ,col.points=ifelse(rw2 %in% spiked.proteins, '#E69F00', '#000000')
+                    ,cex.points=ifelse(rw2 %in% spiked.proteins, 2, 1))
   }
 }
 
