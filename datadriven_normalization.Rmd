@@ -276,9 +276,9 @@ par(mfrow=c(3,2))
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 # use wide2 format
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], 'Raw')
+p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], 'Raw', spiked.proteins)
 for (i in 1: n.comp.variants){
- p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+ p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
 }
 grid.arrange(grobs = p, ncol=2, nrow=3)
 par(mfrow=c(1, 1))
@@ -293,10 +293,10 @@ channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pu
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 
 p <- vector('list', n.comp.variants+1)
-p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale.vec[i], 'Raw')
+p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale.vec[i], 'Raw', spiked.proteins)
 
 for (i in 1: n.comp.variants){
- p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+ p[[i+1]]<- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
 }
 grid.arrange(grobs = p, ncol=2, nrow=3)
 par(mfrow=c(1, 1))
@@ -406,8 +406,8 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
 n.contrasts <- length(logFC.cols)
 
-scatterplot_ils(dat.dea, p.cols, 'p-values')
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, p.cols, 'p-values', spiked.proteins)
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 ## Volcano plots

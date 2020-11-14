@@ -157,9 +157,9 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 ```{r}
 # different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
 p <- emptyList(c('raw', names(dat.normplot.w)))
-p[[1]] <- maplot_ils(dat.summplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization')
+p[[1]] <- maplot_ils(dat.summplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization', spiked.proteins)
 for (i in 1: n.comp.variants){
-  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('After normalization', variant.names[i], sep='_'))}
+  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('After normalization', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
@@ -170,9 +170,9 @@ MA plots of all samples from condition `1` and condition `0.125` (quantification
 samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
 samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
 p <- emptyList(c('raw', names(dat.normplot.w)))
-p[[1]] <- maplot_ils(dat.summplot.w, samples.num, samples.denom, scale='log', 'Before normalization')
+p[[1]] <- maplot_ils(dat.summplot.w, samples.num, samples.denom, scale='log', 'Before normalization', spiked.proteins)
 for (i in 1: n.comp.variants){
-  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], samples.num, samples.denom, scale='log', paste('After normalization', variant.names[i], sep='_')) }
+  p[[i+1]] <- maplot_ils(dat.normplot.w[[i]], samples.num, samples.denom, scale='log', paste('After normalization', variant.names[i], sep='_'), spiked.proteins) }
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
@@ -245,8 +245,8 @@ print_conf_mat(cm, referenceCondition)
 ## Scatter plots
 
 ```{r}
-scatterplot_ils(dat.dea, p.cols, 'p-values')
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, p.cols, 'p-values', spiked.proteins)
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 ## Volcano plots

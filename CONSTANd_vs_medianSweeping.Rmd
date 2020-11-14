@@ -196,7 +196,7 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 # use wide2 format
 p <- emptyList(variant.names)
 for (i in 1: n.comp.variants){
-  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
 }
 grid.arrange(p[[1]], p[[2]], ncol=2)
 ```
@@ -209,7 +209,7 @@ channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pu
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 p <- emptyList(variant.names)
 for (i in 1: n.comp.variants){
-  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
 }
 grid.arrange(p[[1]], p[[2]], ncol=2)
 ```
@@ -294,8 +294,8 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
 n.contrasts <- length(logFC.cols)
 
-scatterplot_ils(dat.dea, p.cols, 'p-values')
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, p.cols, 'p-values', spiked.proteins)
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 ## Volcano plots

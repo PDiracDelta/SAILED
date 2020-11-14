@@ -265,9 +265,9 @@ Clearly, the normalization had a strong variance-reducing effect on the fold cha
 ```{r}
 # different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 for (i in 1: n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'))
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'), spiked.proteins)
   
-  p2 <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+  p2 <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
   
   grid.arrange(p1, p2, ncol=2)  
 }
@@ -413,13 +413,13 @@ n.contrasts <- length(logFC.cols)
 For all conditions, we see the iPQF consistently produces slightly higher p-values in the $[0, 0.5]$ interval than the Median summarization, with which it correlates $>0.82$ overall. Towards $q=1$ the correlation is worse, but that is not surprising as that is the domain of housekeeping proteins, which moreover are not of particular interest. The Sum summarization resulted in very, very little significant observations.
 
 ```{r}
-scatterplot_ils(dat.dea, p.cols, 'p-values')
+scatterplot_ils(dat.dea, p.cols, 'p-values', spiked.proteins)
 ```
 
 The correlation metween Median summarization and iPQF is even higher for the fold changes: $>0.96$ for all conditions. This is to be expected based on the q-value plots, as a large difference in the test statistic can be due to a small difference in fold change. The plots involving Sum summarization have an anomaly around 0 fold change.
 
 ```{r}
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 
