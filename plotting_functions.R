@@ -172,7 +172,7 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ad
 
   # avg of median CV within xaxis.group
   avgCV <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(medCV=median(CV)) %>% pull %>% mean(na.rm=TRUE)
-  avgCV <- round(avgCV, 4)
+  avgCV <- round(avgCV, 5)
   
   # filter out features with CV larger greater than the quantile
   # this is done to get rid of outliers and improve visibility
