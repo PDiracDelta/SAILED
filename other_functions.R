@@ -212,25 +212,26 @@ print_conf_mat <- function(dat, referenceCondition){
   names(myHeaderVariant) <- c(" ",variant.names)
   # dat is a list of size equal to # of contrasts
   # output is presented by contrasts
+  
+  tabs <- vector('list', length(dat))
+  
   for (i in 1:length(dat)){
     myHeader2 <- c(1, 2*length(variant.names))
-    names(myHeader2) <- c(" ", paste0('(',names(dat)[i], ' vs ', referenceCondition, ') contrast'))
+    names(myHeader2) <- c(" ", paste0(names(dat)[i], ' vs ', referenceCondition, ' contrast'))
     myHeader3 <- c(1, length(variant.names))
-    names(myHeader3) <- c(" ", paste0('(',names(dat)[i], ' vs ', referenceCondition, ') contrast'))
+    names(myHeader3) <- c(" ", paste0(names(dat)[i], ' vs ', referenceCondition, ' contrast'))
     # print confusion table counts  
-    print(
-      kable(dat[[i]]$tab) %>%
-        kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
-        add_header_above(myHeaderVariant) %>%
-        add_header_above(myHeader2)
-    )
+    k1 <- kable(dat[[i]]$tab) %>%
+      kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
+      add_header_above(myHeaderVariant) %>%
+      add_header_above(myHeader2)
     # print confusion table statistics
-    print(
-      kable(dat[[i]]$stats, digits=3) %>%
-        kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
-        add_header_above(myHeader3)
-    )
+    k2 <- kable(dat[[i]]$stats, digits=3) %>%
+      kable_styling(bootstrap_options = c("striped", "hover"), full_width=F) %>%
+      add_header_above(myHeader3) 
+    tabs[[i]] <- list(htmltools::HTML(k1), htmltools::HTML(k2))
   }
+  return(htmltools::tagList(tabs))
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
