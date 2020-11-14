@@ -406,14 +406,14 @@ To see whether the three Summarization methods produce similar results on the de
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
-p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
+significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 ```
 
 For all conditions, we see the iPQF consistently produces slightly higher p-values in the $[0, 0.5]$ interval than the Median summarization, with which it correlates $>0.82$ overall. Towards $q=1$ the correlation is worse, but that is not surprising as that is the domain of housekeeping proteins, which moreover are not of particular interest. The Sum summarization resulted in very, very little significant observations.
 
 ```{r}
-scatterplot_ils(dat.dea, p.cols, 'p-values', spiked.proteins)
+scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins)
 ```
 
 The correlation metween Median summarization and iPQF is even higher for the fold changes: $>0.96$ for all conditions. This is to be expected based on the q-value plots, as a large difference in the test statistic can be due to a small difference in fold change. The plots involving Sum summarization have an anomaly around 0 fold change.
