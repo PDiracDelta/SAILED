@@ -70,6 +70,10 @@ unique.pep=dat.l %>%
 unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
 tmp <- apply(unique.pep, 1, function(x) all(x==1))
 inner.peptides <- rownames(unique.pep)[tmp]
+
+#TEMP -remove!
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 ```
 
 ```{r}
@@ -96,6 +100,7 @@ channelNames <- remove_factors(unique(sample.info$Channel))
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+grand_median <- median(dat.unit.l$response, na.rm=TRUE)
 ```
 
 # Normalization component
@@ -311,13 +316,12 @@ dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
   x <- to_long_format(x, sample.info)
 })
 
-par(mfrow=c(2, 2))
-  cvplot_ils(dat=dat.nonnorm.summ.l[[1]], feature.group='Protein', xaxis.group='Condition',
-               title='Raw', abs=F)
-
-for (i in 1: n.comp.variants){
+add.constant=c(0, 0, grand_median, grand_median, 0)
+cvplot_ils(dat=dat.nonnorm.summ.l[[1]], feature.group='Protein', xaxis.group='Condition',
+               title='Raw', )
+for (i in 1:n.comp.variants){
     cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'), abs=F)
+               title=paste('Normalized', variant.names[i], sep='_'), add.constant=add.constant[i])
 }
 par(mfrow=c(1, 1))  
 ```
@@ -350,14 +354,14 @@ par(mfrow=c(1, 1))
 
 ## HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
 
 ```{r}
 par(mfrow=c(3,2))
-  dendrogram_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, 'Raw')
+  dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'Raw')
 
 for (i in seq_along(dat.norm.summ.w2)){
-    dendrogram_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
+    dendrogram_ils(dat.norm.summ.w2[[i]] %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))  
 ```
@@ -394,7 +398,7 @@ print_conf_mat(cm, referenceCondition)
 ```
 
 ## Scatter plots
-TO DO: Piotr: constant NOMAD i RAW p-values (approx. 1) generate error in scatterplots
+
 ```{r}
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
@@ -402,7 +406,7 @@ logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 p.cols <- dea.cols[stri_detect_fixed(dea.cols, 'p.mod')]
 n.contrasts <- length(logFC.cols)
 
-#scatterplot_ils(dat.dea, p.cols, 'p-values') # commented due to error, sd=0 for NOMAD and RAW
+scatterplot_ils(dat.dea, p.cols, 'p-values')
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC')
 ```
 

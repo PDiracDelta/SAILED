@@ -70,6 +70,10 @@ unique.pep=dat.l %>%
 unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
 tmp <- apply(unique.pep, 1, function(x) all(x==1))
 inner.peptides <- rownames(unique.pep)[tmp]
+
+#TEMP -remove!
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=20)], spiked.proteins))
 ```
 
 ```{r}
@@ -102,6 +106,7 @@ dat.unit.l <- dat.l
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+grand_median <- median(dat.unit.l$response, na.rm=TRUE)
 ```
 
 # Normalization component: medianSweeping (1)
@@ -205,8 +210,9 @@ dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_
 dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 
 par(mfrow=c(1, 2))
-  cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw', abs=F)
-  cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Normalized', abs=F)
+add.constant=grand_median
+cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw')
+cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Normalized', add.constant=grand_median)
 par(mfrow=c(1, 1))  
 ```
 
@@ -230,12 +236,12 @@ par(mfrow=c(1, 1))
 
 ## HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
 
 ```{r}
 par(mfrow=c(1, 2))
-  dendrogram_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, 'Raw')
-  dendrogram_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, 'Normalized')
+  dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'Raw')
+  dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'Normalized')
 par(mfrow=c(1, 1))  
 ```
 

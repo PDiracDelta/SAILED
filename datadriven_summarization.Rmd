@@ -62,6 +62,10 @@ After this thresholding there are 19 UPS1 proteins remaining, even though 48 wer
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull
 remove_factors(spiked.proteins)
+#TEMP -remove!
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+# unique(dat.l$Protein)
 ```
 
 We pick technical replicates with a dilution of 0.5 as the reference condition of interest. Each condition is represented by two of eight reporter Channels in each Run.
@@ -97,6 +101,7 @@ We use the default unit scale: the log2-transformed reportion ion intensities.
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+grand_median <- median(dat.unit.l$response, na.rm=TRUE)
 dat.unit.l
 ```
 
@@ -229,7 +234,7 @@ Before getting to the DEA section, let's do some basic quality control and take 
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
 })
-colnames(dat.norm.summ.w2)
+colnames(dat.norm.summ.w2$median)
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x){
@@ -296,9 +301,9 @@ dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
     cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Raw', variant.names[i], sep='_'), abs=F)
+               title=paste('Raw', variant.names[i], sep='_'))
     cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'), abs=F)
+               title=paste('Normalized', variant.names[i], sep='_'), add.constant=grand_median)
 }
 par(mfrow=c(1, 1))  
 ```
@@ -309,6 +314,7 @@ Now, let's check if these multi-dimensional data contains some kind of grouping;
 Even though PC1 does seem to capture the conditions, providing a gradient for the dilution number, only the 0.125 condition is completely separable in the normalized data. Again, here, the Sum summariztion messes everything up and just separates samples according to.......??? just like the raw data.
 
 ### Using all proteins
+
 ```{r}
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
@@ -344,8 +350,8 @@ The PCA plots of all proteins has a rather lower fraction of variance explained 
 ```{r}
 for (i in seq_along(dat.norm.summ.w2)){
   par(mfrow=c(1, 2))
-    dendrogram_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-    dendrogram_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
+    dendrogram_ils(dat.nonnorm.summ.w2[[i]] %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+    dendrogram_ils(dat.norm.summ.w2[[i]] %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
   par(mfrow=c(1, 1))  
 }
 ```
