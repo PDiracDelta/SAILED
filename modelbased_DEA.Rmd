@@ -58,13 +58,13 @@ spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, f
 
 #TEMP -remove!
 # tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=5)], spiked.proteins))
 ```
 
 ```{r}
 # specify # of varying component variants and their names
 #variant.names <- c('LMM', 'DEqMS', 'ANOVA')
-variant.names <- c('LMM1', 'LMM2', 'LMM3', 'DEqMS', 'ANOVA')
+variant.names <- c('LMM1', 'LMM2', 'DEqMS', 'ANOVA')
 n.comp.variants <- length(variant.names)
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
@@ -191,15 +191,6 @@ dendrogram_ils(dat.normplot.w, info=sample.info, 'After normalization')
 par(mfrow=c(1, 1))  
 ```
 
-### Using spiked proteins only
-
-```{r}
-par(mfrow=c(1, 2))
-dendrogram_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins,], info=sample.info, 'Before normalization')
-dendrogram_ils(dat.normplot.w[rownames(dat.normplot.w) %in% spiked.proteins,], info=sample.info, 'After normalization')
-par(mfrow=c(1, 1))  
-```
-
 # DEA component
 
 ```{r}
@@ -223,10 +214,10 @@ n.contrasts <- length(logFC.cols)
 dat.dea$LMM2 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Peptide)', referenceCondition, scale='log') 
 ```
 
-
 ## DEqMS
 
 ```{r}
+dat.dea$LMM3 <- NULL
 # first compute PSM count per protein within run & channel, then for each protein separately take the minimum of the PSM counts (as in DEqMS vignette)
 PSMcounts.df <- dat.norm.l %>% ungroup %>% group_by(Run, Channel, Protein) %>% summarize(PSMcount=n()) %>% group_by(Protein) %>% summarize(PSMcount=min(PSMcount,na.rm=TRUE)) %>% data.frame
 
