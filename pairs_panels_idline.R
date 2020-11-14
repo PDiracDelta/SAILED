@@ -1,12 +1,13 @@
 # just copy & paste from pairs.panels source code
-# line 162 was changed to plot y=x identity line instead of lm=T
+# y=x identity line instead of lm=T
+# col.points and cex.points arg added when lm=TRUE
 
 pairs.panels.idline <- function (x, smooth = TRUE, scale = FALSE, density = TRUE, ellipses = TRUE, 
           digits = 2, method = "pearson", pch = 20, lm = FALSE, 
           cor = TRUE, jiggle = FALSE, factor = 2, hist.col = "cyan", 
           show.points = TRUE, rug = TRUE, breaks = "Sturges", 
           cex.cor = 1, wt = NULL, smoother = FALSE, stars = FALSE, 
-          ci = FALSE, alpha = 0.05, ...) 
+          ci = FALSE, alpha = 0.05, col.points='black', cex.points=1, ...) 
 {
   "panel.hist.density" <- function(x, ...) {
     usr <- par("usr")
@@ -133,7 +134,7 @@ pairs.panels.idline <- function (x, smooth = TRUE, scale = FALSE, density = TRUE
     }
     else {
       if (show.points) {
-        points(x, y, pch = pch, ylim = ylim, xlim = xlim, 
+        points(x, y, pch = pch, ylim = ylim, xlim = xlim, col=col.points, cex=cex.points,
                ...)
       }
     }
@@ -250,7 +251,7 @@ pairs.panels.idline <- function (x, smooth = TRUE, scale = FALSE, density = TRUE
     }
     else {
       pairs(x, diag.panel = panel.hist.density, upper.panel = panel.cor, 
-            lower.panel = panel.lm, pch = pch, ...)
+            lower.panel = panel.lm, pch = pch,...)
     }
   }
 }
