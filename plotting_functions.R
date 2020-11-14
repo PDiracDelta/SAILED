@@ -70,6 +70,8 @@ gm_mean = function(x, na.rm=TRUE){
 
 maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.proteins, xaxis.rank=TRUE){
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
+  
+  if (!('Protein' %in% colnames(dat))) dat <- dat %>% rownames_to_column('Protein')
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
   denom <- as.matrix(dat[, samples.denom])
@@ -88,9 +90,10 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.pro
   if (xaxis.rank){
     AVE=rank(AVE) # -length(AVE)+1  descending ranks
     xaxis.title <- 'rank(Avglog2Intensity)'}
-  df <- data.frame(FC, AVE, protein.type=ifelse(names(FC) %in% spiked.proteins, 'spiked-in', 'background'))
-  ggplot(df, aes(x = AVE, y = FC, colour=protein.type)) +
-    geom_point() +
+  
+  df <- data.frame(FC, AVE, protein.type=ifelse(dat$Protein %in% spiked.proteins, 'spiked-in', 'background'))
+  ggplot(df, aes(x = AVE, y = FC)) +
+    geom_point(aes(colour=protein.type)) +
     geom_smooth() +
     scale_y_continuous("log2FC") +
     scale_x_continuous(xaxis.title) +
