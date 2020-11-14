@@ -162,14 +162,11 @@ violinplot_ils <- function(dat.spiked.logfc.l) {
 # xaxis.group arg specifies the groups for which CV will be computed separately. It can be set to, e.g., 
 # 'Condition' or 'Run' or 'Mixture' or ...
 
-cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, abs.val=T, ...){  
+cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, add.constant=0, ...){  
   dat <- dat %>% ungroup
+  dat$response <- dat$response+add.constant
   # compute CV per feature (Protein/Peptide) 
-  if (abs.val){
-    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response, na.rm=TRUE)/abs(mean(response, na.rm=TRUE)))
-  } else {
-    CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response, na.rm=TRUE)/mean(response, na.rm=TRUE))
-  }
+  CV.df <- dat %>% group_by(across(feature.group), across(xaxis.group)) %>% summarise(CV=sd(response, na.rm=TRUE)/mean(response, na.rm=TRUE))
   # compute CV quantile within the groups
   CV.quantiles.df <- CV.df %>% group_by(across(xaxis.group)) %>% summarise(quan=quantile(CV, rmCVquan, na.rm=TRUE))
 
