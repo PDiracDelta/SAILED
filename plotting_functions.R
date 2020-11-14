@@ -208,14 +208,15 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   dat=lapply(dat, function(x){
     ord <- match(rw, rownames(x))
     return(x[ord,])})
+  rw <- rownames(dat[[1]])
   for (i in 1:length(cols)){
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame
     pairs.panels.idline(df, main=paste(title, paste0(contrast.names[i], ' vs ', referenceCondition, ' contrast'), sep='-')
                     , method='spearman', lm=T, ellipses = FALSE, 
                     ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
                     #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
-                    ,col.points=ifelse(rw2 %in% spiked.proteins, '#E69F00', '#000000')
-                    ,cex.points=ifelse(rw2 %in% spiked.proteins, 2, 1))
+                    ,col.points=ifelse(rw %in% spiked.proteins, '#E69F00', '#000000')
+                    ,cex.points=ifelse(rw %in% spiked.proteins, 2, 1))
   }
 }
 
