@@ -63,7 +63,12 @@ gm_mean = function(x, na.rm=TRUE){
   exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
 }
 
-maplot_ils <- function(dat, samples.num, samples.denom, scale, title, xaxis.rank=TRUE){
+# cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+#           "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# cbp2 <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
+#           "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.proteins, xaxis.rank=TRUE){
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
@@ -83,12 +88,13 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, xaxis.rank
   if (xaxis.rank){
     AVE=rank(AVE) # -length(AVE)+1  descending ranks
     xaxis.title <- 'rank(Avglog2Intensity)'}
-  df <- data.frame(FC, AVE)
-  ggplot(df, aes(x = AVE, y = FC)) +
+  df <- data.frame(FC, AVE, protein.type=ifelse(names(FC) %in% spiked.proteins, 'spiked', 'background'))
+  ggplot(df, aes(x = AVE, y = FC, colour=protein.type)) +
     geom_point() +
     geom_smooth() +
     scale_y_continuous("log2FC") +
     scale_x_continuous(xaxis.title) +
+    #scale_colour_manual(values=cbp2) +
     ggtitle(title) + 
     geom_hline(yintercept = 0.0, color = "black") + # one-to-one line
     geom_hline(yintercept = 1.0, color = "black", linetype = "dotted") + # 2-fold up
