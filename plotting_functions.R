@@ -88,7 +88,7 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.pro
   if (xaxis.rank){
     AVE=rank(AVE) # -length(AVE)+1  descending ranks
     xaxis.title <- 'rank(Avglog2Intensity)'}
-  df <- data.frame(FC, AVE, protein.type=ifelse(names(FC) %in% spiked.proteins, 'spiked', 'background'))
+  df <- data.frame(FC, AVE, protein.type=ifelse(names(FC) %in% spiked.proteins, 'spiked-in', 'background'))
   ggplot(df, aes(x = AVE, y = FC, colour=protein.type)) +
     geom_point() +
     geom_smooth() +
