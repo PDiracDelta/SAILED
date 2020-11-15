@@ -70,7 +70,8 @@ gm_mean = function(x, na.rm=TRUE){
 
 maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.proteins, xaxis.rank=TRUE){
   dat <- dat %>% drop_na(any_of(c(samples.num, samples.denom)))
-  
+  samples.num <- as.character(samples.num)
+  samples.denom <- as.character(samples.denom)
   if (!('Protein' %in% colnames(dat))) dat <- dat %>% rownames_to_column('Protein')
   select.scale=match.arg(scale, c('log', 'raw'))
   num <- as.matrix(dat[, samples.num])
