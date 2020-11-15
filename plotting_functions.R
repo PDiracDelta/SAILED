@@ -253,6 +253,7 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
       geom_vline(xintercept = -1, color = "black", linetype = "dashed") +
       theme(legend.position = "none")
   }
-  grid.arrange(grobs = volcano.plots, ncol=length(volcano.plots))
+  #grid.arrange(grobs = volcano.plots, ncol=length(volcano.plots))
+  grid.arrange(grobs = volcano.plots, ncol=2, nrow=ceiling(length(dat)/2))
 }
 
