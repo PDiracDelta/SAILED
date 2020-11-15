@@ -63,8 +63,8 @@ After this thresholding there are 19 UPS1 proteins remaining, even though 48 wer
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull
 remove_factors(spiked.proteins)
 #TEMP -remove!
-tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
+# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=200)], spiked.proteins))
 # unique(dat.l$Protein)
 ```
 
@@ -281,9 +281,9 @@ Indeed, even the Raw, unnormalized data now show less variability, and again eve
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'))
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'), spiked.proteins)
   
-  p2 <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'))
+  p2 <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
   
   grid.arrange(p1, p2, ncol=2)  
 }
