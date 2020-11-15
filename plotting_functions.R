@@ -153,7 +153,7 @@ dendrogram_ils <- function(dat, info, title){
 # violinplot_ils: violin plot for each condition and dashed line with expected fold change
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-violinplot_ils <- function(dat.spiked.logfc.l) {
+violinplot_ils_old <- function(dat.spiked.logfc.l) {
   conditions.num <- sort(as.numeric(unique(dat.spiked.logfc.l[[1]]$condition)))
   segment_xy <- data.frame(xv=order(conditions.num), yv=log2(conditions.num/as.numeric(referenceCondition)))
   violin.plots <- emptyList(names(dat.spiked.logfc.l))
@@ -162,6 +162,31 @@ violinplot_ils <- function(dat.spiked.logfc.l) {
       geom_violin(draw_quantiles = TRUE) + ggtitle(names(dat.spiked.logfc.l)[i]) + 
       geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
                    color = 'red', linetype = 'dashed') }
+  do.call(grid.arrange, violin.plots)
+}
+
+# input should be dat.dea subset to spike proteins and logFC columns only
+#dat <- lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols])
+
+violinplot_ils <- function(dat, referenceCondition){
+  variant.names <- names(dat)
+  dat <- lapply(dat, function(x) x[spiked.proteins,logFC.cols])
+  dat.l <- lapply(dat, function(x) {
+    x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
+  dat.all=bind_rows(dat.l, .id='variant')
+  dat.all$variant <- factor(dat.all$variant, labels=variant.names)
+  conditions.num <- sort(as.numeric(unique(dat.all$condition)))
+  violin.plots <- vector('list', length(unique(dat.all$condition)))
+  for (j in seq_along(violin.plots)) {
+    plot.title <- paste0(conditions.num[j], ' vs ', referenceCondition, ' contrast')
+    segment_xy <- data.frame(xv=1:length(variant.names), yv=log2(conditions.num[j]/as.numeric(referenceCondition)))    
+    violin.plots[[j]] <- dat.all %>% filter(condition==conditions.num[j]) %>%
+    ggplot(aes(x=variant, y=logFC)) + 
+      geom_violin(draw_quantiles = TRUE) +
+      ggtitle(plot.title) +
+      geom_segment(data=segment_xy, aes(x=xv-0.25, xend=xv+0.25, y=yv, yend=yv), 
+                   color = 'red', linetype = 'dashed') + xlab("")
+      }
   do.call(grid.arrange, violin.plots)
 }
 

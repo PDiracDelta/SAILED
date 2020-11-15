@@ -269,11 +269,8 @@ for (i in 1:n.contrasts){
 
 Let's see whether the spiked protein fold changes make sense
 ```{r}
-# plot theoretical value (horizontal lines) and violin per condition
-dat.spiked.logfc <- lapply(dat.dea, function(x) x[spiked.proteins,logFC.cols])
-dat.spiked.logfc.l <- lapply(dat.spiked.logfc, function(x) {
-  x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
-violinplot_ils(lapply(dat.spiked.logfc.l, filter, condition != referenceCondition))
+# plot theoretical value (horizontal lines) and violin per variant
+violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
 # Conclusions
