@@ -110,15 +110,15 @@ dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.summplot.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.normplot.l <- aggFunc(dat.norm.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # after normalization
+dat.nonnorm.summ.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.norm.summ.l <- aggFunc(dat.norm.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # after normalization
 
 # now create data sets in wide format
 # before normalization
-dat.summplot.w <- pivot_wider(data=dat.summplot.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
+dat.nonnorm.summ.w <- pivot_wider(data=dat.nonnorm.summ.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
 
 # after normalization
-dat.normplot.w <- pivot_wider(data=dat.normplot.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
+dat.norm.summ.w <- pivot_wider(data=dat.norm.summ.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') %>% column_to_rownames('Protein')
 ```
 
 ## Boxplot:
@@ -136,8 +136,8 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 
 ```{r}
 # different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function
-p1 <- maplot_ils(dat.summplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization', spiked.proteins)
-p2 <- maplot_ils(dat.normplot.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'After normalization', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Before normalization', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'After normalization', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
@@ -147,8 +147,8 @@ MA plots of all samples from condition `1` and condition `0.125` (quantification
 # different unit variants require different computation of fold changes and average abundance: additive or multiplicative scale; see maplot_ils function 
 samples.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
 samples.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
-p1 <- maplot_ils(dat.summplot.w, samples.num, samples.denom, scale='log', 'Before normalization', spiked.proteins)
-p2 <- maplot_ils(dat.normplot.w, samples.num, samples.denom, scale='log', 'After normalization', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w, samples.num, samples.denom, scale='log', 'Before normalization', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w, samples.num, samples.denom, scale='log', 'After normalization', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
@@ -156,8 +156,8 @@ grid.arrange(p1, p2, ncol=2)
 
 ```{r}
 par(mfrow=c(1, 2))
-  cvplot_ils(dat=dat.summplot.l, feature.group='Protein', xaxis.group='Condition', title='Before normalization')
-  cvplot_ils(dat=dat.normplot.l, feature.group='Protein', xaxis.group='Condition', title='After normalization')
+  cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Before normalization')
+  cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='After normalization')
 par(mfrow=c(1, 1))  
 ```
 
@@ -166,8 +166,8 @@ par(mfrow=c(1, 1))
 ### Using all proteins
 ```{r}
 par(mfrow=c(1, 2))
-pcaplot_ils(dat.summplot.w, info=sample.info, 'Raw', scale=T)
-pcaplot_ils(dat.normplot.w, info=sample.info, 'Normalized')
+pcaplot_ils(dat.nonnorm.summ.w, info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.norm.summ.w, info=sample.info, 'Normalized')
 par(mfrow=c(1, 1)) 
 ```
 
@@ -175,8 +175,8 @@ par(mfrow=c(1, 1))
 
 ```{r}
 par(mfrow=c(1, 2))
-pcaplot_ils(dat.summplot.w[rownames(dat.summplot.w) %in% spiked.proteins,], info=sample.info, 'Raw', scale=T)
-pcaplot_ils(dat.normplot.w[rownames(dat.normplot.w) %in% spiked.proteins,], info=sample.info, 'Normalized')
+pcaplot_ils(dat.nonnorm.summ.w[rownames(dat.nonnorm.summ.w) %in% spiked.proteins,], info=sample.info, 'Raw', scale=T)
+pcaplot_ils(dat.norm.summ.w[rownames(dat.norm.summ.w) %in% spiked.proteins,], info=sample.info, 'Normalized')
 par(mfrow=c(1, 1))
 ```
 
@@ -186,8 +186,8 @@ par(mfrow=c(1, 1))
 
 ```{r}
 par(mfrow=c(1, 2))
-dendrogram_ils(dat.summplot.w, info=sample.info, 'Before normalization')
-dendrogram_ils(dat.normplot.w, info=sample.info, 'After normalization')
+dendrogram_ils(dat.nonnorm.summ.w, info=sample.info, 'Before normalization')
+dendrogram_ils(dat.norm.summ.w, info=sample.info, 'After normalization')
 par(mfrow=c(1, 1))  
 ```
 
