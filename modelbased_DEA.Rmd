@@ -110,8 +110,8 @@ dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-dat.nonnorm.summ.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
-dat.norm.summ.l <- aggFunc(dat.norm.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'mean') # after normalization
+dat.nonnorm.summ.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median') # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.norm.summ.l <- aggFunc(dat.norm.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median') # after normalization
 
 # now create data sets in wide format
 # before normalization
@@ -223,9 +223,9 @@ PSMcounts.df <- dat.norm.l %>% ungroup %>% group_by(Run, Channel, Protein) %>% s
 # switch to (half-)wide format
 dat.norm.w <- pivot_wider(data = dat.norm.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
 
-# aggregate data PSM-->peptide-->protein using mean (DEqMS recommends using protein level data)
+# aggregate data PSM-->peptide-->protein using median (DEqMS recommends using protein level data)
 quanCols = setdiff(colnames(dat.norm.w), colnames(dat.norm.l))
-dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = mean) %>% ungroup()
+dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
 
 # make data completely wide (also across runs)
 dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from =all_of(quanCols), names_glue = "{Run}:{.value}")
