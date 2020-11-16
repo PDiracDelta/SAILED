@@ -82,15 +82,16 @@ variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log', 'log') 
 # pick reference channel and condition for making plots / doing DEA
-referenceChannel <- '127C'
 referenceCondition <- '0.5'
+referenceChannels <- 'Norm'
 # specify colours corresponding to biological conditions
 condition.colour <- tribble(
   ~Condition, ~Colour,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
-  "1", 'red' )
+  "1", 'red',
+  "Norm", 'orange')
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
 channelNames <- remove_factors(unique(sample.info$Channel))
@@ -247,6 +248,13 @@ par(mfrow=c(1, 1))
 
 # DEA component
 
+```{r}
+# drop referenChannels
+chr <- sample.info %>% filter(Condition==referenceChannels) %>% distinct(Run:Channel) %>% pull %>% as.character
+dat.norm.summ.w2 <- dat.norm.summ.w2 %>% select(-one_of(chr))
+sample.info <- sample.info %>% filter(!(Condition %in% referenceChannels)) %>% droplevels
+```
+
 ## Moderated t-test
 
 TODO:
@@ -265,7 +273,7 @@ dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
 ## Wilcoxon test
 
 ```{r}
-otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
+otherConditions <- sample.info %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
 dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, logFC.method='ratio')
 ```

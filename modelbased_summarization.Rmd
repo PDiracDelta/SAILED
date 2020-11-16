@@ -66,13 +66,15 @@ variant.names <- c('no_summ', 'median_summ', 'sum_summ')
 n.comp.variants <- length(variant.names)
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
+referenceChannels <- 'Norm'
 # specify colours corresponding to biological conditions
 condition.colour <- tribble(
   ~Condition, ~Colour,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
-  "1", 'red' )
+  "1", 'red',
+  "Norm", 'orange')
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
 ```
@@ -222,6 +224,12 @@ par(mfrow=c(1, 1))
 ```
 
 # DEA component
+
+```{r}
+# drop referenChannels
+dat.norm.l <- lapply(dat.norm.l, function(x) x <- droplevels(filter(x, !(Condition %in% referenceChannels))))
+sample.info <- sample.info %>% filter(!(Condition %in% referenceChannels)) %>% droplevels
+```
 
 ## mixed model (intra-protein correlation) + eBayes
 

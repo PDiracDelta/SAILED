@@ -67,13 +67,15 @@ n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'raw', 'raw') # ratios are considered raw, because they are basically mean-normalized intensities
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
+referenceChannels <- 'Norm'
 # specify colours corresponding to biological conditions
 condition.colour <- tribble(
   ~Condition, ~Colour,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
-  "1", 'red' )
+  "1", 'red',
+  "Norm", 'orange')
 # create data frame with sample info (distinct Run,Channel, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
 ```
@@ -228,9 +230,16 @@ par(mfrow=c(1, 1))
 
 # DEA component
 
+```{r}
+# drop referenChannels
+dat.norm.l <- lapply(dat.norm.l, function(x) x <- droplevels(filter(x, !(Condition %in% referenceChannels))))
+sample.info <- sample.info %>% filter(!(Condition %in% referenceChannels)) %>% droplevels
+```
+
 ## mixed model (intra-protein correlation) + eBayes
 
 ```{r}
+dat.norm.l <- lapply(dat.norm.l, function(x) x <- droplevels(filter(x, !(Condition %in% referenceChannels))))
 dat.dea <- emptyList(variant.names)
 for(i in seq_along(dat.dea)){
   dat.dea[[i]] <- lmm_dea(dat=dat.norm.l[[i]], mod.formula='response ~ Condition + (1|Run:Channel)', scale=scale.vec[i], referenceCondition)
