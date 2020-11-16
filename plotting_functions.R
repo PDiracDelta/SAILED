@@ -60,7 +60,9 @@ boxplot_w <- function(dat, sample.info, title, ...){
 # geometric mean function for computing logFC on raw scale
 
 gm_mean = function(x, na.rm=TRUE){
-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  if (length(x)>1){
+    exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  } else x
 }
 
 # cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
@@ -91,7 +93,6 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.pro
   if (xaxis.rank){
     AVE=rank(AVE) # -length(AVE)+1  descending ranks
     xaxis.title <- 'rank(Avglog2Intensity)'}
-  
   df <- data.frame(FC, AVE, protein.type=ifelse(dat$Protein %in% spiked.proteins, 'spiked-in', 'background'))
   ggplot(df, aes(x = AVE, y = FC)) +
     geom_point(aes(colour=protein.type)) +
