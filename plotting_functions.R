@@ -109,7 +109,7 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.pro
 # pcaplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-pcaplot_ils=function(dat, info, title, scale=F){
+pcaplot_ils=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3)){
   # fix columns order (as in 'info' arg)
   dat <- dat[, match(remove_factors(sample.info$Sample), colnames(dat))]
   # drop NA values (they are due to proteins not detected in all runs.)
@@ -123,11 +123,12 @@ pcaplot_ils=function(dat, info, title, scale=F){
   
   legend.run <- info %>% distinct(Run.short) %>% pull
   legend.cond <- info %>% distinct(Condition, Colour) %>% arrange(Condition)
-  
-  plot(Ux1,Ux2, col=info$Colour, pch=match(info$Run.short, legend.run)+15, 
+  # if shape.vec is shorter than distinct Run values, then assign shapes starting from 0
+  if (length(shape.vec)!=length(legend.run)) shape.vec <- 0:(length(legend.run)-1)
+
+  plot(Ux1,Ux2, col=info$Colour, pch=shape.vec[match(info$Run.short, legend.run)], 
        main=title, xlab=axis.lab[1], ylab=axis.lab[2], cex=1.5)
-  
-  legend('bottomleft', legend=legend.run, pch=as.numeric(legend.run)+15, bty = "n", cex=1.1) # run legend
+  legend('bottomleft', legend=legend.run, pch=shape.vec[as.numeric(legend.run)], bty = "n", cex=1.1) # run legend
   legend('bottomright', legend=legend.cond$Condition, text.col=legend.cond$Colour, bty = "n", cex=1.1) # condition legend
 }
 
