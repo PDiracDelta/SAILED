@@ -259,6 +259,22 @@ for (i in 1: n.comp.variants){
 }
 ```
 
+## Line plot of channels medians
+
+```{r}
+dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, function(x){
+  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
+  x <- to_long_format(x, sample.info)
+})
+dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
+  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
+  x <- to_long_format(x, sample.info)
+})
+for (i in 1:n.comp.variants){
+  medianlineplot_ils(dat.nonnorm.summ.l[[i]], paste('Before normalization', variant.names[i], sep='_'))
+  medianlineplot_ils(dat.norm.summ.l[[i]], paste('After normalization', variant.names[i], sep='_'))}
+```
+
 ## MA plots
 
 We now make MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively). 
@@ -297,9 +313,6 @@ A more proper way to look at variabilities of conditions is by making Coefficien
 Again, the distributions of Median- and iPQF-summarized values are very similar, and their mean CV is much lower after normalization! This time, they are also quite skew. The Sum-summarized data is also skew, but to a lesser extent. Remarkably, its mean CV is not lower after normalization, which does not seem in line with the last MA plots we made. This need not be a problem; a dense scatterplot is hard to interpret, and we may have drawn a false conclusion earlier.
 
 ```{r}
-dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, to_long_format, sample.info)
-dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
-
 par(mfrow=c(1, 2))
 for (i in 1: n.comp.variants){
     cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
