@@ -1,24 +1,16 @@
-clean.session <- function(){
-  rm(list = ls()) # clean workspace
-  # install remotes and download JGmisc from github
-  # install.packages(remotes)
-  # library(remotes)
-  # remotes::install_github("jasongraf1/JGmisc")
-  library(JGmisc)
-  detachAllPackages() # detach packages
-  library(rmarkdown)
-}
+### knit all the notebooks specified below
+library(rmarkdown)
+st=Sys.time()
+#render("intro.Rmd") 
+render("datadriven_unit.Rmd", envir=new.env())
+render("datadriven_summarization.Rmd", envir=new.env())
+render("datadriven_normalization.Rmd", envir=new.env())
+render("datadriven_DEA.Rmd", envir=new.env())
+render("CONSTANd_vs_medianSweeping.Rmd", envir=new.env()) 
 
-### knit all notebooks specified below
-
-clean.session(); render("intro.Rmd") 
-# clean.session(); render("datadriven_unit.Rmd") 
-# clean.session(); render("datadriven_summarization.Rmd") 
-# clean.session(); render("datadriven_normalization.Rmd") 
-# clean.session(); render("datadriven_DEA.Rmd")
-# clean.session(); render("CONSTANd_vs_medianSweeping.Rmd") 
-
-clean.session(); render("modelbased_unit.Rmd") 
-# clean.session(); render("modelbased_summarization.Rmd")
-# clean.session(); render("modelbased_normalization.Rmd")
-# clean.session(); render("modelbased_DEA.Rmd")
+render("modelbased_unit.Rmd", envir=new.env()) 
+render("modelbased_summarization.Rmd", envir=new.env())
+render("modelbased_normalization.Rmd", envir=new.env())
+render("modelbased_DEA.Rmd", envir=new.env())
+ed=Sys.time()
+ed-st # running time
