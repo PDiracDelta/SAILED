@@ -167,16 +167,12 @@ violinplot_ils_old <- function(dat.spiked.logfc.l) {
   do.call(grid.arrange, violin.plots)
 }
 
-# input should be dat.dea subset to spike proteins and logFC columns only
-#dat <- lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols])
-
 violinplot_ils <- function(dat, referenceCondition){
   variant.names <- names(dat)
-  dat <- lapply(dat, function(x) x[spiked.proteins,logFC.cols])
   dat.l <- lapply(dat, function(x) {
     x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
-  dat.all=bind_rows(dat.l, .id='variant')
-  dat.all$variant <- factor(dat.all$variant, labels=variant.names)
+  dat.all <- bind_rows(dat.l, .id='variant')
+  dat.all$variant <- factor(dat.all$variant, levels=variant.names)
   conditions.num <- sort(as.numeric(unique(dat.all$condition)))
   violin.plots <- vector('list', length(unique(dat.all$condition)))
   for (j in seq_along(violin.plots)) {
