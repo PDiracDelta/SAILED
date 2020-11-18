@@ -291,7 +291,7 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
       geom_point() +
       xlab("log2(FC)") +
       ylab("-log10(q-value)") +
-      ggtitle(paste(paste0(contrast.names[i], ' vs ', referenceCondition, ' contrast'), variant.title[j], sep='_' )) +
+      ggtitle(paste(paste0(contrast.names[contrast.num], ' vs ', referenceCondition, ' contrast'), variant.title[j], sep='_' )) +
       geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
       geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
       geom_vline(xintercept = -1, color = "black", linetype = "dashed") +
