@@ -125,10 +125,25 @@ dat.summ.l <- dat.unit.l
 ## mixed model spec 1
 
 ```{r}
-dat.norm.l <- lapply(dat.summ.l, function(x) {
-  mod <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)
-  x$response <- residuals(mod)+fixef(mod)['(Intercept)']
-  return(x)})
+dat.norm.l <- dat.summ.l
+# fit normalization model
+norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)))
+# assign normalized values
+for (i in seq_along(variant.names)){ dat.norm.l[[variant.names[i]]]$response <- residuals(norm.models[[variant.names[i]]]) }
+# apply the 'fix' - add the model intercept to the residuals
+dat.norm.l$IntensityFix <- dat.norm.l$Intensity; dat.norm.l$IntensityFix$response <- dat.norm.l$IntensityFix$response + fixef(norm.models$Intensity)['(Intercept)']
+dat.norm.l$RatioFix <- dat.norm.l$Ratio; dat.norm.l$RatioFix$response <- dat.norm.l$RatioFix$response + fixef(norm.models$Ratio)['(Intercept)']
+# update variant names, #, scale
+variant.names <- names(dat.norm.l)
+scale.vec <- c(scale.vec, 'raw', 'raw')
+n.comp.variants <- length(variant.names)
+tmp <- c("log2Intensity", "Intensity", "IntensityFix", "Ratio", "RatioFix")
+variant.names <- tmp
+dat.norm.l <- dat.norm.l[tmp]
+# for technical reasons, assign new variants to dat.summ.l
+dat.summ.l$IntensityFix <- dat.summ.l$Intensity
+dat.summ.l$RatioFix <- dat.summ.l$Ratio
+dat.summ.l <- dat.summ.l[tmp]
 ```
 
 # QC plots
