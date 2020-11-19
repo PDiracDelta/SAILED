@@ -212,23 +212,21 @@ par(mfrow=c(1,1))
 ## PCA plots
 
 ### Using all proteins
-
 ```{r}
-par(mfrow=c(1,2))
-for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.nonnorm.summ.w[[i]], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
-  pcaplot_ils(dat.norm.summ.w[[i]], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
-par(mfrow=c(1,1))
+par(mfrow=c(1, 2))
+for (i in seq_along(dat.norm.summ.w)){
+  if (variant.names[i] %in% c('Intensity', 'IntensityFix')) pcaplot_ils(dat.nonnorm.summ.w[[i]], info=sample.info, paste('Raw', variant.names[i], sep='_'), scale=T) else pcaplot_ils(dat.nonnorm.summ.w[[i]], info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w[[i]], info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
 ```
 
 ### Using spiked proteins only
-
 ```{r}
-par(mfrow=c(1,2))
-for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.nonnorm.summ.w[[i]][rownames(dat.nonnorm.summ.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('Before normalization', variant.names[i], sep='_'), scale=T)
-  pcaplot_ils(dat.norm.summ.w[[i]][rownames(dat.norm.summ.w[[i]]) %in% spiked.proteins,], info=sample.info, paste('After normalization', variant.names[i], sep='_'))}
-par(mfrow=c(1,1))
+par(mfrow=c(1, 2))
+for (i in seq_along(dat.norm.summ.w)){
+  if (variant.names[i] %in% c('Intensity', 'IntensityFix')) pcaplot_ils(dat.nonnorm.summ.w[[i]] %>% filter(rownames(dat.nonnorm.summ.w[[i]]) %in% spiked.proteins), info=sample.info, paste('Raw', variant.names[i], sep='_'), scale=T) else pcaplot_ils(dat.nonnorm.summ.w[[i]] %>% filter(rownames(dat.nonnorm.summ.w[[i]]) %in% spiked.proteins), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w[[i]] %>% filter(rownames(dat.nonnorm.summ.w[[i]]) %in% spiked.proteins), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
 ```
 
 HC (hierarchical clustering) plots

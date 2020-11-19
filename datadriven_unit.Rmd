@@ -275,7 +275,7 @@ par(mfrow=c(1, 1))
 ```{r}
 par(mfrow=c(1, 2))
 for (i in seq_along(dat.norm.summ.w2)){
-  pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  if (variant.names[i]=='Intensity') pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'), scale=T) else pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
   pcaplot_ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))
@@ -283,12 +283,12 @@ par(mfrow=c(1, 1))
 
 ### Using spiked proteins only
 ```{r}
+par(mfrow=c(1, 2))
 for (i in seq_along(dat.norm.summ.w2)){
-  par(mfrow=c(1, 2))
-    pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-    pcaplot_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))
+  if (variant.names[i]=='Intensity') pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'), scale=T) else pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
 }
+par(mfrow=c(1, 1))
 ```
 
 ## HC (hierarchical clustering) plots
