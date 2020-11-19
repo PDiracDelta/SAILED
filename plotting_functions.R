@@ -44,27 +44,6 @@ boxplot_ils <- function(dat, title, ...){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# medianlineplot_ils
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-medianlineplot_ils <- function(dat, title, referenceTechChannels=c("126", "131")){
-  grand.median <- median(dat$response)
-  dat <- dat %>% group_by(Run, Channel) %>% summarise(response=median(response, na.rm=TRUE)) %>% 
-    mutate(channelType=ifelse(Channel %in% referenceTechChannels, 'ref', 'quan'))
-  dat$Channel <- factor(dat$Channel)
-  #grand.median <- median(dat$response)
-  p <- dat %>% ggplot(aes(x=as.numeric(dat$Channel), y=response)) + 
-    geom_point(aes(fill=channelType, colour=channelType), size=3, shape=21) +
-    geom_line(size=1, colour="#999999") +
-    facet_wrap(~Run, nrow=1) + 
-    scale_x_continuous(breaks=1:length(levels(dat$Channel)), labels = levels(dat$Channel))+
-    geom_hline(yintercept = grand.median, linetype="dashed") +
-    theme(legend.position = "none") + 
-    labs(x="Channel", title=title)
-  print(p)
-}
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # boxplot.w
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 

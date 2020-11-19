@@ -176,17 +176,6 @@ par(mfrow=c(1,2))
 par(mfrow=c(1,1))
 ```
 
-## Line plot of channels medians
-
-```{r}
-dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
-dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
-dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
-medianlineplot_ils(dat.nonnorm.summ.l, 'Before normalization')
-medianlineplot_ils(dat.norm.summ.l, 'After normalization')
-```
-
 ## MA plots
 
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
@@ -214,6 +203,12 @@ grid.arrange(p1, p2, ncol=2)
 ## CV (coefficient of variation) plots
 
 ```{r}
+dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
+dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
+
+dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
+dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
+
 par(mfrow=c(1, 2))
 add.constant=grand_median
 cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw')
