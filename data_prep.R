@@ -13,11 +13,12 @@ tmp.fun <- function(x){
 }
 dat.raw <- dat.raw %>% rename_with(.fn=tmp.fun, .cols=starts_with('Abundance..'))
 
-# rename some more variables
-dat.raw <- dat.raw %>% rename(Protein='Protein.Accessions', Peptide='Annotated.Sequence', RT='RT..min.', PTM='Modifications')
+# drop channels with reference samples and rename some more variables
+dat.raw <- dat.raw %>% select(-c('126','131')) %>% 
+  rename(Protein='Protein.Accessions', Peptide='Annotated.Sequence', RT='RT..min.', PTM='Modifications')
 
 # save names of quantification columns for later use
-quan.cols <- c(126, paste0(rep(127:130, each=2), c('C','N')), 131)
+quan.cols <- paste0(rep(127:130, each=2), c('C','N'))
 
 # focus only on single proteins, not on protein groups (as in the MSstatTMT publication)
 dat.raw <- dat.raw %>% filter(X..Proteins==1)

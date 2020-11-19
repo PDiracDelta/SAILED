@@ -82,16 +82,15 @@ variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'CycLoessV
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'log', 'log', 'log', 'log')
 # pick reference channel and condition for making plots / doing DEA
+referenceChannel <- '127C'
 referenceCondition <- '0.5'
-referenceChannels <- 'Norm'
 # specify colours corresponding to biological conditions
 condition.colour <- tribble(
   ~Condition, ~Colour,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
-  "1", 'red',
-  "Norm", 'orange')
+  "1", 'red' )
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
 sample.info <- get_sample_info(dat.l, condition.colour)
 channelNames <- remove_factors(unique(sample.info$Channel))
@@ -376,14 +375,6 @@ par(mfrow=c(1, 1))
 ```
 
 # DEA component: Moderated t-test
-
-```{r}
-# drop referenChannels
-chr <- sample.info %>% filter(Condition==referenceChannels) %>% distinct(Run:Channel) %>% pull %>% as.character
-dat.norm.summ.w2 <- lapply(dat.norm.summ.w2, function(x) x %>% select(-one_of(chr)))
-dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w2 %>% select(-one_of(chr))
-sample.info <- sample.info %>% filter(!(Condition %in% referenceChannels)) %>% droplevels
-```
 
 TODO:
 - Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
