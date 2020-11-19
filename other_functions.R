@@ -89,6 +89,9 @@ aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
   return(out.dat)
 }
 
+median_sweep <- function(dat, margin, fun){
+  return(sweep(dat, margin, apply(dat[,cols], margin, median, na.rm=T), FUN=fun))}
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for mixed models DEA (without empirical bayes moderation)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#

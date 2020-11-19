@@ -140,11 +140,14 @@ dat.unit.w <- lapply(dat.unit.l, function(x) {
 ```
 
 ```{r}
+median_sweep <- function(dat, margin, fun){
+  return(sweep(dat, margin, apply(dat, margin, median, na.rm=T), FUN=fun))}
 # subtract the spectrum median log2intensity from the observed log2intensities
+# divide the spectrum median intensity or median ratio from the observed intensities or ratios
 dat.norm.w <- dat.unit.w
-dat.norm.w <- lapply(dat.norm.w, function(x) {
-  x[,channelNames] <- sweep(x[,channelNames], 1, apply(x[,channelNames], 1, median, na.rm=T))
-  return(x) } )
+dat.norm.w$log2Intensity[,channelNames] <- median_sweep(dat.norm.w$log2Intensity[,channelNames], 1, '-')
+dat.norm.w$Intensity[,channelNames] <- median_sweep(dat.norm.w$Intensity[,channelNames], 1, '/')
+#dat.norm.w$Ratio[,channelNames] <- median_sweep(dat.norm.w$Ratio[,channelNames], 1, '-')
 ```
 
 # Summarization component: Median summarization
@@ -176,15 +179,17 @@ dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
 # Normalization component: medianSweeping (2)
 
 ```{r}
-# medianSweeping: in each channel, subtract median computed across all proteins within the channel
+# medianSweeping: in each channel, subtract/divide median computed across all proteins within the channel
 # do the above separately for each MS run
-dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
-  x.split <- split(x, x$Run)
-  x.split.norm  <- lapply(x.split, function(y) {
-    y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median, na.rm=T) )
-    return(y) } )
-  dat.norm.summ.w <- bind_rows(x.split.norm)
-} )
+second_median_sweep <- function(dat, fun){
+  dat.split <- split(dat, dat$Run) 
+  dat.split.norm  <- lapply(dat.split, function(y) {
+    y[,channelNames] <- median_sweep(y[,channelNames], 2, fun); return(y)})
+  return(bind_rows(dat.split.norm))
+}
+dat.norm.summ.w$log2Intensity <- second_median_sweep(dat.norm.summ.w$log2Intensity, '-')
+dat.norm.summ.w$Intensity <- second_median_sweep(dat.norm.summ.w$Intensity, '/')
+#dat.norm.summ.w$Ratio <- second_median_sweep(dat.norm.summ.w$Ratio, '/')
 ```
 
 # QC plots
