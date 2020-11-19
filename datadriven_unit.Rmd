@@ -117,8 +117,8 @@ or in other words: each value is divided by the row mean.
 
 ```{r}
 # use half-wide data to compute within-run average of PSM channels corresponding to the reference Condition
-refCols <- sample.info %>% filter(Condition==referenceCondition) %>% distinct(Channel) %>% pull
-denom.df=dat.l %>% filter(Condition==referenceCondition) %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='Intensity')
+refCols <- sample.info %>% distinct(Channel) %>% pull(Channel)
+denom.df=dat.l %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='Intensity')
 denom.df$denom=apply(denom.df[,refCols], 1, function(x) mean(x, na.rm=T))
 denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
 dat.unit.l$Ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) 
