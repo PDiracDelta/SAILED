@@ -126,12 +126,10 @@ dat.norm.l <- lapply(dat.summ.l, function(x) {
 
 ```{r}
 # PSM data needs to be aggregated prior to PCA plots and HC plots (they require features in the intersection of all MS runs - this is not possible for PSM data). In order to be consisent, other normalization plots will be based on the aggregated data
-
-# before normalization
-dat.nonnorm.summ.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median'))
-
-# after normalization
-dat.norm.summ.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median'))
+dat.nonnorm.summ.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median')) # before normalization (you still need to aggregate the data because of 'dat.summ.l <- dat.unit.l' operation)
+dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median'))
+dat.norm.summ.l <- lapply(dat.norm.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median')) # after normalization
+dat.norm.summ.l <- lapply(dat.norm.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median')) # after normalization
 
 # now create data sets in wide format
 # before normalization
