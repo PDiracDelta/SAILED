@@ -101,7 +101,6 @@ We use the default unit scale: the log2-transformed reportion ion intensities.
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
-grand_median <- median(dat.unit.l$response, na.rm=TRUE)
 dat.unit.l
 ```
 
@@ -303,7 +302,7 @@ for (i in 1: n.comp.variants){
     cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
                title=paste('Raw', variant.names[i], sep='_'))
     cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'), add.constant=grand_median)
+               title=paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))  
 ```

@@ -106,7 +106,6 @@ dat.unit.l <- dat.l
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
-grand_median <- median(dat.unit.l$response, na.rm=TRUE)
 ```
 
 # Normalization component: medianSweeping (1)
@@ -210,9 +209,8 @@ dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_
 dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 
 par(mfrow=c(1, 2))
-add.constant=grand_median
 cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw')
-cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Normalized', add.constant=grand_median)
+cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Normalized')
 par(mfrow=c(1, 1))  
 ```
 

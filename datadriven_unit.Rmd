@@ -124,10 +124,6 @@ denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom'
 dat.unit.l$Ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=Intensity/denom) %>% select(-c(Intensity, denom)) 
 ```
 
-```{r}
-grand_median <- unlist(lapply(dat.unit.l, function(x) median(x$response, na.rm=TRUE)))
-```
-
 # Normalization component: medianSweeping (1)
 
 ```{r}
@@ -264,7 +260,7 @@ for (i in 1: n.comp.variants){
     cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
                title=paste('Raw', variant.names[i], sep='_'))
     cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Normalized', variant.names[i], sep='_'), add.constant=grand_median[i])
+               title=paste('Normalized', variant.names[i], sep='_'))
 }
 par(mfrow=c(1, 1))
 ```
