@@ -145,7 +145,7 @@ median_sweep <- function(dat, margin, fun){
 dat.norm.w <- dat.unit.w
 dat.norm.w$log2Intensity[,channelNames] <- median_sweep(dat.norm.w$log2Intensity[,channelNames], 1, '-')
 dat.norm.w$Intensity[,channelNames] <- median_sweep(dat.norm.w$Intensity[,channelNames], 1, '/')
-#dat.norm.w$Ratio[,channelNames] <- median_sweep(dat.norm.w$Ratio[,channelNames], 1, '-')
+dat.norm.w$Ratio[,channelNames] <- median_sweep(dat.norm.w$Ratio[,channelNames], 1, '/')
 ```
 
 # Summarization component: Median summarization
@@ -187,7 +187,7 @@ second_median_sweep <- function(dat, fun){
 }
 dat.norm.summ.w$log2Intensity <- second_median_sweep(dat.norm.summ.w$log2Intensity, '-')
 dat.norm.summ.w$Intensity <- second_median_sweep(dat.norm.summ.w$Intensity, '/')
-#dat.norm.summ.w$Ratio <- second_median_sweep(dat.norm.summ.w$Ratio, '/')
+dat.norm.summ.w$Ratio <- second_median_sweep(dat.norm.summ.w$Ratio, '/')
 ```
 
 # QC plots
