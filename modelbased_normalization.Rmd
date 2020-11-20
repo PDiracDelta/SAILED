@@ -221,6 +221,16 @@ for (i in 1: n.comp.variants){
 par(mfrow=c(1, 1))
 ```
 
+## P-values of One-way ANOVA (Run effect)
+
+```{r}
+par(mfrow=c(3, 2))
+hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
+for (i in seq_along(dat.norm.summ.l)){
+  hist_ils(run_test(dat.norm.summ.l[[i]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
 # DEA component
 
 ## mixed model (intra-protein correlation) + eBayes

@@ -246,12 +246,10 @@ par(mfrow=c(1, 1))
 ```{r}
 par(mfrow=c(1, 2))
 for (i in seq_along(dat.norm.summ.l)){
-  df <- cbind(run_test(dat.nonnorm.summ.l[[i]]), run_test(dat.norm.summ.l[[i]]));
-  colnames(df)=c('Non-normalized', 'Normalized')
-  pairs.panels.idline(df, main=variant.names[i],method='spearman', lm=T, ellipses = FALSE, pch=1)
-}
+  hist_ils(run_test(dat.nonnorm.summ.l[[i]])$pvalue, main=paste('Raw', variant.names[i], sep='_'))
+  hist_ils(run_test(dat.norm.summ.l[[i]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))  
 ```
-
 
 # DEA component
 

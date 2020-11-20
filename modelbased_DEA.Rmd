@@ -195,6 +195,15 @@ dendrogram_ils(dat.norm.summ.w, info=sample.info, 'After normalization')
 par(mfrow=c(1, 1))  
 ```
 
+## P-values of One-way ANOVA (Run effect)
+
+```{r}
+par(mfrow=c(1, 2))
+hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
+hist_ils(run_test(dat.norm.summ.l)$pvalue, main='Normalized')
+par(mfrow=c(1, 1))
+```
+
 # DEA component
 
 ```{r}

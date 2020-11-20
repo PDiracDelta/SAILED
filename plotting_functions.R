@@ -279,3 +279,8 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
   grid.arrange(grobs = volcano.plots, ncol=2, nrow=ceiling(length(dat)/2))
 }
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# hist_ils - a very simple wrapper on hist
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+hist_ils <- function(x, ...) hist(x, xlab='Run effect p-value', breaks=15, xlim=c(0,1), ...)

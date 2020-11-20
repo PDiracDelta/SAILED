@@ -355,6 +355,16 @@ for (i in seq_along(dat.norm.summ.w2)){
 }
 ```
 
+## P-values of One-way ANOVA (Run effect)
+
+```{r}
+par(mfrow=c(1, 2))
+for (i in seq_along(dat.norm.summ.l)){
+  hist_ils(run_test(dat.nonnorm.summ.l[[i]])$pvalue, main=paste('Raw', variant.names[i], sep='_'))
+  hist_ils(run_test(dat.norm.summ.l[[i]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
+par(mfrow=c(1, 1))
+```
+
 # DEA component: Moderated t-test
 
 We look at the log2 fold changes of all conditions w.r.t. the reference condition with dilution ratio 0.5.
