@@ -241,6 +241,18 @@ for (i in 1: n.comp.variants){
 par(mfrow=c(1, 1))
 ```
 
+## P-values of One-way ANOVA (Run effect)
+
+```{r}
+par(mfrow=c(1, 2))
+for (i in seq_along(dat.norm.summ.l)){
+  df <- cbind(run_test(dat.nonnorm.summ.l[[i]]), run_test(dat.norm.summ.l[[i]]));
+  colnames(df)=c('Non-normalized', 'Normalized')
+  pairs.panels.idline(df, main=variant.names[i],method='spearman', lm=T, ellipses = FALSE, pch=1)
+}
+```
+
+
 # DEA component
 
 ## mixed model (intra-protein correlation) + eBayes
