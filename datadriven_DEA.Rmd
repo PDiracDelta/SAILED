@@ -308,7 +308,7 @@ significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
 scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins)
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
+scatterplot_ils(dat.dea[c('LIMMA', 'Wilcoxon')], logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 ## Volcano plots
@@ -323,7 +323,7 @@ for (i in 1:n.contrasts){
 Let's see whether the spiked protein fold changes make sense
 ```{r}
 # plot theoretical value (horizontal lines) and violin per variant
-violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
+violinplot_ils(lapply(dat.dea[c('LIMMA', 'Wilcoxon')], function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
 # Conclusions
