@@ -238,6 +238,12 @@ par(mfrow=c(1, 1))
 ```{r}
 dat.dea <- lapply(dat.norm.l, function(x){
   return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log'))})
+
+# also see what the unnormalized results would look like
+n.comp.variants <- n.comp.variants + 1
+variant.names <- c(variant.names, 'raw')
+dat.dea$raw <- lmm_dea(dat=dat.summ.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log')
+
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
