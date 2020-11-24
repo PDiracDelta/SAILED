@@ -36,7 +36,6 @@ library(tidyverse)
 library(preprocessCore)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
-library(vsn)
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
@@ -282,10 +281,7 @@ grid.arrange(grobs = p, ncol=2, nrow=3)
 par(mfrow=c(1, 1))
 ```
 
-## CV (coefficient of variation) plots
-
-```{r}
-par(mfrow=c(3,2))
+```{r, echo=FALSE}
 dat.nonnorm.summ.l <- lapply(list(dat.nonnorm.summ.w), function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
   x <- to_long_format(x, sample.info)
@@ -295,14 +291,6 @@ dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
   x <- to_long_format(x, sample.info)
 })
-
-cvplot_ils(dat=dat.nonnorm.summ.l[[1]], feature.group='Protein', xaxis.group='Condition',
-               title='Raw', )
-for (i in 1:n.comp.variants){
-    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))  
 ```
 
 ## PCA plots

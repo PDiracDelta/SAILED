@@ -199,19 +199,11 @@ p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'N
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-## CV (coefficient of variation) plots
-
 ```{r}
 dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
 dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
-
 dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
 dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
-
-par(mfrow=c(1, 2))
-cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Raw')
-cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Normalized')
-par(mfrow=c(1, 1))  
 ```
 
 ## PCA plots

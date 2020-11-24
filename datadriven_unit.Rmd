@@ -242,27 +242,15 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-## CV (coefficient of variation) plots
-
-```{r}
+```{r, echo=FaLSE}
 dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
   x <- to_long_format(x, sample.info)
 })
-
 dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
   x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
   x <- to_long_format(x, sample.info)
 })
-
-par(mfrow=c(1, 2))
-for (i in 1: n.comp.variants){
-    cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Raw', variant.names[i], sep='_'))
-    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))
 ```
 
 ## PCA plots

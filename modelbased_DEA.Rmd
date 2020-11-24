@@ -156,15 +156,6 @@ p2 <- maplot_ils(dat.norm.summ.w, samples.num, samples.denom, scale='log', 'Afte
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-## CV (coefficient of variation) plot:
-
-```{r}
-par(mfrow=c(1, 2))
-  cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Before normalization')
-  cvplot_ils(dat=dat.norm.summ.l, feature.group='Protein', xaxis.group='Condition', title='After normalization')
-par(mfrow=c(1, 1))  
-```
-
 ## PCA plot:
 
 ### Using all proteins

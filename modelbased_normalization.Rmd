@@ -178,16 +178,6 @@ for (i in 1: n.comp.variants){
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
-## CV (coefficient of variation) plots
-
-```{r}
-par(mfrow=c(2,2))
-cvplot_ils(dat=dat.nonnorm.summ.l, feature.group='Protein', xaxis.group='Condition', title='Before normalization')
-for (i in 1: n.comp.variants){
-  cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', title=paste('After normalization', variant.names[i], sep='_'))}
-par(mfrow=c(1,1))
-```
-
 ## PCA plots
 
 ### Using all proteins

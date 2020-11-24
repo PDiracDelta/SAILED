@@ -288,23 +288,9 @@ for (i in 1: n.comp.variants){
 }
 ```
 
-## CV (coefficient of variation) plots
-
-A more proper way to look at variabilities of conditions is by making Coefficient of Variation (CV) plots.
-Again, the distributions of Median- and iPQF-summarized values are very similar, and their mean CV is much lower after normalization! This time, they are also quite skew. The Sum-summarized data is also skew, but to a lesser extent. Remarkably, its mean CV is not lower after normalization, which does not seem in line with the last MA plots we made. This need not be a problem; a dense scatterplot is hard to interpret, and we may have drawn a false conclusion earlier.
-
-```{r}
+```{r, echo=FALSE}
 dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.w, to_long_format, sample.info)
 dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
-
-par(mfrow=c(1, 2))
-for (i in 1: n.comp.variants){
-    cvplot_ils(dat=dat.nonnorm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Raw', variant.names[i], sep='_'))
-    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition', 
-               title=paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))  
 ```
 
 ## PCA plots
