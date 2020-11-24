@@ -217,6 +217,25 @@ x.split.norm  <- lapply(x.split, function(y) {
 dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 ```
 
+## Quantile norm of protein level data by condition
+
+```{r}
+dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
+x.split <- split(dat.nonnorm.summ.l, dat.nonnorm.summ.l$Condition)
+x.split.norm <- lapply(x.split, function(x){
+  tmp.wide <- pivot_wider(data=x, id_cols='Protein', names_from=Sample, values_from=response) 
+  tmp.wide[, colnames(tmp.wide)!='Protein'] <- normalize.quantiles(as.matrix(tmp.wide %>% select(-Protein)))
+  tmp <- pivot_longer(tmp.wide, cols=-one_of('Protein'), names_to='Sample', values_to='response') %>% drop_na() %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample')
+  return(tmp)
+})
+x <- bind_rows(x.split.norm)
+dat.norm.summ.w$quantile2 <- pivot_wider(data = x, id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
+
+variant.names <- c('quantile', 'CONSTANd', 'NOMAD', 'medianSweeping', 'quantile2')
+n.comp.variants <- length(variant.names)
+scale.vec <- c('log', 'log', 'log', 'log', 'log')
+```
+
 # QC plots
 
 ```{r}
