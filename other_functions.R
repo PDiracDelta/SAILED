@@ -110,10 +110,12 @@ lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
   contrast.names <- condition.levels[-match(referenceCondition,condition.levels)]
   
   # wrap up lmer call with 'possibly' function to continue the for loop despite errors
-  lmer_safe <- possibly(function(x) lmer(mod.formula, data=dat[dat$Protein==x, ], control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning")),
-                         otherwise=NULL)
+  lmer_safe <- possibly(function(x) lmer(mod.formula, data=dat[dat$Protein==x, ],
+                                         control=lmerControl(check.nobs.vs.nlev="warning", check.nobs.vs.nRE="warning", check.nlev.gtr.1 = "warning")), 
+                        otherwise=NULL)
   logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions-1)
   t.mod <- p.mod <- logFC
+  n.obs <- s2.RE <- s2.resid <- matrix(NA, nrow=nproteins, ncol=1)
   
   for (i in seq_along(proteins)){
     mod <- lmer_safe(proteins[i])
@@ -126,6 +128,10 @@ lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
         }
       t.mod[i,]=sum.mod$coefficients[-1,4] # t-statistic
       p.mod[i,]=sum.mod$coefficients[-1,5] # p-value
+      var.mod <- as.data.frame(VarCorr(mod))
+      s2.resid[i,] <- var.mod[var.mod$grp=='Residual','vcov']
+      s2.RE[i,] <- var.mod[var.mod$grp!='Residual','vcov']
+      n.obs[i,] <- nrow(mod@frame)
       
     } else {
       logFC[i,] <- rep(NA, n.conditions-1)
@@ -143,7 +149,7 @@ lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
   colnames(t.mod) <- paste0('t.mod', '_', contrast.names)
   colnames(p.mod) <- paste0('p.mod', '_', contrast.names)
   colnames(q.mod) <- paste0('q.mod', '_', contrast.names)
-  results <- data.frame(logFC, t.mod, p.mod, q.mod)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod, n.obs=n.obs, s2.RE, s2.resid)
   rownames(results) <- proteins
   
   # results <- results %>% drop_na() # removing proteins with missing values may affect
