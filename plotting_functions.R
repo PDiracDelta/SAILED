@@ -247,7 +247,7 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
 # volcanoplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
+volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, referenceCondition=referenceCondition){
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
   significance.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
@@ -258,6 +258,13 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
   # contrast names
   contrast.names <- stri_replace(logFC.cols, fixed='logFC_', '')
   variant.title <- names(dat)
+  
+  # compute axis ranges
+  # if it's possible to convert contrast names and referenceCondition into numeric, plot true logFC 
+  if (all(!is.na(as.numeric(contrast.names[contrast.num], referenceCondition)))) {
+    true.logFC <- log2(as.numeric(contrast.names[contrast.num])/as.numeric(referenceCondition))} else true.logFC=0
+  x.range <- range(c(true.logFC, unlist(lapply(dat, function(x) x[,logFC.cols[contrast.num]]))))
+  y.max <- -log10(min(unlist(lapply(dat, function(x) x[,significance.cols[contrast.num]]))))
   
   # iterate over variants
   for (j in 1:length(dat)){
@@ -270,9 +277,13 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins){
       xlab("log2(FC)") +
       ylab("-log10(q-value)") +
       ggtitle(paste(paste0(contrast.names[contrast.num], ' vs ', referenceCondition, ' contrast'), variant.title[j], sep='_' )) +
+      geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") +
       geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
       geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
       geom_vline(xintercept = -1, color = "black", linetype = "dashed") +
+      geom_vline(xintercept =  true.logFC, color = "violet", linetype = "dashed") +
+      xlim(c(min(-1,x.range[1]), max(1,x.range[2])))+
+      ylim(c(0,y.max))+
       theme(legend.position = "none")
   }
   #grid.arrange(grobs = volcano.plots, ncol=length(volcano.plots))
