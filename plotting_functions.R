@@ -247,7 +247,7 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
 # volcanoplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, referenceCondition=referenceCondition){
+volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, refCond=referenceCondition){
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
   significance.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
@@ -260,9 +260,9 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, referenceConditi
   variant.title <- names(dat)
   
   # compute axis ranges
-  # if it's possible to convert contrast names and referenceCondition into numeric, plot true logFC 
-  if (all(!is.na(as.numeric(contrast.names[contrast.num], referenceCondition)))) {
-    true.logFC <- log2(as.numeric(contrast.names[contrast.num])/as.numeric(referenceCondition))} else true.logFC=0
+  # if it's possible to convert contrast names and refCond into numeric, plot true logFC 
+  if (all(!is.na(as.numeric(contrast.names[contrast.num], refCond)))) {
+    true.logFC <- log2(as.numeric(contrast.names[contrast.num])/as.numeric(refCond))} else true.logFC=0
   x.range <- range(c(true.logFC, unlist(lapply(dat, function(x) x[,logFC.cols[contrast.num]]))))
   y.max <- -log10(min(unlist(lapply(dat, function(x) x[,significance.cols[contrast.num]]))))
   
@@ -276,7 +276,7 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, referenceConditi
       geom_point() +
       xlab("log2(FC)") +
       ylab("-log10(q-value)") +
-      ggtitle(paste(paste0(contrast.names[contrast.num], ' vs ', referenceCondition, ' contrast'), variant.title[j], sep='_' )) +
+      ggtitle(paste(paste0(contrast.names[contrast.num], ' vs ', refCond, ' contrast'), variant.title[j], sep='_' )) +
       geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") +
       geom_hline(yintercept = -log10(0.05), color = "black", linetype = "dashed") + 
       geom_vline(xintercept =  1, color = "black", linetype = "dashed") +
