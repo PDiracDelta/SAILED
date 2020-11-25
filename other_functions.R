@@ -154,6 +154,67 @@ lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
   
   # results <- results %>% drop_na() # removing proteins with missing values may affect
   return(results)
+}
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# function for LM (simple linear regression; no random effects) DEA
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+lm_dea <- function(dat, mod.formula, referenceCondition, scale){
+  
+  mod.formula <- as.formula(mod.formula)
+  
+  proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
+  nproteins <- length(proteins)
+  
+  dat$Condition <- relevel(dat$Condition, referenceCondition)
+  condition.levels <- levels(droplevels(dat$Condition))
+  n.conditions <- length(condition.levels)
+  
+  contrast.names <- condition.levels[-match(referenceCondition,condition.levels)]
+  
+  # wrap up lmer call with 'possibly' function to continue the for loop despite errors
+  lm_safe <- possibly(function(x) lm(mod.formula, data=dat[dat$Protein==x, ]), otherwise=NULL)
+  logFC <- matrix(NA, nrow=nproteins, ncol=n.conditions-1)
+  t.mod <- p.mod <- logFC
+  n.obs <- s2.resid <- matrix(NA, nrow=nproteins, ncol=1)
+  
+  for (i in seq_along(proteins)){
+    mod <- lm_safe(proteins[i])
+    if (!is.null(mod)){
+      sum.mod <- summary(mod)
+      # estimate of the log2-fold-change corresponding to the effect size
+      if (scale=='log') logFC[i,]=sum.mod$coefficients[-1,1] else if (scale=='raw'){
+        rat <- (sum.mod$coefficients[-1,1]+sum.mod$coefficients[1,1])/sum.mod$coefficients[1,1]
+        logFC[i, rat>0]=log2(rat[rat>0]); logFC[i, rat<=0] <- NA # some of the calculated ratios may be negative!
+      }
+      t.mod[i,]=sum.mod$coefficients[-1,3] # t-statistic
+      p.mod[i,]=sum.mod$coefficients[-1,4] # p-value
+      sum.mod$sigma^2
+      s2.resid[i,] <- sum.mod$sigma^2
+      n.obs[i,] <- length(sum.mod$residuals)
+      
+    } else {
+      logFC[i,] <- rep(NA, n.conditions-1)
+      t.mod[i,] <- rep(NA, n.conditions-1)
+      p.mod[i,] <- rep(NA, n.conditions-1)
+    }
+  }
+  
+  if(nproteins>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') else {
+    q.mod <- p.mod
+  } # moderated q-value corresponding to the moderated t-statistic
+  
+  # incorporate entity type into colnames to overwrite identical factor names
+  colnames(logFC) <- paste0('logFC_', contrast.names)
+  colnames(t.mod) <- paste0('t.mod', '_', contrast.names)
+  colnames(p.mod) <- paste0('p.mod', '_', contrast.names)
+  colnames(q.mod) <- paste0('q.mod', '_', contrast.names)
+  results <- data.frame(logFC, t.mod, p.mod, q.mod, n.obs=n.obs, s2.resid)
+  rownames(results) <- proteins
+  
+  # results <- results %>% drop_na() # removing proteins with missing values may affect
+  return(results)
 } 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
