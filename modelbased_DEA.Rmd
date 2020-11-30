@@ -1,5 +1,5 @@
 ---
-title: "Model-based analysis of isobaric labels data. DEA component."
+title: "Differential Expression Analysis strategy comparison for Model-based analysis of isobarically labeled proteomic data."
 author: "Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -57,14 +57,13 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 
 #TEMP -remove!
-# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=5)], spiked.proteins))
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=5)], spiked.proteins))
 ```
 
 ```{r}
 # specify # of varying component variants and their names
-#variant.names <- c('LMM', 'DEqMS', 'ANOVA')
-variant.names <- c('LMM1', 'LMM2', 'DEqMS', 'ANOVA')
+variant.names <- c('LMM1', 'DEqMS', 'ANOVA_protein', 'ANOVA_PSM')
 n.comp.variants <- length(variant.names)
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
@@ -115,7 +114,6 @@ dat.nonnorm.summ.l <- aggFunc(dat.nonnorm.summ.l, 'response', group.vars=c('Mixt
 
 dat.norm.summ.l <- aggFunc(dat.norm.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median') # after normalization
 dat.norm.summ.l <- aggFunc(dat.norm.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median') # after normalization
-
 
 # now create data sets in wide format
 # before normalization
@@ -197,6 +195,17 @@ par(mfrow=c(1, 1))
 
 # DEA component
 
+Count how many peptides and PSMs per protein
+
+```{r}
+PSMstat=dat.norm.l %>% group_by(Protein, Run, Channel) %>% summarise(PSMcount=n()) %>% group_by(Protein) %>% summarise(PSMcountMin=min(PSMcount), PSMcountMax=max(PSMcount))
+PSMstat %>% filter(PSMcountMin>1) %>% nrow
+
+Peptidestat=dat.norm.l %>% group_by(Protein, Run, Channel) %>% summarise(Peptidecount=n_distinct(Peptide)) %>% group_by(Protein) %>% summarise(PeptidecountMin=min(Peptidecount), PeptidecountMax=max(Peptidecount))
+Peptidestat %>% filter(PeptidecountMin>4)
+```
+
+
 ```{r}
 dat.dea <- emptyList(variant.names)
 ```
@@ -204,18 +213,14 @@ dat.dea <- emptyList(variant.names)
 ## mixed model (intra-protein correlation modeled with 1|Run:Channel)
 
 ```{r}
-dat.dea$LMM1 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log') 
+dat.dea <- readRDS('modelbased_datdea_nowarnings.rds')
+dat.dea$LMM1 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log')
+
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea$LMM1)
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
-```
-
-## mixed model (intra-protein correlation modeled with 1|Peptide)
-
-```{r}
-dat.dea$LMM2 <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Peptide)', referenceCondition, scale='log') 
 ```
 
 ## DEqMS
@@ -239,10 +244,15 @@ d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$DEqMS <- deqms_test(dat=d, design.matrix, scale='log', PSMcounts.df)
 ```
 
-## One-way ANOVA
+## One-way ANOVA (protein level data)
 
 ```{r}
-dat.dea$ANOVA <- get_anova(d, design.matrix, scale='log') 
+dat.dea$ANOVA_protein <- get_anova(d, design.matrix, scale='log') 
+```
+
+## One-way ANOVA (PSM level data)
+```{r}
+dat.dea$ANOVA_PSM <- lm_dea(dat=dat.norm.l, mod.formula='response ~ Condition', referenceCondition, scale='log') 
 ```
 
 # Results comparison
@@ -250,6 +260,7 @@ dat.dea$ANOVA <- get_anova(d, design.matrix, scale='log')
 ## Confusion matrix:
 
 ```{r, results='asis'}
+#saveRDS(dat.dea, 'modelbased_datdea_nowarnings.rds')
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins) 
 print_conf_mat(cm, referenceCondition)
 ```
@@ -284,4 +295,3 @@ violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), refe
 ```{r}
 sessionInfo()
 ```
-
