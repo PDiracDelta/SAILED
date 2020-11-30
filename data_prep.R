@@ -66,7 +66,7 @@ dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Peptide'))
 dat.raw <- dat.raw %>%
   select(Spectrum.File, Protein, Peptide, RT, Charge, PTM, quan.cols, isoInterOk, noNAs, onehit.protein, shared.peptide, TotalIntensity, Ions.Score, DeltaMZ) 
 
-# turn the dat into long format (useful for modeling) and create Run variable
+# turn the data into long format (useful for modeling) and create Run variable
 mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
 st=mix.loc[1]
 ed=stri_locate(str=dat.raw$Spectrum.File, regex='.raw')[1,1]-1
@@ -102,6 +102,9 @@ dat.l <- dat.l %>% filter(!(Protein %in% protein.remove))
 
 # remove shared peptides
 dat.l <- dat.l %>% filter(!shared.peptide)
+
+# keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
+dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
