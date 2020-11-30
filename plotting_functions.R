@@ -263,8 +263,8 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, refCond=referenc
   # if it's possible to convert contrast names and refCond into numeric, plot true logFC 
   if (all(!is.na(as.numeric(contrast.names[contrast.num], refCond)))) {
     true.logFC <- log2(as.numeric(contrast.names[contrast.num])/as.numeric(refCond))} else true.logFC=0
-  x.range <- range(c(true.logFC, unlist(lapply(dat, function(x) x[,logFC.cols[contrast.num]]))))
-  y.max <- -log10(min(unlist(lapply(dat, function(x) x[,significance.cols[contrast.num]]))))
+  x.range <- range(c(true.logFC, unlist(lapply(dat, function(x) x[,logFC.cols[contrast.num]]))), na.rm=TRUE)
+  y.max <- -log10(min(unlist(lapply(dat, function(x) x[,significance.cols[contrast.num]])), na.rm=TRUE))
   
   # iterate over variants
   for (j in 1:length(dat)){
