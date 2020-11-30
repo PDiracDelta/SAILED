@@ -15,7 +15,7 @@ remove_factors <- function(x) {
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# # create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
+# # create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 get_sample_info <- function(dat, map){
@@ -90,7 +90,7 @@ aggFunc=function(dat, var.names, group.vars, agg.method='mean'){
 }
 
 median_sweep <- function(dat, margin, fun){
-  return(sweep(dat, margin, apply(dat[,cols], margin, median, na.rm=T), FUN=fun))}
+  return(sweep(dat, margin, apply(dat, margin, median, na.rm=T), FUN=fun))}
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # function for mixed models DEA (without empirical bayes moderation)
