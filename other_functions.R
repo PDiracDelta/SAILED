@@ -30,20 +30,6 @@ get_sample_info <- function(dat, map){
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# return a character vector with peptide sequences identified in every MS run
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-get_inner_peptides <- function(dat){
-  unique.pep=dat %>% 
-    group_by(Run) %>%
-    distinct(Peptide) %>% 
-    mutate(val=1)
-  unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
-  tmp <- apply(unique.pep, 1, function(x) all(x==1))
-  return(rownames(unique.pep)[tmp])
-}
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # convert data to long format (assume Run, Mixture columns already present)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
@@ -57,20 +43,6 @@ to_long_format<-function(x, sample.info, merge_study_design=T) {
     x <- x[,!(colnames(x) %in% c('Condition'))]
     x <- left_join(x, sample.info, by=c('Run', 'Channel')) }
   return(x)
-}
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# function to switch name order of quantification columns,e.g.
-# 127C:Mixture1_1 changed to Mixture1_1:127C, or vice-versa
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-flip_colnames=function(dat, fixed.cols, sep=':'){
-  col.dat <- colnames(dat)
-  ind <- !(col.dat %in% fixed.cols)
-  x <- stri_split(col.dat[ind], fixed=sep)
-  unlist(lapply(x, function(y) paste(y[2], y[1], sep=sep)))  
-  colnames(dat)[ind]=unlist(lapply(x, function(y) paste(y[2], y[1], sep=sep)))  
-  return(dat)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -168,8 +140,6 @@ lmm_dea <- function(dat, mod.formula, referenceCondition, scale){
 # function for LM (simple linear regression; no random effects) DEA
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-mod.formula='response~Condition'
-
 lm_dea <- function(dat, mod.formula, referenceCondition, scale){
   
   mod.formula <- as.formula(mod.formula)
@@ -230,17 +200,6 @@ lm_dea <- function(dat, mod.formula, referenceCondition, scale){
   # results <- results %>% drop_na() # removing proteins with missing values may affect
   return(results)
 } 
-
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# function for printing # of up/down/not regulated proteins
-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-regulated_proteins <- function(dea.mat, score.var, conditions, cut.off){
-  cat('numerator condition:', conditions[1],', ' , 'denominator condition:', conditions[2], '\n')
-  c(`Up`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']>0),
-    `Down`=sum(dea.mat[, score.var]<cut.off & dea.mat[, 'logFC']<0),
-    `Not Sig`=sum(dea.mat[, score.var]>cut.off))
-}
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # wrapper on confusionMatrix from caret package
