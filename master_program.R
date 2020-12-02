@@ -9,7 +9,7 @@ clean.session <- function(){
 }
 
 ### knit all the notebooks specified below
-st=Sys.time()
+#st=Sys.time()
 
 #clean.session(); rm(list = ls()[!ls()=='clean.session']); render("intro.Rmd") 
 clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_unit.Rmd")
@@ -22,5 +22,8 @@ clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_uni
 clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_summarization.Rmd")
 clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_normalization.Rmd")
 clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_DEA.Rmd")
-ed=Sys.time()
-ed-st # running time
+
+clean.session(); rm(list = ls()[!ls()=='clean.session']); render("compare_defaults.Rmd")
+
+#ed=Sys.time()
+#ed-st # running time

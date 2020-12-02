@@ -37,40 +37,15 @@ library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTAN
 library(matrixTests)
 library(coin)
 library(ROTS)
-```
-
-This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
-
-We will check how varying analysis components [summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
-
-```{r}
 source('./other_functions.R')
 source('./plotting_functions.R')
+```
 
-# you should either make a symbolic link in this directory
+```{r}
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
-# dat.w <- data.list$dat.w # data in wide format
-if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-
-# remove shared peptides
-shared.peptides <- dat.l %>% filter(!shared.peptide)
-
-# keep spectra with isolation interference <30 and no missing quantification channels
-dat.l <- dat.l %>% filter(isoInterOk & noNAs)
-
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
-
-# which peptides were identified in each MS run?
-unique.pep=dat.l %>% 
-  group_by(Run) %>%
-  distinct(Peptide) %>% 
-  mutate(val=1)
-unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
-tmp <- apply(unique.pep, 1, function(x) all(x==1))
-inner.peptides <- rownames(unique.pep)[tmp]
-
 #TEMP -remove!
 # tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
 # dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=20)], spiked.proteins))
@@ -80,25 +55,24 @@ inner.peptides <- rownames(unique.pep)[tmp]
 # specify # of varying component variants and their names
 variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log', 'log') 
+scale.vec <- 'log'
 # pick reference channel and condition for making plots / doing DEA
-referenceChannel <- '127C'
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
-condition.colour <- tribble(
-  ~Condition, ~Colour,
+condition.color <- tribble(
+  ~Condition, ~Color,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
-sample.info <- get_sample_info(dat.l, condition.colour)
+# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
+sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
 # set seed for permutation test
 seed=9107
 ```
 
-# Unit component: log2 transformation of reporter ion intensities
+# Unit scale component: log2 transformation of reporter ion intensities
 
 ```{r}
 dat.unit.l <- dat.l
@@ -118,7 +92,7 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
-dat.norm.w[,channelNames] <- sweep(dat.norm.w[,channelNames], 1, apply(dat.norm.w[,channelNames], 1, median) )
+dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
 ```
 
 # Summarization component: Median summarization
@@ -127,15 +101,13 @@ Summarize quantification values from PSM to peptide (first step) to protein (sec
 
 ```{r}
 # normalized data
-# group by (run,)protein,peptide then summarize twice (once on each level)
 dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
 ```
-
-Notice that the row sums are not equal to Ncols anymore, because the median summarization does not preserve them (but mean summarization does).
 
 Let's also summarize the non-normalized data for comparison in the next section.
 ```{r}
 # non-normalized data
+# group by (run,)protein,peptide then summarize twice (once on each level)
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
 ```
@@ -157,12 +129,11 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 
 ```{r}
 # make data completely wide (also across runs)
+## normalized data
+dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
-
-## normalized data
-dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 ```
 
 ## Boxplots
@@ -170,9 +141,8 @@ dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_fro
 ```{r}
 # use (half-)wide format
 par(mfrow=c(1,2))
-  boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
-  boxplot_w(dat.norm.summ.w, sample.info, 'Normalized')
-par(mfrow=c(1,1))
+boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
+boxplot_w(dat.norm.summ.w, sample.info, 'Normalized')
 ```
 
 ## MA plots
@@ -180,29 +150,24 @@ par(mfrow=c(1,1))
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 # use wide2 format
 p1 <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Raw', spiked.proteins)
 p2 <- maplot_ils(dat.norm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-## MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
-
 p1 <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'Raw', spiked.proteins)
 p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'Normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-```{r}
-dat.nonnorm.summ.w$Mixture <- unlist(lapply(stri_split(dat.nonnorm.summ.w$Run,fixed='_'), function(x) x[1]))
+```{r, echo=FALSE}
 dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
-dat.norm.summ.w$Mixture <- unlist(lapply(stri_split(dat.norm.summ.w$Run,fixed='_'), function(x) x[1]))
 dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 ```
 
@@ -211,17 +176,15 @@ dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 ### Using all proteins
 ```{r}
 par(mfrow=c(1, 2))
-  pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
-  pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Normalized')
-par(mfrow=c(1, 1))  
+pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
+pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Normalized')
 ```
 
 ### Using spiked proteins only
 ```{r}
 par(mfrow=c(1, 2))
-  pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
-  pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Normalized')
-par(mfrow=c(1, 1))  
+pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
+pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Normalized')
 ```
 
 ## HC (hierarchical clustering) plots
@@ -230,18 +193,18 @@ par(mfrow=c(1, 1))
 
 ```{r}
 par(mfrow=c(1, 2))
-  dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'Raw')
-  dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'Normalized')
-par(mfrow=c(1, 1))  
+dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'Raw')
+dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'Normalized')
 ```
 
-## P-values of One-way ANOVA (Run effect)
+## Run effect p-value plot
+
+Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
 
 ```{r}
 par(mfrow=c(1, 2))
 hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
 hist_ils(run_test(dat.norm.summ.l)$pvalue, main='Normalized')
-par(mfrow=c(1, 1))
 ```
 
 # DEA component
@@ -256,7 +219,7 @@ NOTE:
 ```{r}
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
-this_scale <- scale.vec[1]
+this_scale <- scale.vec
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale) 
 ```
@@ -307,7 +270,7 @@ scatterplot_ils(dat.dea[c('LIMMA', 'Wilcoxon')], logFC.cols, 'log2FC', spiked.pr
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins) }
+  volcanoplot_ils(dat.dea, i, spiked.proteins)}
 ```
 
 ## Violin plots

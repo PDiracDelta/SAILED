@@ -41,18 +41,15 @@ library(psych)
 library(MSnbase)  # CAREFUL! load this BEFORE tidyverse, or you will screw up the rename function.
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
-
 source('other_functions.R')
 source('plotting_functions.R')
 ```
 
-Let's load the PSM data set and keep only PSMs with low isolation interference, and without missing values.
+Let's load the PSM data set
 
 ```{r}
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
-# keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
-dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 dat.l
 ```
 
@@ -74,26 +71,26 @@ We pick technical replicates with a dilution of 0.5 as the reference condition o
 # specify # of varying component variants and their names
 variant.names <- c('median', 'iPQF', 'sum')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'log', 'log')
+scale.vec <- 'log'
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
-condition.colour <- tribble(
-  ~Condition, ~Colour,
+condition.color <- tribble(
+  ~Condition, ~Color,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
-sample.info <- get_sample_info(dat.l, condition.colour)
+# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
+sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
 ```
+
 ```{r}
 sample.info
 referenceCondition
 channelNames
 ```
-
 
 # Unit scale component: log2 transformation of reporter ion intensities
 
@@ -218,9 +215,9 @@ dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
   x.split <- split(x, x$Run)
   x.split.norm  <- lapply(x.split, function(y) {
     y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median, na.rm=T) )
-    return(y) } )
+    return(y)})
   dat.norm.summ.w <- bind_rows(x.split.norm)
-} )
+})
 ```
 
 # QC plots
@@ -248,12 +245,10 @@ As for normalization, .......
 
 ```{r}
 # use (half-)wide format
-for (i in 1: n.comp.variants){
-  par(mfrow=c(1,2))
-    boxplot_w(dat.nonnorm.summ.w[[i]],sample.info, paste('Raw', variant.names[i], sep='_'))
-    boxplot_w(dat.norm.summ.w[[i]], sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1,1))
-}
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  boxplot_w(dat.nonnorm.summ.w[[variant.names[i]]],sample.info, paste('Raw', variant.names[i], sep='_'))
+  boxplot_w(dat.norm.summ.w[[variant.names[i]]], sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 ## MA plots
@@ -262,30 +257,22 @@ We now make MA plots of two single samples taken from condition 1 and condition 
 Clearly, the normalization had a strong variance-reducing effect on the fold changes. However, Sum summarization counteracts this.........
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
-for (i in 1: n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Raw', variant.names[i], sep='_'), spiked.proteins)
-  
-  p2 <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
-  
-  grid.arrange(p1, p2, ncol=2)  
-}
+for (i in 1:n.comp.variants){
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('Raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
+grid.arrange(p1, p2, ncol=2)}
 ```
 
 To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 Indeed, even the Raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function 
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Raw', variant.names[i], sep='_'), spiked.proteins)
-  
-  p2 <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
-  
-  grid.arrange(p1, p2, ncol=2)  
-}
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('Raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
+grid.arrange(p1, p2, ncol=2)}
 ```
 
 ```{r, echo=FALSE}
@@ -301,12 +288,10 @@ Even though PC1 does seem to capture the conditions, providing a gradient for th
 ### Using all proteins
 
 ```{r}
-for (i in seq_along(dat.norm.summ.w2)){
-  par(mfrow=c(1, 2))
-  pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-  pcaplot_ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small proportion. 
@@ -318,12 +303,10 @@ Now, there are clear differences between the Raw, non-normalized median and iPQF
 Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
 
 ```{r}
-for (i in seq_along(dat.norm.summ.w2)){
-  par(mfrow=c(1, 2))
-  pcaplot_ils(dat.nonnorm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-  pcaplot_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 Note that in a real situation without spiked proteins, you might plot data corresponding to the top X most differential proteins instead.
@@ -333,22 +316,21 @@ Note that in a real situation without spiked proteins, you might plot data corre
 The PCA plots of all proteins has a rather lower fraction of variance explained by PC1. We can confirm this using a hierarchical clustering dendrogram: when considering the entire multidimensional space, the different conditions are not very separable at all. This is not surprising as there are only 19 truly differential proteins out of.........?
 
 ```{r}
-for (i in seq_along(dat.norm.summ.w2)){
-  par(mfrow=c(1, 2))
-    dendrogram_ils(dat.nonnorm.summ.w2[[i]] %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-    dendrogram_ils(dat.norm.summ.w2[[i]] %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-  par(mfrow=c(1, 1))  
-}
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  dendrogram_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
+  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
-## P-values of One-way ANOVA (Run effect)
+## Run effect p-value plot
+
+Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
 
 ```{r}
-par(mfrow=c(1, 2))
-for (i in seq_along(dat.norm.summ.l)){
-  hist_ils(run_test(dat.nonnorm.summ.l[[i]])$pvalue, main=paste('Raw', variant.names[i], sep='_'))
-  hist_ils(run_test(dat.norm.summ.l[[i]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
-par(mfrow=c(1, 1))
+par(mfrow=c(1,2))
+for (i in 1:n.comp.variants){
+  hist_ils(run_test(dat.nonnorm.summ.l[[variant.names[i]]])$pvalue, main=paste('Raw', variant.names[i], sep='_'))
+  hist_ils(run_test(dat.norm.summ.l[[variant.names[i]]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 # DEA component: Moderated t-test
@@ -366,12 +348,11 @@ NOTE:
 # design matrix as used in ANOVA testing.
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
-for (i in seq_along(dat.norm.summ.w2)) {
+for (i in 1:n.comp.variants){
   # provide scale so moderated_ttest knows whether you input log2 or raw intensities.
-  this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
-  d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[i]]), 'Protein')
-  dat.dea[[i]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
-}
+  this_scale <- scale.vec
+  d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[variant.names[i]]]), 'Protein')
+  dat.dea[[variant.names[i]]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)}
 ```
 
 For each condition, we now get the fold changes, moderated and unmoderated p-values, moderated and unmoderated q-values (BH-adjusted p-values), and some other details.
@@ -417,16 +398,13 @@ The correlation metween Median summarization and iPQF is even higher for the fol
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 ```
 
-
-
 ## Volcano plots
 
 The volcano plot combines information on fold changes and statistical significance. The spike-in proteins are colored blue, and immediately it is clear that their fold changes dominate the region of statistical significance, which suggests the experiment and analysis were carried out successfully.
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins)
-}
+  volcanoplot_ils(dat.dea, i, spiked.proteins)}
 ```
 
 ## Violin plots

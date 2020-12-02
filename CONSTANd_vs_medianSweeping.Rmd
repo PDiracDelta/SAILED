@@ -34,6 +34,8 @@ library(limma)
 library(psych)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
+source('./other_functions.R')
+source('./plotting_functions.R')
 ```
 
 This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
@@ -41,33 +43,10 @@ This notebook presents isobaric labeling data analysis strategy that includes da
 In other notebooks in this series we have systematically varied components and observed how they affect the outcome of a DEA analysis. We have seen that medianSweeping normalization works does not work well for intensities on the original scale, and that CONSTANd does not work well on log2-transformed intensities. Here we compare medianSweeping on log2 scale, which we know does a good job, with CONSTANd on original intensity scale.
 
 ```{r}
-source('./other_functions.R')
-source('./plotting_functions.R')
-
-# you should either make a symbolic link in this directory
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
-# dat.w <- data.list$dat.w # data in wide format
-if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-
-# remove shared peptides
-shared.peptides <- dat.l %>% filter(!shared.peptide)
-
-# keep spectra with isolation interference <30 and no missing quantification channels
-dat.l <- dat.l %>% filter(isoInterOk & noNAs)
-
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
-
-# which peptides were identified in each MS run?
-unique.pep=dat.l %>% 
-  group_by(Run) %>%
-  distinct(Peptide) %>% 
-  mutate(val=1)
-unique.pep <- xtabs(val~Peptide+Run, data=unique.pep)
-tmp <- apply(unique.pep, 1, function(x) all(x==1))
-inner.peptides <- rownames(unique.pep)[tmp]
-
 #TEMP -remove!
 # tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
 # dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=20)], spiked.proteins))
@@ -77,24 +56,22 @@ inner.peptides <- rownames(unique.pep)[tmp]
 # specify # of varying component variants and their names
 variant.names <- c('medianSweeping', 'CONSTANd')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'raw')  # ratios are considered raw, because they are basically mean-normalized intensities
+scale.vec <- c('log', 'raw')
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
-condition.colour <- tribble(
-  ~Condition, ~Colour,
+condition.color <- tribble(
+  ~Condition, ~Color,
   "0.125", 'black',
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Colour)
-sample.info <- get_sample_info(dat.l, condition.colour)
+# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
+sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
 # Unit scale component
-
-Which scale are the reporter ion intensities on?
 
 ```{r}
 dat.unit.l <- emptyList(variant.names)
@@ -176,7 +153,6 @@ dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
 
 ```{r}
 # make data completely wide (also across runs)
-
 dat.norm.summ.w2 <- lapply( dat.norm.summ.w, function(x) x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") )
 ```
 
@@ -186,9 +162,7 @@ dat.norm.summ.w2 <- lapply( dat.norm.summ.w, function(x) x %>% pivot_wider(names
 # use (half-)wide format
 par(mfrow=c(1,2))
 for (i in seq_along(variant.names)) {
-  boxplot_w(dat.norm.summ.w[[i]], sample.info, paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1,1))
+  boxplot_w(dat.norm.summ.w[[variant.names[i]]], sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 ## MA plots
@@ -196,42 +170,26 @@ par(mfrow=c(1,1))
 MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function
 # use wide2 format
 p <- emptyList(variant.names)
 for (i in 1: n.comp.variants){
-  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
-}
+  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(p[[1]], p[[2]], ncol=2)
 ```
 
-## MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
 
 ```{r}
-# different unit variants require different computation of fold changes and average abuandance: additive or multiplicative scale; see maplot_ils function
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 p <- emptyList(variant.names)
-for (i in 1: n.comp.variants){
-  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
-}
+for (i in 1:n.comp.variants){
+  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('Normalized', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(p[[1]], p[[2]], ncol=2)
 ```
 
-## CV (coefficient of variation) plots
-
-```{r}
-dat.norm.summ.l <- lapply(dat.norm.summ.w, function(x){
-  x$Mixture <- unlist(lapply(stri_split(x$Run,fixed='_'), function(y) y[1]))
-  x <- to_long_format(x, sample.info)
-})
-
-par(mfrow=c(1, 2))
-for (i in 1: n.comp.variants){
-    cvplot_ils(dat=dat.norm.summ.l[[i]], feature.group='Protein', xaxis.group='Condition',
-               title=paste('Normalized', variant.names[i], sep='_'), abs=F)
-}
-par(mfrow=c(1, 1))
+```{r, echo=FALSE}
+dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 ```
 
 ## PCA plots
@@ -239,19 +197,15 @@ par(mfrow=c(1, 1))
 ### Using all proteins
 ```{r}
 par(mfrow=c(1, 2))
-for (i in seq_along(dat.norm.summ.w2)){
-  pcaplot_ils(dat.norm.summ.w2[[i]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))
+for (i in 1:n.comp.variants){
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 ### Using spiked proteins only
 ```{r}
 par(mfrow=c(1, 2))
-for (i in seq_along(dat.norm.summ.w2)){
-    pcaplot_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))
+for (i in 1:n.comp.variants){
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 ## HC (hierarchical clustering) plots
@@ -260,10 +214,8 @@ Only use spiked proteins
 
 ```{r}
 par(mfrow=c(1, 2))
-for (i in seq_along(dat.norm.summ.w2)){
-  dendrogram_ils(dat.norm.summ.w2[[i]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))
-}
-par(mfrow=c(1, 1))
+for (i in 1:n.comp.variants){
+  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
 # DEA component: Moderated t-test
@@ -275,9 +227,8 @@ design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in seq_along(dat.norm.summ.w2)) {
   this_scale <- scale.vec[match(names(dat.dea)[i], variant.names)]
-  d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[i]]), 'Protein')
-  dat.dea[[i]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
-}
+  d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[variant.names[i]]]), 'Protein')
+  dat.dea[[variant.names[i]]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)}
 ```
 
 # Results comparison
@@ -306,8 +257,7 @@ scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins)
-}
+  volcanoplot_ils(dat.dea, i, spiked.proteins)}
 ```
 
 ## Violin plots

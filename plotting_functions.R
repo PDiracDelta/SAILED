@@ -219,10 +219,11 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ..
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
 source('pairs_panels_idline.R')
+library(psych)
 
 scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
-  title <- paste("Spearman's correlation of", select.stat)
+  title <- paste("Pearson's correlation of", select.stat)
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
   
   # align rows (proteins) between DEA variants
@@ -235,7 +236,7 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   for (i in 1:length(cols)){
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame
     pairs.panels.idline(df, main=paste(title, paste0(contrast.names[i], ' vs ', referenceCondition, ' contrast'), sep='-')
-                    , method='spearman', lm=T, ellipses = FALSE, 
+                    , method='pearson', lm=T, ellipses = FALSE, 
                     ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
                     #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
                     ,col.points=ifelse(rw %in% spiked.proteins, '#E69F00', '#000000')
