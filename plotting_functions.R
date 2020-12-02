@@ -219,7 +219,6 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ..
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
 source('pairs_panels_idline.R')
-library(psych)
 
 scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
