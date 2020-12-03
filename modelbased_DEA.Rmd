@@ -1,6 +1,6 @@
 ---
 title: "Differential Expression Analysis strategy comparison for Model-based analysis of isobarically labeled proteomic data."
-author: "Piotr Prostko"
+author: "Piotr Prostko, Joris Van Houtven"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
   html_document:
@@ -207,18 +207,8 @@ n.contrasts <- length(logFC.cols)
 # first compute PSM count per protein within run & channel, then for each protein separately take the minimum of the PSM counts (as in DEqMS vignette)
 PSMcounts.df <- dat.norm.l %>% ungroup %>% group_by(Run, Channel, Protein) %>% summarize(PSMcount=n()) %>% group_by(Protein) %>% summarize(PSMcount=min(PSMcount,na.rm=TRUE)) %>% data.frame
 
-# switch to (half-)wide format
-dat.norm.w <- pivot_wider(data = dat.norm.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
-
-# aggregate data PSM-->peptide-->protein using median (DEqMS recommends using protein level data)
-quanCols = setdiff(colnames(dat.norm.w), colnames(dat.norm.l))
-dat.norm.summ.w2 <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = quanCols, .funs = median) %>% summarise_at(.vars = quanCols, .funs = median) %>% ungroup()
-
-# make data completely wide (also across runs)
-dat.norm.summ.w22 <- dat.norm.summ.w2 %>% pivot_wider(names_from = Run, values_from =all_of(quanCols), names_glue = "{Run}:{.value}")
-
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
-d <- column_to_rownames(as.data.frame(dat.norm.summ.w22), 'Protein')
+d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$DEqMS <- deqms_test(dat=d, design.matrix, scale='log', PSMcounts.df)
 ```
 
