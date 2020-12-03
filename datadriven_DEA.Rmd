@@ -42,6 +42,8 @@ source('./plotting_functions.R')
 ```
 
 ```{r}
+# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -100,21 +102,26 @@ dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
 
 ```{r}
+if (!load_outputdata){
 # normalized data
 dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
+}
 ```
 
 Let's also summarize the non-normalized data for comparison in the next section.
 ```{r}
+if (!load_outputdata){
 # non-normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
+}
 ```
 
 # Normalization component: medianSweeping (2)
 
 ```{r}
+if (!load_outputdata){
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel
 # do the above separately for each MS run
 x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
@@ -123,17 +130,24 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.summ.w <- bind_rows(x.split.norm)
+}
 ```
 
 # QC plots
 
 ```{r}
+if (!load_outputdata){
 # make data completely wide (also across runs)
 ## normalized data
 dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
+}
+```
+
+```{r, echo=FALSE}
+if (load_outputdata) load('datadriven_DEA_outdata.rda')
 ```
 
 ## Boxplots
@@ -167,8 +181,10 @@ grid.arrange(p1, p2, ncol=2)
 ```
 
 ```{r, echo=FALSE}
+if (!load_outputdata){
 dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
 dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
+}
 ```
 
 ## PCA plots
@@ -217,31 +233,52 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
+if (!load_outputdata){
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
 this_scale <- scale.vec
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale) 
+}
 ```
 
 ## Wilcoxon test
 
 ```{r}
+if (!load_outputdata){
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
 otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
 dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, logFC.method='ratio')
+}
 ```
 
 ## Permutation test
 
 ```{r}
+if (!load_outputdata){
 dat.dea$permutation_test <- permutation_test(dat.norm.summ.l, referenceCondition, otherConditions, seed=seed, distribution='exact')
+}
 ```
 
 ## ROTS
 
 ```{r}
+if (!load_outputdata){
 dat.dea$ROTS <- rots_test(dat.norm.summ.w2, referenceCondition, otherConditions)
+}
+```
+
+```{r, echo=FALSE}
+# save output data
+if (!load_outputdata){
+save(dat.nonnorm.summ.l
+     ,dat.norm.summ.l
+     ,dat.nonnorm.summ.w
+     ,dat.norm.summ.w
+     ,dat.nonnorm.summ.w2
+     ,dat.norm.summ.w2
+     ,dat.dea, file='datadriven_DEA_outdata.rda')
+}
 ```
 
 # Results comparison

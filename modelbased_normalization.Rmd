@@ -46,6 +46,8 @@ This notebook presents isobaric labeling data analysis strategy that includes mo
 We will check how varying analysis components [unit/summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
+# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -100,27 +102,34 @@ dat.norm.l <- lapply(dat.norm.l, function(x) x <- dat.summ.l)
 ## LMM1 (peptide-by-run interaction)
 
 ```{r}
+if (!load_outputdata){
 LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
 dat.norm.l$LMM1$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
+}
 ```
 
 ## LMM2 (protein-by-run interaction)
 
 ```{r}
+if (!load_outputdata){
 LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l)
 dat.norm.l$LMM2$response <- residuals(LMM2) + fixef(LMM2)['(Intercept)']
+}
 ```
 
 ## LMM3 (protein and peptide main effects)
 
 ```{r}
+if (!load_outputdata){
 LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l)
 dat.norm.l$LMM3$response <- residuals(LMM3) + fixef(LMM3)['(Intercept)']
+}
 ```
 
 # QC plots
 
 ```{r}
+if (!load_outputdata){
 dat.nonnorm.summ.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median') 
 dat.nonnorm.summ.l <- aggFunc(dat.nonnorm.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median')
 
@@ -135,6 +144,11 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.l, function(x) {
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- pivot_wider(data=dat.nonnorm.summ.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':')
+}
+```
+
+```{r, echo=FALSE}
+if (load_outputdata) load('modelbased_normalization_outdata.rda')
 ```
 
 ## Boxplots
@@ -216,6 +230,7 @@ par(mfrow=c(1, 1))
 Intra-protein correlation modelled with 1|Run:Channel random effect.
 
 ```{r}
+if (!load_outputdata){
 dat.dea <- lapply(dat.norm.l, function(x){
   return(lmm_dea(dat=x, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log'))})
 
@@ -223,12 +238,26 @@ dat.dea <- lapply(dat.norm.l, function(x){
 n.comp.variants <- n.comp.variants + 1
 variant.names <- c(variant.names, 'raw')
 dat.dea$raw <- lmm_dea(dat=dat.summ.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log')
+}
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
+```
+
+```{r, echo=FALSE}
+# save output data
+if (!load_outputdata){
+save(dat.nonnorm.summ.l
+     ,dat.norm.summ.l
+     ,dat.nonnorm.summ.w2
+     ,dat.norm.summ.w2
+     ,dat.norm.l
+     ,dat.summ.l
+     ,dat.dea, file='modelbased_normalization_outdata.rda')
+}
 ```
 
 # Results comparison

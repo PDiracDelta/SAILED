@@ -42,6 +42,8 @@ source('plotting_functions.R')
 ```
 
 ```{r}
+# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -111,6 +113,7 @@ dat.summ.l <- dat.unit.l
 # Normalization component: linear mixed model
 
 ```{r}
+if (!load_outputdata){
 dat.norm.l <- dat.summ.l
 # fit normalization model
 norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)))
@@ -130,11 +133,13 @@ dat.norm.l <- dat.norm.l[tmp]
 dat.summ.l$IntensityFix <- dat.summ.l$Intensity
 dat.summ.l$RatioFix <- dat.summ.l$Ratio
 dat.summ.l <- dat.summ.l[tmp]
+}
 ```
 
 # QC plots
 
 ```{r}
+if (!load_outputdata){
 dat.nonnorm.summ.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median')) 
 dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median'))
 
@@ -151,6 +156,11 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.l, function(x){
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.l, function(x){
   dat.tmp <- pivot_wider(data=x, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':')
   return(dat.tmp)})
+}
+```
+
+```{r, echo=FALSE}
+if (load_outputdata) load('modelbased_unit_outdata.rda')
 ```
 
 ## Boxplot
@@ -233,9 +243,10 @@ for (i in 1:n.comp.variants){
 Intra-protein correlation modelled with 1|Run:Channel random effect.
 
 ```{r}
+if (!load_outputdata){
 dat.dea <- emptyList(variant.names)
 for(i in seq_along(dat.dea)){
-  dat.dea[[variant.names[i]]] <- lmm_dea(dat=dat.norm.l[[variant.names[i]]], mod.formula='response ~ Condition + (1|Run:Channel)', scale=scale.vec[i], referenceCondition)
+  dat.dea[[variant.names[i]]] <- lmm_dea(dat=dat.norm.l[[variant.names[i]]], mod.formula='response ~ Condition + (1|Run:Channel)', scale=scale.vec[i], referenceCondition)}
 }
 
 # character vectors containing logFC and p-values columns
@@ -243,6 +254,19 @@ dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
+```
+
+```{r, echo=FALSE}
+# save output data
+if (!load_outputdata){
+save(dat.nonnorm.summ.l
+     ,dat.norm.summ.l
+     ,dat.nonnorm.summ.w2
+     ,dat.norm.summ.w2
+     ,dat.norm.l
+     ,dat.summ.l
+     ,dat.dea, file='modelbased_unit_outdata.rda')
+}
 ```
 
 # Results comparison
@@ -265,7 +289,7 @@ scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins) }
+  volcanoplot_ils(dat.dea, i, spiked.proteins)}
 ```
 
 ## Violin plots

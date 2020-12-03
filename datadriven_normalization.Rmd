@@ -41,6 +41,8 @@ source('plotting_functions.R')
 ```
 
 ```{r}
+# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -90,14 +92,17 @@ dat.norm.w <- emptyList(variant.names)
 ## medianSweeping (1)
 
 ```{r}
+if (!load_outputdata){
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w$medianSweeping <- dat.unit.w
 dat.norm.w$medianSweeping[,channelNames] <- median_sweep(dat.norm.w$medianSweeping[,channelNames], 1, '-') 
+}
 ```
 
 ## CONSTANd
 
 ```{r}
+if (!load_outputdata){
 # dat.unit.l entries are in long format so all have same colnames and no channelNames
 x.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
 x.split.norm  <- lapply(x.split, function(y) {
@@ -105,6 +110,7 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$CONSTANd <- bind_rows(x.split.norm)
+}
 ```
 
 ## NOMAD
@@ -112,10 +118,12 @@ dat.norm.w$CONSTANd <- bind_rows(x.split.norm)
 We apply NOMAD on the PSM level instead of the peptide level.
 
 ```{r}
+if (!load_outputdata){
 # doRobust=F: use means, like CONSTANd; doLog=F: values are already transformed.
 dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel) %>% as.data.frame, doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
 dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
+}
 ```
 
 ## Quantile (1)
@@ -123,6 +131,7 @@ dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condi
 We apply quantile normalization to each Run separately, and then re-scale the observations so that the mean observation within in each run is set equal to the mean observation across all runs.
 
 ```{r}
+if (!load_outputdata){
 grand_average <- mean(as.matrix(dat.unit.w[,channelNames]))
 x.split <- split(dat.unit.w, dat.unit.w$Run)  
 x.split.norm <- lapply(x.split, function(y) {
@@ -133,6 +142,7 @@ x.split.norm <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$quantile <- bind_rows(x.split.norm)
+}
 ```
 
 # Summarization component: Median summarization
@@ -140,26 +150,32 @@ dat.norm.w$quantile <- bind_rows(x.split.norm)
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
 
 ```{r}
+if (!load_outputdata){
 # normalized data
 dat.norm.summ.w <- lapply(dat.norm.w, function(x){
   y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)})
+}
 ```
 
 Let's also summarize the non-normalized data for comparison in the next section.
 ```{r}
+if (!load_outputdata){
 # non-normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
+}
 ```
 
 ```{r}
+if (!load_outputdata){
 # make data completely wide (also across runs)
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
 })
+}
 ```
 
 # Normalization component (2)
@@ -167,24 +183,34 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 ## MedianSweeping (2)
 
 ```{r}
+if (!load_outputdata){
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel, separately for each MS run.
 tmp <- dat.norm.summ.w2$medianSweeping %>% select(-Protein)
 dat.norm.summ.w2$medianSweeping[, colnames(dat.norm.summ.w2$medianSweeping)!='Protein'] <- median_sweep(tmp, 2, '-') 
+}
 ```
 
 ## Quantile (2)
 
 ```{r}
+if (!load_outputdata){
 # apply normalizeQuantiles again, now to the data from all runs simultaneously
 dat.norm.summ.w2$quantile[,sample.info$Sample] <- normalize.quantiles(as.matrix(dat.norm.summ.w2$quantile[,sample.info$Sample]))
+}
 ```
 
 # QC plots
 
 ```{r}
+if (!load_outputdata){
 # make data completely wide (also across runs)
 ## non-normalized data
 dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
+}
+```
+
+```{r, echo=FALSE}
+if (load_outputdata) load('datadriven_normalization_outdata.rda')
 ```
 
 ## Boxplots
@@ -275,6 +301,7 @@ TODO:
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
 ```{r}
+if (!load_outputdata){
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in 1:n.comp.variants) {
@@ -285,6 +312,20 @@ for (i in 1:n.comp.variants) {
 n.comp.variants <- n.comp.variants + 1
 variant.names <- c(variant.names, 'raw')
 dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Protein'), design.matrix, scale='raw')
+}
+```
+
+```{r, echo=FALSE}
+# save output data
+if (!load_outputdata){
+save(dat.nonnorm.summ.l
+     ,dat.norm.summ.l
+     ,dat.nonnorm.summ.w
+     ,dat.norm.summ.w
+     ,dat.nonnorm.summ.w2
+     ,dat.norm.summ.w2
+     ,dat.dea, file='datadriven_normalization_outdata.rda')
+}
 ```
 
 # Results comparison

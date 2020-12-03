@@ -43,6 +43,8 @@ source('plotting_functions.R')
 ```
 
 ```{r}
+# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -86,14 +88,17 @@ dat.summ.l <- dat.unit.l
 # Normalization component: linear mixed model
 
 ```{r}
+if (!load_outputdata){
 dat.norm.l <- dat.summ.l
 LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
 dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
+}
 ```
 
 # QC plots
 
 ```{r}
+if (!load_outputdata){
 dat.nonnorm.summ.l <- aggFunc(dat.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median') 
 dat.nonnorm.summ.l <- aggFunc(dat.nonnorm.summ.l, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median')
 
@@ -106,6 +111,11 @@ dat.norm.summ.w2 <- pivot_wider(data=dat.norm.summ.l, id_cols=Protein, names_fro
 
 ## non-normalized data
 dat.nonnorm.summ.w2 <- pivot_wider(data=dat.nonnorm.summ.l, id_cols=Protein, names_from=Run:Channel, values_from=response, names_sep=':') 
+}
+```
+
+```{r, echo=FALSE}
+if (load_outputdata) load('modelbased_DEA_outdata.rda')
 ```
 
 ## Boxplot
@@ -183,16 +193,15 @@ PSMstat=dat.norm.l %>% group_by(Protein, Run, Channel) %>% summarise(PSMcount=n(
 Peptidestat=dat.norm.l %>% group_by(Protein, Run, Channel) %>% summarise(Peptidecount=n_distinct(Peptide)) %>% group_by(Protein) %>% summarise(PeptidecountMin=min(Peptidecount), PeptidecountMax=max(Peptidecount))
 ```
 
-```{r}
-dat.dea <- emptyList(variant.names)
-```
-
 ## linear mixed model
 
 Intra-protein correlation modelled with 1|Run:Channel random effect.
 
 ```{r}
+if (!load_outputdata){
+dat.dea <- emptyList(variant.names)
 dat.dea$LMM <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log')
+}
 
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea$LMM)
@@ -204,23 +213,42 @@ n.contrasts <- length(logFC.cols)
 ## DEqMS
 
 ```{r}
+if (!load_outputdata){
 # first compute PSM count per protein within run & channel, then for each protein separately take the minimum of the PSM counts (as in DEqMS vignette)
 PSMcounts.df <- dat.norm.l %>% ungroup %>% group_by(Run, Channel, Protein) %>% summarize(PSMcount=n()) %>% group_by(Protein) %>% summarize(PSMcount=min(PSMcount,na.rm=TRUE)) %>% data.frame
 
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$DEqMS <- deqms_test(dat=d, design.matrix, scale='log', PSMcounts.df)
+}
 ```
 
 ## One-way ANOVA (protein level data)
 
 ```{r}
+if (!load_outputdata){
 dat.dea$ANOVA_protein <- get_anova(d, design.matrix, scale='log') 
+}
 ```
 
 ## One-way ANOVA (PSM level data)
 ```{r}
+if (!load_outputdata){
 dat.dea$ANOVA_PSM <- lm_dea(dat=dat.norm.l, mod.formula='response ~ Condition', referenceCondition, scale='log') 
+}
+```
+
+```{r, echo=FALSE}
+# save output data
+if (!load_outputdata){
+save(dat.nonnorm.summ.l
+     ,dat.norm.summ.l
+     ,dat.nonnorm.summ.w2
+     ,dat.norm.summ.w2
+     ,dat.norm.l
+     ,dat.summ.l
+     ,dat.dea, file='modelbased_DEA_outdata.rda')
+}
 ```
 
 # Results comparison
