@@ -177,12 +177,12 @@ par(mfrow=c(1, 1))
 ```{r}
 par(mfrow=c(1, 2))
 for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'), scale=T)
+  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 par(mfrow=c(1, 1))
 ```
 
-HC (hierarchical clustering) plots
+## HC (hierarchical clustering) plots
 
 ### Using all proteins
 
