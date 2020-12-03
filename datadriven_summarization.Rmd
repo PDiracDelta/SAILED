@@ -117,7 +117,7 @@ Now let's sweep the medians of all the rows. No need to split this per Run, beca
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
-dat.norm.w[,channelNames] <- sweep(dat.norm.w[,channelNames], 1, apply(dat.norm.w[,channelNames], 1, median) )
+dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
 dat.norm.w
 ```
 
@@ -214,7 +214,7 @@ Now that the data is on the protein level, let's sweep all values separately per
 dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
   x.split <- split(x, x$Run)
   x.split.norm  <- lapply(x.split, function(y) {
-    y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median, na.rm=T) )
+    y[,channelNames] <- median_sweep(y[,channelNames], 2, '-')
     return(y)})
   dat.norm.summ.w <- bind_rows(x.split.norm)
 })

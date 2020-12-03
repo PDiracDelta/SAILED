@@ -1,5 +1,5 @@
 ---
-title: "DEA strategy comparison for Data-driven analysis of isobarically labeled proteomic data."
+title: "Differential Expression Analysis strategy comparison for Data-driven analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -119,7 +119,7 @@ dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(
 # do the above separately for each MS run
 x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
 x.split.norm  <- lapply(x.split, function(y) {
-  y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median) )
+  y[,channelNames] <- median_sweep(y[,channelNames], 2, '-')
   return(y)
 })
 dat.norm.summ.w <- bind_rows(x.split.norm)

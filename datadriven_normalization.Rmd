@@ -168,12 +168,8 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 
 ```{r}
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel, separately for each MS run.
-x.split <- split(dat.norm.summ.w$medianSweeping, dat.norm.summ.w$medianSweeping$Run)  
-x.split.norm  <- lapply(x.split, function(y){
-  y[,channelNames] <- sweep(y[,channelNames], 2, apply(y[,channelNames], 2, median))
-  return(y)
-})
-dat.norm.summ.w$medianSweeping <- bind_rows(x.split.norm)
+tmp <- dat.norm.summ.w2$medianSweeping %>% select(-Protein)
+dat.norm.summ.w2$medianSweeping[, colnames(dat.norm.summ.w2$medianSweeping)!='Protein'] <- median_sweep(tmp, 2, '-') 
 ```
 
 ## Quantile (2)
@@ -237,7 +233,7 @@ dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 ```{r}
 par(mfrow=c(3,2))
 pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
-for (i in seq_along(dat.norm.summ.w2)){
+for (i in 1:n.comp.variants){
 pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
@@ -245,7 +241,7 @@ pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sa
 ```{r}
 par(mfrow=c(3,2))
 pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
-for (i in seq_along(dat.norm.summ.w2)){
+for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
@@ -267,7 +263,7 @@ Below the histograms of p-values from the linear model explaining the response v
 ```{r}
 par(mfrow=c(3, 2))
 hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
-for (i in seq_along(dat.norm.summ.l)){
+for (i in 1:n.comp.variants){
   hist_ils(run_test(dat.norm.summ.l[[variant.names[i]]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
 ```
 
