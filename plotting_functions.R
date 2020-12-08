@@ -295,3 +295,18 @@ volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, refCond=referenc
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 hist_ils <- function(x, ...) hist(x, xlab='Run effect p-value', breaks=15, xlim=c(0,1), ...)
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# run_effect_plot - Run effect p-value plot showing the distribution of p-values for
+# all variants in one plot
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# dat is a named list
+
+run_effect_plot <- function(dat, main.title=''){
+  if(is.null(names(dat))) stop('List names are missing')
+  dat<- lapply(dat, run_test) %>% bind_rows(.id = "Variant")
+  ggplot(dat, aes(x=pvalues, group=Variant, colour=Variant)) +
+    stat_density(aes(x=pvalues, y=..scaled..,color=Variant), position="dodge", geom="line")+
+    ggtitle(main.title) +
+    xlab('p-value')
+}
