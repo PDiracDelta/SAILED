@@ -232,10 +232,12 @@ for (i in 1:n.comp.variants){
 Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
 
 ```{r}
-par(mfrow=c(1, 2))
+plots <- vector('list', n.comp.variants)
 for (i in 1:n.comp.variants){
-  hist_ils(run_test(dat.nonnorm.summ.l[[variant.names[i]]])$pvalue, main=paste('Raw', variant.names[i], sep='_'))
-  hist_ils(run_test(dat.norm.summ.l[[variant.names[i]]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
+dat <- list(dat.nonnorm.summ.l[[variant.names[i]]], dat.norm.summ.l[[variant.names[i]]])
+names(dat) <- c(paste('Raw', variant.names[i], sep='_'), paste('Normalized', variant.names[i], sep='_'))
+plots[[i]] <- run_effect_plot(dat)}
+grid.arrange(grobs = plots, nrow=n.comp.variants)
 ```
 
 # DEA component: linear mixed model

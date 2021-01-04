@@ -219,6 +219,16 @@ for (i in 1:n.comp.variants){
   dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
 ```
 
+## Run effect p-value plot
+
+Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
+
+```{r}
+dat <- list(dat.norm.summ.l$medianSweeping, dat.norm.summ.l$CONSTANd)
+names(dat) <- c('medianSweeping','CONSTANd')
+run_effect_plot(dat)
+```
+
 # DEA component: Moderated t-test
 
 NOTE:

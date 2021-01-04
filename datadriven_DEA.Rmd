@@ -218,9 +218,9 @@ dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'Normali
 Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
 
 ```{r}
-par(mfrow=c(1, 2))
-hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
-hist_ils(run_test(dat.norm.summ.l)$pvalue, main='Normalized')
+dat <- list(dat.nonnorm.summ.l,dat.norm.summ.l)
+names(dat) <- c('Raw','Normalized')
+run_effect_plot(dat)
 ```
 
 # DEA component
