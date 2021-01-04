@@ -628,6 +628,6 @@ run_test <- function(dat){
   unique.proteins <- dat %>% group_by(Protein) %>% summarise(ndist=n_distinct(Run)) %>% filter(ndist>1) %>% pull(Protein) %>% as.character
   dat2 <- dat %>% filter(Protein %in% unique.proteins)
   pvalues=sapply(split(dat2, as.character(dat2$Protein)), function(x) summary(aov(x$response~x$Run, data=x))[[1]]$`Pr(>F)`[1])
-  pvalues=as.data.frame(pvalues)
+  pvalues=as.data.frame(pvalues) %>% rownames_to_column('Protein')
   return(pvalues)
 }
