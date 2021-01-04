@@ -330,8 +330,8 @@ for (i in 1:n.comp.variants) {
   dat.dea[[variant.names[i]]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)}
 # also see what the unnormalized results would look like
 n.comp.variants <- n.comp.variants + 1
-variant.names <- c(variant.names, 'raw')
-dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Protein'), design.matrix, scale='raw')
+variant.names <- c(variant.names, 'Raw')
+dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Protein'), design.matrix, scale='log')
 }
 ```
 
