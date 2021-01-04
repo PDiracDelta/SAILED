@@ -199,6 +199,26 @@ dat.norm.summ.w2$quantile[,sample.info$Sample] <- normalize.quantiles(as.matrix(
 }
 ```
 
+## Quantile norm of protein-level data by condition
+
+```{r}
+if (!load_outputdata){
+dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
+x.split <- split(dat.nonnorm.summ.l, dat.nonnorm.summ.l$Condition)
+x.split.norm <- lapply(x.split, function(x){
+  tmp.wide <- pivot_wider(data=x, id_cols='Protein', names_from=Sample, values_from=response) 
+  tmp.wide[, colnames(tmp.wide)!='Protein'] <- normalize.quantiles(as.matrix(tmp.wide %>% select(-Protein)))
+  tmp <- pivot_longer(tmp.wide, cols=-one_of('Protein'), names_to='Sample', values_to='response') %>% drop_na() %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample')
+  return(tmp)
+})
+x <- bind_rows(x.split.norm)
+dat.norm.summ.w$quantileByCondition <- pivot_wider(data = x, id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
+dat.norm.summ.w2$quantileByCondition <- dat.norm.summ.w$quantileByCondition %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
+}
+variant.names <- c('medianSweeping', 'CONSTANd', 'NOMAD', 'quantile', 'quantileByCondition')
+n.comp.variants <- length(variant.names)
+```
+
 # QC plots
 
 ```{r}
@@ -289,7 +309,7 @@ Below the histograms of p-values from the linear model explaining the response v
 ```{r}
 par(mfrow=c(3, 2))
 hist_ils(run_test(dat.nonnorm.summ.l)$pvalue, main='Raw')
-for (i in 1:n.comp.variants){
+for (i in 1:n.comp.variants){ 
   hist_ils(run_test(dat.norm.summ.l[[variant.names[i]]])$pvalue, main=paste('Normalized', variant.names[i], sep='_'))}
 ```
 
