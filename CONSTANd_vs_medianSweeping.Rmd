@@ -43,6 +43,7 @@ This notebook presents isobaric labeling data analysis strategy that includes da
 In other notebooks in this series we have systematically varied components and observed how they affect the outcome of a DEA analysis. We have seen that medianSweeping normalization works does not work well for intensities on the original scale, and that CONSTANd does not work well on log2-transformed intensities. Here we compare medianSweeping on log2 scale, which we know does a good job, with CONSTANd on original intensity scale.
 
 ```{r}
+load_outputdata=FALSE
 data.list <- readRDS('input_data.rds')
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
@@ -267,6 +268,16 @@ Let's see whether the spiked protein fold changes make sense
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
+
+```{r}
+# save data sets
+save(dat.norm.w,
+     dat.norm.summ.w
+     ,dat.norm.summ.l
+     ,dat.norm.summ.w2
+     ,dat.dea, file='constand_vs_mediansweeping_outdata.rda')
+```
+
 
 # Conclusions
 
