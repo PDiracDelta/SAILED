@@ -308,5 +308,6 @@ run_effect_plot <- function(dat, main.title=''){
   ggplot(dat, aes(x=pvalues, group=Variant, colour=Variant)) +
     stat_density(aes(x=pvalues, y=..scaled..,color=Variant), position="dodge", geom="line")+
     ggtitle(main.title) +
-    xlab('p-value')
+    xlab('p-value') +
+    ylab('scaled density')
 }
