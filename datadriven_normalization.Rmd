@@ -199,6 +199,15 @@ dat.norm.summ.w2$quantile[,sample.info$Sample] <- normalize.quantiles(as.matrix(
 }
 ```
 
+```{r, echo=FALSE}
+if (!load_outputdata){
+# propagate the second round of median sweeping and quantile normalization from dat.norm.summ.w2 to dat.norm.summ.w
+  dat.norm.summ.w$medianSweeping <- dat.norm.summ.w2$medianSweeping %>% pivot_longer(cols=-one_of('Protein'), names_to='Sample', values_to='response', values_drop_na = T) %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample') %>% pivot_wider(id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
+  
+  dat.norm.summ.w$quantile <- dat.norm.summ.w2$quantile %>% pivot_longer(cols=-one_of('Protein'), names_to='Sample', values_to='response', values_drop_na = T) %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample') %>% pivot_wider(id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
+}
+```
+
 ## Quantile norm of protein-level data by condition
 
 ```{r}
@@ -269,7 +278,7 @@ grid.arrange(grobs = p, ncol=2)
 ```
 
 ```{r, echo=FALSE}
-dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
+#dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
 dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 ```
 
