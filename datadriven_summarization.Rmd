@@ -97,7 +97,7 @@ channelNames
 We use the default unit scale: the log2-transformed reportion ion intensities.
 
 ```{r}
-dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
 dat.unit.l
 ```
 
@@ -247,8 +247,8 @@ As for normalization, .......
 # use (half-)wide format
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  boxplot_w(dat.nonnorm.summ.w[[variant.names[i]]],sample.info, paste('Raw', variant.names[i], sep='_'))
-  boxplot_w(dat.norm.summ.w[[variant.names[i]]], sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  boxplot_w(dat.nonnorm.summ.w[[variant.names[i]]],sample.info, paste('raw', variant.names[i], sep='_'))
+  boxplot_w(dat.norm.summ.w[[variant.names[i]]], sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## MA plots
@@ -258,20 +258,20 @@ Clearly, the normalization had a strong variance-reducing effect on the fold cha
 
 ```{r}
 for (i in 1:n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('Raw', variant.names[i], sep='_'), spiked.proteins)
-  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
 grid.arrange(p1, p2, ncol=2)}
 ```
 
 To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
-Indeed, even the Raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
+Indeed, even the raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
 
 ```{r}
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
 for (i in 1: n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('Raw', variant.names[i], sep='_'), spiked.proteins)
-  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('Normalized', variant.names[i], sep='_'), spiked.proteins)
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
 grid.arrange(p1, p2, ncol=2)}
 ```
 
@@ -290,8 +290,8 @@ Even though PC1 does seem to capture the conditions, providing a gradient for th
 ```{r}
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small proportion. 
@@ -299,14 +299,14 @@ There are only 19 proteins supposed to be differentially expressed in this data 
 ### Using spiked proteins only
 
 Therefore, let's see what the PC plots look like if we were to only use the spiked proteins in the PCA. 
-Now, there are clear differences between the Raw, non-normalized median and iPQF plots, but _after_ normalization they are very similar! This time, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully. Again, Sum summarization destroys whatever good work the normalization had done.
+Now, there are clear differences between the raw, non-normalized median and iPQF plots, but _after_ normalization they are very similar! This time, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully. Again, Sum summarization destroys whatever good work the normalization had done.
 Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
 
 ```{r}
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('raw', variant.names[i], sep='_'))
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 Note that in a real situation without spiked proteins, you might plot data corresponding to the top X most differential proteins instead.
@@ -318,8 +318,8 @@ The PCA plots of all proteins has a rather lower fraction of variance explained 
 ```{r}
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
-  dendrogram_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('Raw', variant.names[i], sep='_'))
-  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('raw', variant.names[i], sep='_'))
+  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## Run effect p-value plot
@@ -330,7 +330,7 @@ Below the histograms of p-values from the linear model explaining the response v
 plots <- vector('list', n.comp.variants)
 for (i in 1:n.comp.variants){
 dat <- list(dat.nonnorm.summ.l[[variant.names[i]]], dat.norm.summ.l[[variant.names[i]]])
-names(dat) <- c(paste('Raw', variant.names[i], sep='_'), paste('Normalized', variant.names[i], sep='_'))
+names(dat) <- c(paste('raw', variant.names[i], sep='_'), paste('normalized', variant.names[i], sep='_'))
 plots[[i]] <- run_effect_plot(dat)}
 grid.arrange(grobs = plots, nrow=n.comp.variants)
 ```

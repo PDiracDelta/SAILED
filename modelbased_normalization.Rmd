@@ -80,7 +80,7 @@ channelNames <- remove_factors(unique(sample.info$Channel))
 ## log2 transformation of reporter ion intensities
 
 ```{r}
-dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
 ```
 
 # Summarization component
@@ -155,9 +155,9 @@ if (load_outputdata) load('modelbased_normalization_outdata.rda')
 
 ```{r}
 par(mfrow=c(2,2))
-boxplot_ils(dat.nonnorm.summ.l, 'Raw')
+boxplot_ils(dat.nonnorm.summ.l, 'raw')
 for (i in 1:n.comp.variants){
-boxplot_ils(dat.norm.summ.l[[variant.names[i]]], paste('Normalized', variant.names[i], sep='_'))}
+boxplot_ils(dat.norm.summ.l[[variant.names[i]]], paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## MA plots
@@ -166,9 +166,9 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 
 ```{r}
 p <- emptyList(c('raw', names(dat.norm.summ.w2)))
-p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Raw', spiked.proteins)
+p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'raw', spiked.proteins)
 for (i in 1:n.comp.variants){
-  p[[i+1]] <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('Normalized', variant.names[i], sep='_'), spiked.proteins)}
+  p[[i+1]] <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', paste('normalized', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
@@ -178,9 +178,9 @@ MA plots of all samples from condition `1` and condition `0.125` (quantification
 channels.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
 p <- emptyList(c('raw', names(dat.norm.summ.w2)))
-p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'Raw', spiked.proteins)
+p[[1]] <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'raw', spiked.proteins)
 for (i in 1:n.comp.variants){
-  p[[i+1]] <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale='log', paste('Normalized', variant.names[i], sep='_'), spiked.proteins)}
+  p[[i+1]] <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale='log', paste('normalized', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(grobs = p, ncol=2, nrow=2)
 ```
 
@@ -189,17 +189,17 @@ grid.arrange(grobs = p, ncol=2, nrow=2)
 ### Using all proteins
 ```{r}
 par(mfrow=c(2, 2))
-pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
+pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'raw')
 for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ### Using spiked proteins only
 ```{r}
 par(mfrow=c(2, 2))
-pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
+pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'raw')
 for (i in 1:n.comp.variants){
-  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## HC (hierarchical clustering) plots
@@ -208,9 +208,9 @@ for (i in 1:n.comp.variants){
 
 ```{r, fig.width=12, fig.height=15}
 par(mfrow=c(2,2))
-dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
+dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'raw')
 for (i in 1:n.comp.variants){
-  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('Normalized', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## Run effect p-value plot
@@ -220,7 +220,7 @@ Below the histograms of p-values from the linear model explaining the response v
 ```{r}
 dat <- vector('list',length(dat.norm.summ.l)+1)
 dat[[1]] <- dat.nonnorm.summ.l; dat[2:length(dat)] <- dat.norm.summ.l[1:length(dat.norm.summ.l)]
-names(dat) <- c('Raw', names(dat.norm.summ.l))
+names(dat) <- c('raw', names(dat.norm.summ.l))
 run_effect_plot(dat)
 ```
 

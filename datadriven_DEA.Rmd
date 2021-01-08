@@ -55,7 +55,7 @@ spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, f
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('LIMMA', 'Wilcoxon', 'permutation_test', 'ROTS')
+variant.names <- c('moderated_ttest', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
 scale.vec <- 'log'
 # pick reference channel and condition for making plots / doing DEA
@@ -81,7 +81,7 @@ dat.unit.l <- dat.l
 ```
 
 ```{r}
-dat.unit.l <- dat.l %>% mutate(response=log2(Intensity)) %>% select(-Intensity)
+dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
 ```
 
 # Normalization component: medianSweeping (1)
@@ -155,8 +155,8 @@ if (load_outputdata) load('datadriven_DEA_outdata.rda')
 ```{r}
 # use (half-)wide format
 par(mfrow=c(1,2))
-boxplot_w(dat.nonnorm.summ.w,sample.info, 'Raw')
-boxplot_w(dat.norm.summ.w, sample.info, 'Normalized')
+boxplot_w(dat.nonnorm.summ.w,sample.info, 'raw')
+boxplot_w(dat.norm.summ.w, sample.info, 'normalized')
 ```
 
 ## MA plots
@@ -165,8 +165,8 @@ MA plots of two single samples taken from condition 1 and condition 0.125, measu
 
 ```{r}
 # use wide2 format
-p1 <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Raw', spiked.proteins)
-p2 <- maplot_ils(dat.norm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'Normalized', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'raw', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
@@ -175,8 +175,8 @@ MA plots of all samples from condition `1` and condition `0.125` (quantification
 ```{r}
 channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
-p1 <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'Raw', spiked.proteins)
-p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'Normalized', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'raw', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
@@ -192,15 +192,15 @@ dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 ### Using all proteins
 ```{r}
 par(mfrow=c(1, 2))
-pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Raw')
-pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'Normalized')
+pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'raw')
+pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'normalized')
 ```
 
 ### Using spiked proteins only
 ```{r}
 par(mfrow=c(1, 2))
-pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Raw')
-pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'Normalized')
+pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'raw')
+pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'normalized')
 ```
 
 ## HC (hierarchical clustering) plots
@@ -209,8 +209,8 @@ pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select
 
 ```{r}
 par(mfrow=c(1, 2))
-dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'Raw')
-dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'Normalized')
+dendrogram_ils(dat.nonnorm.summ.w2 %>% select(-Protein), info=sample.info, 'raw')
+dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'normalized')
 ```
 
 ## Run effect p-value plot
@@ -219,7 +219,7 @@ Below the histograms of p-values from the linear model explaining the response v
 
 ```{r}
 dat <- list(dat.nonnorm.summ.l,dat.norm.summ.l)
-names(dat) <- c('Raw','Normalized')
+names(dat) <- c('raw','normalized')
 run_effect_plot(dat)
 ```
 
@@ -238,7 +238,7 @@ design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
 this_scale <- scale.vec
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
-dat.dea$LIMMA <- moderated_ttest(dat=d, design.matrix, scale=this_scale) 
+dat.dea$moderated_ttest <- moderated_ttest(dat=d, design.matrix, scale=this_scale) 
 }
 ```
 
@@ -300,7 +300,7 @@ significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 
 scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins)
-scatterplot_ils(dat.dea[c('LIMMA', 'Wilcoxon')], logFC.cols, 'log2FC', spiked.proteins)
+scatterplot_ils(dat.dea[c('moderated_ttest', 'Wilcoxon')], logFC.cols, 'log2FC', spiked.proteins)
 ```
 
 ## Volcano plots
@@ -315,7 +315,7 @@ for (i in 1:n.contrasts){
 Let's see whether the spiked protein fold changes make sense
 ```{r}
 # plot theoretical value (horizontal lines) and violin per variant
-violinplot_ils(lapply(dat.dea[c('LIMMA', 'Wilcoxon')], function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
+violinplot_ils(lapply(dat.dea[c('moderated_ttest', 'Wilcoxon')], function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
 # Conclusions

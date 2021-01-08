@@ -71,10 +71,10 @@ mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
 st=mix.loc[1]
 ed=stri_locate(str=dat.raw$Spectrum.File, regex='.raw')[1,1]-1
 
-dat.l <- dat.raw %>% pivot_longer(cols=quan.cols, names_to='Channel', values_to='Intensity', values_drop_na=FALSE) %>%
+dat.l <- dat.raw %>% pivot_longer(cols=quan.cols, names_to='Channel', values_to='intensity', values_drop_na=FALSE) %>%
   mutate(Run=stri_replace_first(stri_sub(Spectrum.File, from=st, to=ed), '', fixed='0'),
          Mixture=stri_sub(Spectrum.File, from=mix.loc[1], to=mix.loc[2]+1)) %>%
-  select(Mixture, Run, Channel, Protein, Peptide, RT, Charge, PTM, Intensity, TotalIntensity, Ions.Score, DeltaMZ, isoInterOk, noNAs, onehit.protein, shared.peptide)
+  select(Mixture, Run, Channel, Protein, Peptide, RT, Charge, PTM, intensity, TotalIntensity, Ions.Score, DeltaMZ, isoInterOk, noNAs, onehit.protein, shared.peptide)
 
 # merge Condition, TechRepMixture, BioReplicate variables from study.design
 dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
@@ -107,7 +107,7 @@ dat.l <- dat.l %>% filter(!shared.peptide)
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 
 # and now return to semi-wide format (wide only within runs)
-dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=Intensity)
+dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=intensity)
 
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
