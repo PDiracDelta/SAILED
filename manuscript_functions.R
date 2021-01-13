@@ -41,7 +41,7 @@ get_dea_info <- function(dat){
 # par.list=list(oma=c(2,1,1,1), mar=c(2,2,1,1), mgp=c(1.5,0.5,0)))
 
 pcaplot_rep=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3),show.legend=F, par.list=NULL, 
-                     legend.cex=1,legend.run.xy=NULL, legend.cond.xy=NULL, legend.textwidth=1, ...){
+                     legend.cex=1,legend.run.xy=NULL, legend.cond.xy=NULL, legend.textwidth=1, cex.lab=0.9, cex.main=0.9, ...){
   # fix columns order (as in 'info' arg)
   dat <- dat[, match(remove_factors(sample.info$Sample), colnames(dat))]
   # drop NA values (they are due to proteins not detected in all runs.)
@@ -58,8 +58,8 @@ pcaplot_rep=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3),show.leg
   # if shape.vec is shorter than distinct Run values, then assign shapes starting from 0
   if (length(shape.vec)!=length(legend.run)) shape.vec <- 0:(length(legend.run)-1)
   if (!is.null(par.list)) par(par.list)
-  #plot(Ux1,Ux2, col=info$Color, pch=shape.vec[match(info$Run.short, legend.run)], xlab=axis.lab[1], ylab=axis.lab[2],...)
-  plot(Ux1,Ux2, col=info$Color, pch=shape.vec[match(info$Run.short, legend.run)], xlab=axis.lab[1], ylab=axis.lab[2], cex.lab=0.9)
+  plot(Ux1,Ux2, col=info$Color, pch=shape.vec[match(info$Run.short, legend.run)], xlab=axis.lab[1], ylab=axis.lab[2], cex.lab=cex.lab, ...)
+  #plot(Ux1,Ux2, col=info$Color, pch=shape.vec[match(info$Run.short, legend.run)], xlab=axis.lab[1], ylab=axis.lab[2], cex.lab=0.9)
   grid()
   
   if (show.legend){
@@ -71,7 +71,7 @@ pcaplot_rep=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3),show.leg
   #bty = "n"
   # mtext(side = 1, text = axis.lab[1], line = 2, cex=0.8)
   # mtext(side = 2, text = axis.lab[2], line = 2, cex=0.8)
-  mtext(side=3, text=title, line=0, font=2)
+  mtext(side=3, text=title, line=0, cex=cex.main, font=2)
   #par(op)
 }
 
@@ -96,7 +96,8 @@ run_test <- function(dat){
 
 run_effect_plot_rep <- function(dat, main.title=''){
   if(is.null(names(dat))) stop('List names are missing')
-  dat<- lapply(dat, run_test) %>% bind_rows(.id = "Variant")
+  dat <- lapply(dat, run_test) %>% bind_rows(.id = "Variant")
+  dat$Variant <- factor(dat$Variant, levels=(unique(dat$Variant)))
   ggplot(dat, aes(x=pvalues, group=Variant, colour=Variant)) +
     stat_density(aes(x=pvalues, y=..scaled..,color=Variant), position="dodge", geom="line", size=1.1)+
     ggtitle(main.title) +
@@ -322,7 +323,7 @@ conf_mat <- function(dat, score.var, significance.threshold, spiked.proteins){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 #scale_font=999 will use 'scale_down' option to automatically decrease/increase font size to fit into the page
-print_conf_mat <- function(dat,reportContrast, cap, scale_font=9){
+print_conf_mat <- function(dat, reportContrast, cap, scale_font=9){
   
   variant.names <- colnames(dat[[1]]$stats)
   myHeaderVariant <- c(1, rep(2, length(variant.names)))
@@ -346,4 +347,32 @@ print_conf_mat <- function(dat,reportContrast, cap, scale_font=9){
   }
   tabs[[which(names(dat)==reportContrast)]]
 }
+
+# this version of 'print_conf_mat' saves each conf matrix as a separate graph in pdf 
+print_conf_mat2 <- function(dat, reportContrast, fileName, scale_font=9){
+  
+  variant.names <- colnames(dat[[1]]$stats)
+  myHeaderVariant <- c(1, rep(2, length(variant.names)))
+  names(myHeaderVariant) <- c(" ",variant.names)
+  # dat is a list of size equal to # of contrasts
+  # output is presented by contrasts
+  
+  tabs <- vector('list', length(dat))
+  
+  for (i in 1:length(dat)){
+    # print confusion table counts  
+    if (scale_font==999){
+      #, caption=cap
+      k1 <- kable(dat[[i]]$tab, format='latex', booktabs = T) %>%
+        kable_styling(latex_options = "scale_down", "HOLD_position") %>%
+        add_header_above(myHeaderVariant)  #%>% save_kable(file=fileName)
+    } else {
+      k1 <- kable(dat[[i]]$tab, format='latex', booktabs = T) %>%
+        kable_styling(font_size = scale_font, "HOLD_position") %>%
+        add_header_above(myHeaderVariant)} #%>% save_kable(file=fileName)
+    tabs[[i]] <- k1
+  }
+  tabs[[which(names(dat)==reportContrast)]] %>% save_kable(file=fileName)
+}
+
 
