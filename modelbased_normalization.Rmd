@@ -12,6 +12,11 @@ output:
     code_folding: "hide"
 editor_options: 
   chunk_output_type: console
+params:
+  input_data_p: 'input_data_msstatstmt.Rds'
+  suffix_p: 'msstatstmt'
+  load_outputdata_p: FALSE
+  subsample_p: 0
 ---
 
 ```{r, setup, include=FALSE}
@@ -46,15 +51,19 @@ This notebook presents isobaric labeling data analysis strategy that includes mo
 We will check how varying analysis components [unit/summarization/normalization/differential abundance testing methods] changes end results of a quantitative proteomic study.
 
 ```{r}
-# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
+
 load_outputdata=FALSE
-data.list <- readRDS('input_data.rds')
+data.list <- readRDS(params$input_data_p)
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
-#TEMP -remove!
-# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=20)], spiked.proteins))
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+# protein subsampling
+if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & params$subsample_p<=length(tmp)){
+  sub.prot <- tmp[sample(1:length(tmp), size=params$subsample_p)]
+  if (length(spiked.proteins)>0) sub.prot <- c(sub.prot,spiked.proteins)
+  dat.l <- dat.l %>% filter(Protein %in% sub.prot)
+}
 ```
 
 ```{r}
@@ -148,7 +157,7 @@ dat.nonnorm.summ.w2 <- pivot_wider(data=dat.nonnorm.summ.l, id_cols=Protein, nam
 ```
 
 ```{r, echo=FALSE}
-if (load_outputdata) load('modelbased_normalization_outdata.rda')
+if (load_outputdata) load(paste0('modelbased_normalization_outdata_', params$suffix_p, '.rda'))
 ```
 
 ## Boxplots
@@ -255,7 +264,7 @@ save(dat.nonnorm.summ.l
      ,dat.norm.summ.w2
      ,dat.norm.l
      ,dat.summ.l
-     ,dat.dea, file='modelbased_normalization_outdata.rda')
+     ,dat.dea, file=paste0('modelbased_normalization_outdata_', params$suffix_p, '.rda'))
 }
 ```
 
@@ -271,15 +280,15 @@ print_conf_mat(cm, referenceCondition)
 ## Scatter plots
 
 ```{r}
-scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins)
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
+scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins, referenceCondition)
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins, referenceCondition)
 ```
 
 ## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins)}
+  volcanoplot_ils(dat.dea, i, spiked.proteins, referenceCondition)}
 ```
 
 ## Violin plots

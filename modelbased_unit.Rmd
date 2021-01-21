@@ -12,6 +12,11 @@ output:
     code_folding: "hide"
 editor_options: 
   chunk_output_type: console
+params:
+  input_data_p: 'input_data_msstatstmt.Rds'
+  suffix_p: 'msstatstmt'
+  load_outputdata_p: FALSE
+  subsample_p: 0
 ---
 
 ```{r, setup, include=FALSE}
@@ -42,15 +47,17 @@ source('plotting_functions.R')
 ```
 
 ```{r}
-# set load_outputdata=TRUE if you want to skip long computations (normalization and DEA) and just load the previously saved data sets
-load_outputdata=FALSE
-data.list <- readRDS('input_data.rds')
+data.list <- readRDS(params$input_data_p)
 dat.l <- data.list$dat.l # data in long format
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
-#TEMP -remove!
-# tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
-# dat.l <- dat.l %>% filter(Protein %in% c(tmp[sample(1:length(tmp), size=20)], spiked.proteins))
+tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
+# protein subsampling
+if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & params$subsample_p<=length(tmp)){
+  sub.prot <- tmp[sample(1:length(tmp), size=params$subsample_p)]
+  if (length(spiked.proteins)>0) sub.prot <- c(sub.prot,spiked.proteins)
+  dat.l <- dat.l %>% filter(Protein %in% sub.prot)
+}
 ```
 
 ```{r}
@@ -113,7 +120,7 @@ dat.summ.l <- dat.unit.l
 # Normalization component: linear mixed model
 
 ```{r}
-if (!load_outputdata){
+if (!params$load_outputdata_p){
 dat.norm.l <- dat.summ.l
 # fit normalization model
 norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)))
@@ -139,7 +146,7 @@ dat.summ.l <- dat.summ.l[tmp]
 # QC plots
 
 ```{r}
-if (!load_outputdata){
+if (!params$load_outputdata_p){
 dat.nonnorm.summ.l <- lapply(dat.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein', 'Peptide'), 'median')) 
 dat.nonnorm.summ.l <- lapply(dat.nonnorm.summ.l, function(x) aggFunc(x, 'response', group.vars=c('Mixture', 'TechRepMixture', 'Run', 'Channel', 'Condition', 'BioReplicate', 'Protein'), 'median'))
 
@@ -160,7 +167,7 @@ dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.l, function(x){
 ```
 
 ```{r, echo=FALSE}
-if (load_outputdata) load('modelbased_unit_outdata.rda')
+if (params$load_outputdata_p) load(paste0('modelbased_unit_outdata_', params$suffix_p, '.rda'))
 ```
 
 ## Boxplot
@@ -245,7 +252,7 @@ grid.arrange(grobs = plots, nrow=n.comp.variants)
 Intra-protein correlation modelled with 1|Run:Channel random effect.
 
 ```{r}
-if (!load_outputdata){
+if (!params$load_outputdata_p){
 dat.dea <- emptyList(variant.names)
 for(i in seq_along(dat.dea)){
   dat.dea[[variant.names[i]]] <- lmm_dea(dat=dat.norm.l[[variant.names[i]]], mod.formula='response ~ Condition + (1|Run:Channel)', scale=scale.vec[i], referenceCondition)}
@@ -260,14 +267,14 @@ n.contrasts <- length(logFC.cols)
 
 ```{r, echo=FALSE}
 # save output data
-if (!load_outputdata){
+if (!params$load_outputdata_p){
 save(dat.nonnorm.summ.l
      ,dat.norm.summ.l
      ,dat.nonnorm.summ.w2
      ,dat.norm.summ.w2
      ,dat.norm.l
      ,dat.summ.l
-     ,dat.dea, file='modelbased_unit_outdata.rda')
+     ,dat.dea, file=paste0('modelbased_unit_outdata_', params$suffix_p, '.rda'))
 }
 ```
 
@@ -283,15 +290,15 @@ print_conf_mat(cm, referenceCondition)
 ## Scatter plots
 
 ```{r}
-scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins)
-scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins)
+scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins, referenceCondition)
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins, referenceCondition)
 ```
 
 ## Volcano plots
 
 ```{r}
 for (i in 1:n.contrasts){
-  volcanoplot_ils(dat.dea, i, spiked.proteins)}
+  volcanoplot_ils(dat.dea, i, spiked.proteins, referenceCondition)}
 ```
 
 ## Violin plots

@@ -13,6 +13,11 @@ output:
     code_folding: "hide"    
 editor_options: 
   chunk_output_type: console
+params:
+  input_data_p: 'input_data_msstatstmt.Rds'
+  suffix_p: 'msstatstmt'
+  load_outputdata_p: FALSE
+  subsample_p: 0
 ---
 
 ```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
@@ -74,7 +79,7 @@ Below the first few records of the data (in wide format) are printed out to see 
 - DATA WAS FILTERED IN data_prep.R: Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
 
 ```{r, echo=FALSE}
-data.list <- readRDS('input_data.rds')  # create symlink
+data.list <- readRDS(params$input_data_p)  # create symlink
 dat.l <- data.list$dat.l
 dat.w <- data.list$dat.w
 head(dat.w)
