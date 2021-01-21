@@ -1,30 +1,26 @@
-clean.session <- function(){
-  # install remotes and download JGmisc from github
-  # install.packages(remotes)
-  # library(remotes)
-  # remotes::install_github("jasongraf1/JGmisc")
-  library(JGmisc)
-  detachAllPackages() # detach packages
-  library(rmarkdown)
-}
+library(pacman)
+library(rmarkdown)
+
+unload_pkgs <- function() p_unload(setdiff(p_loaded(),c("pacman","rmarkdown")), character.only = TRUE)
+
+### process raw data
+
+source('data_prep.R')
 
 ### knit all the notebooks specified below
-#st=Sys.time()
 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("intro.Rmd") 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_unit.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_summarization.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_normalization.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_DEA.Rmd")
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("intro.Rmd")
 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_unit.Rmd") 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_summarization.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_normalization.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("modelbased_DEA.Rmd")
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("datadriven_unit.Rmd")
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("datadriven_summarization.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("datadriven_normalization.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("datadriven_DEA.Rmd") 
 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("compare_defaults.Rmd")
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("CONSTANd_vs_medianSweeping.Rmd") 
-clean.session(); rm(list = ls()[!ls()=='clean.session']); render("datadriven_unit_rawratio.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("modelbased_unit.Rmd")
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("modelbased_summarization.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("modelbased_normalization.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("modelbased_DEA.Rmd") 
 
-#ed=Sys.time()
-#ed-st # running time
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("compare_defaults.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("CONSTANd_vs_medianSweeping.Rmd") 
+rm(list=setdiff(ls(),c('unload_pkgs'))); unload_pkgs(); render("datadriven_unit_rawratio.Rmd")
