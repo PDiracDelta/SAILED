@@ -112,7 +112,7 @@ maplot_ils <- function(dat, samples.num, samples.denom, scale, title, spiked.pro
 
 pcaplot_ils=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3)){
   # fix columns order (as in 'info' arg)
-  dat <- dat[, match(remove_factors(sample.info$Sample), colnames(dat))]
+  dat <- dat[, match(remove_factors(info$Sample), colnames(dat))]
   # drop NA values (they are due to proteins not detected in all runs.)
   pc.cr <- prcomp(t(dat %>% drop_na()), scale = scale, center = TRUE)
   sumpc.cr=summary(pc.cr)
@@ -139,9 +139,9 @@ pcaplot_ils=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3)){
 
 dendrogram_ils <- function(dat, info, title){
   # fix columns order (as in 'info' arg)
-  dat <- dat[, match(sample.info$Sample, colnames(dat))]
+  dat <- dat[, match(info$Sample, colnames(dat))]
   # columns are already aligned with 'info', so we can use shorter labels from there 
-  colnames(dat) <- sample.info$Sample.short 
+  colnames(dat) <- info$Sample.short 
   par.mar.org <- par('mar')
   par(mar=c(3,4,1,7))
   dend_raw <- as.dendrogram(hclust(dist(t(dat %>% drop_na()))))
