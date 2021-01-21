@@ -167,7 +167,7 @@ violinplot_ils_old <- function(dat.spiked.logfc.l) {
   do.call(grid.arrange, violin.plots)
 }
 
-violinplot_ils <- function(dat, referenceCondition){
+violinplot_ils <- function(dat, refCond){
   variant.names <- names(dat)
   dat.l <- lapply(dat, function(x) {
     x %>% rename_with(function(y) sapply(y, function(z) strsplit(z, '_')[[1]][2])) %>% pivot_longer(cols = everything(), names_to = 'condition', values_to = 'logFC') %>% add_column(Protein=rep(rownames(x), each=length(colnames(x)))) })
@@ -176,8 +176,8 @@ violinplot_ils <- function(dat, referenceCondition){
   conditions.num <- sort(as.numeric(unique(dat.all$condition)))
   violin.plots <- vector('list', length(unique(dat.all$condition)))
   for (j in seq_along(violin.plots)) {
-    plot.title <- paste0(conditions.num[j], ' vs ', referenceCondition, ' contrast')
-    segment_xy <- data.frame(xv=1:length(variant.names), yv=log2(conditions.num[j]/as.numeric(referenceCondition)))    
+    plot.title <- paste0(conditions.num[j], ' vs ', refCond, ' contrast')
+    segment_xy <- data.frame(xv=1:length(variant.names), yv=log2(conditions.num[j]/as.numeric(refCond)))    
     violin.plots[[j]] <- dat.all %>% filter(condition==conditions.num[j]) %>%
     ggplot(aes(x=variant, y=logFC)) + 
       geom_violin(draw_quantiles = TRUE) +
@@ -220,7 +220,7 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ..
 # pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
 source('pairs_panels_idline.R')
 
-scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
+scatterplot_ils <- function(dat, cols, stat, spiked.proteins, refCond){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))
   title <- paste("Pearson's correlation of", select.stat)
   contrast.names <- unlist(lapply(stri_split(cols, fixed='_'), function(x) x[2]))
@@ -234,7 +234,7 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
   rw <- rownames(dat[[1]])
   for (i in 1:length(cols)){
     df <- sapply(dat, function(x) x[, cols[i]]) %>% data.frame
-    pairs.panels.idline(df, main=paste(title, paste0(contrast.names[i], ' vs ', referenceCondition, ' contrast'), sep='-')
+    pairs.panels.idline(df, main=paste(title, paste0(contrast.names[i], ' vs ', refCond, ' contrast'), sep='-')
                     , method='pearson', lm=T, ellipses = FALSE, 
                     ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
                     #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
@@ -247,7 +247,7 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins){
 # volcanoplot_ils
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, refCond=referenceCondition){
+volcanoplot_ils <- function(dat, contrast.num, spiked.proteins, refCond){
   dat.cols <- colnames(dat[[1]])
   logFC.cols <- dat.cols[stri_detect(dat.cols, fixed='logFC')]
   significance.cols <- dat.cols[stri_detect(dat.cols, fixed='q.mod')]
