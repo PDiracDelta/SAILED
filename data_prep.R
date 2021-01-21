@@ -1,6 +1,8 @@
 library(tidyverse)
 library(stringi)
 
+# suffix used when saving the processed data set ('input_data_<data_name>.rds')
+data_name <- 'msstatstmt'
 dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
 dat.raw.org <- dat.raw
 
@@ -111,4 +113,4 @@ dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), 
 
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-saveRDS(list(dat.l=dat.l, dat.w=dat.w), 'input_data.rds')  # make symlink
+saveRDS(list(dat.l=dat.l, dat.w=dat.w), paste0('input_data_', data_name, '.rds'))  # make symlink
