@@ -505,12 +505,12 @@ permutation_test <- function(dat, referenceCondition, otherConditions, seed=NULL
 # ROTS
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-rots_test <- function(dat, referenceCondition, otherConditions, seed=NULL, ...){
+rots_test <- function(dat, info, referenceCondition, otherConditions, seed=NULL, ...){
   if (!is.null(seed)) set.seed(seed)
   proteins <- dat %>% distinct(Protein) %>% pull(Protein) %>% as.character
   nproteins <- length(proteins)
   n.conditions <- length(otherConditions)
-  refCondCols <- sample.info %>% filter(Condition==referenceCondition) %>% 
+  refCondCols <- info %>% filter(Condition==referenceCondition) %>% 
     distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
   refCondColsLen <- length(refCondCols)
   
@@ -518,7 +518,7 @@ rots_test <- function(dat, referenceCondition, otherConditions, seed=NULL, ...){
   t.mod <- p.mod <- logFC
   
   for (i in 1:n.conditions){
-    CondCols <- sample.info %>% filter(Condition==otherConditions[i]) %>% 
+    CondCols <- info %>% filter(Condition==otherConditions[i]) %>% 
       distinct(Run, Channel) %>% mutate(sample=paste(Run, Channel, sep=':')) %>% pull(sample)
     CondColsLen <- length(CondCols)
     
