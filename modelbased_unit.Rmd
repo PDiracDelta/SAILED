@@ -122,7 +122,7 @@ dat.summ.l <- dat.unit.l
 ```{r, eval=!params$load_outputdata_p}
 dat.norm.l <- dat.summ.l
 # fit normalization model
-norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein) + (1|Mixture:TechRepMixture:Peptide), data=x)))
+norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Run + Run:Channel + (1|Protein) + (1|Run:Peptide), data=x)))
 # assign normalized values
 for (i in 1:n.comp.variants){ dat.norm.l[[variant.names[i]]]$response <- residuals(norm.models[[variant.names[i]]]) }
 # apply the 'fix' - add the model intercept to the residuals

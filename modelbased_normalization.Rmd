@@ -109,21 +109,21 @@ dat.norm.l <- lapply(dat.norm.l, function(x) x <- dat.summ.l)
 ## LMM1 (peptide-by-run interaction)
 
 ```{r, eval=!params$load_outputdata_p}
-LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
+LMM1 <- lmer(response ~ Run + Run:Channel + (1|Protein)  + (1|Run:Peptide), data=dat.summ.l)
 dat.norm.l$LMM1$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 ```
 
 ## LMM2 (protein-by-run interaction)
 
 ```{r, eval=!params$load_outputdata_p}
-LMM2 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Mixture:TechRepMixture:Protein)  + (1|Peptide), data=dat.summ.l)
+LMM2 <- lmer(response ~ Run + Run:Channel + (1|Run:Protein)  + (1|Peptide), data=dat.summ.l)
 dat.norm.l$LMM2$response <- residuals(LMM2) + fixef(LMM2)['(Intercept)']
 ```
 
 ## LMM3 (protein and peptide main effects)
 
 ```{r, eval=!params$load_outputdata_p}
-LMM3 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l)
+LMM3 <- lmer(response ~ Run + Run:Channel + (1|Protein)  + (1|Peptide), data=dat.summ.l)
 dat.norm.l$LMM3$response <- residuals(LMM3) + fixef(LMM3)['(Intercept)']
 ```
 

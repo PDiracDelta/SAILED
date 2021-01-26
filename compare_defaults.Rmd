@@ -121,7 +121,6 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.summ.w <- bind_rows(x.split.norm)
-}
 ```
 
 # model-based: No summarization
@@ -131,7 +130,7 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 ```{r, eval=!params$load_outputdata_p}
 dat.summ.l <- dat.unit.l
 dat.norm.l <- dat.summ.l
-LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
+LMM1 <- lmer(response ~ Run + Run:Channel + (1|Protein)  + (1|Run:Peptide), data=dat.summ.l)
 dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
 ```
 
