@@ -15,7 +15,7 @@ editor_options:
 params:
   input_data_p: 'input_data_msstatstmt.Rds'
   suffix_p: 'msstatstmt'
-  load_outputdata_p: TRUE
+  load_outputdata_p: FALSE
   subsample_p: 200
 ---
   
@@ -109,13 +109,13 @@ dat.unit.l$ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 
 
 # Normalization component: medianSweeping (1)
 
-```{r, eval=!!params$load_outputdata_p}
+```{r, eval=!params$load_outputdata_p}
 # switch to wide format
 dat.unit.w <- lapply(dat.unit.l, function(x){
   pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)})
 ```
 
-```{r, eval=!!params$load_outputdata_p}
+```{r, eval=!params$load_outputdata_p}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w$log2_intensity[,channelNames] <- median_sweep(dat.norm.w$log2_intensity[,channelNames], 1, '-')
