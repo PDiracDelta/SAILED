@@ -430,7 +430,7 @@ It seems that Median summarization and iPQF produce very similar violins, while 
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
-```{r}
+```{r, echo=!params$load_outputdata_p}
 save(dat.nonnorm.summ.l
      ,dat.norm.summ.l
      ,dat.nonnorm.summ.w

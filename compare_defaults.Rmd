@@ -92,34 +92,27 @@ dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
 dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response) 
 ```
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-') 
-}
 ```
 
 # data-driven: Summarization
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # normalized data
 dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
-}
 ```
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # non-normalized data
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
-}
 ```
 
 # data-driven: Normalization (2)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel
 # do the above separately for each MS run
 x.split <- split(dat.norm.summ.w, dat.norm.summ.w$Run)  
@@ -135,17 +128,14 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 
 # model-based: Normalization LMM
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 dat.summ.l <- dat.unit.l
 dat.norm.l <- dat.summ.l
 LMM1 <- lmer(response ~ Mixture + Mixture:TechRepMixture + Mixture:TechRepMixture:Channel + (1|Protein)  + (1|Mixture:TechRepMixture:Peptide), data=dat.summ.l)
 dat.norm.l$response <- residuals(LMM1) + fixef(LMM1)['(Intercept)']
-}
 ```
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # Integration of data-driven and model-based data 
 # dat.nonnorm.summ.l and dat.norm.summ.l are list containers for data in long format
 # dat.nonnorm.summ.w2 and dat.norm.summ.w2 are list containers for data in completely wide format
@@ -171,13 +161,12 @@ dat.norm.summ.w2$model_based <- pivot_wider(data=dat.norm.summ.l$model_based, id
 # data_driven
 dat.nonnorm.summ.w2$data_driven <- dat.nonnorm.summ.w %>% select(-Mixture) %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") 
 dat.norm.summ.w2$data_driven <- dat.norm.summ.w %>% select(-Mixture) %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") 
-}
 ```
 
 # QC plots
 
-```{r, echo=FALSE}
-if (load_outputdata) load(paste0('compare_defaults_outdata_', params$suffix_p, '.rda'))
+```{r, echo=FALSE, , eval=params$load_outputdata_p}
+load(paste0('compare_defaults_outdata_', params$suffix_p, '.rda'))
 ```
 
 ## Boxplot
@@ -258,12 +247,13 @@ grid.arrange(grobs = plots, nrow=n.comp.variants)
 
 ## mixed model (intra-protein correlation modeled with 1|Run:Channel)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 dat.dea <- emptyList(variant.names)  
 dat.dea$model_based <- lmm_dea(dat=dat.norm.l, mod.formula='response ~ Condition + (1|Run:Channel)', referenceCondition, scale='log') 
 # character vectors containing logFC and p-values columns
-}
+```
+
+```{r}
 dea.cols <- colnames(dat.dea$model_based)
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
@@ -271,25 +261,21 @@ n.contrasts <- length(logFC.cols)
 ```
 
 ## LIMMA
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 this_scale <- 'log'
 d <- column_to_rownames(as.data.frame(dat.norm.summ.w2$data_driven), 'Protein')
 dat.dea$data_driven <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
-}
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=!params$load_outputdata_p}
 # save output data
-if (!load_outputdata){
 save(dat.nonnorm.summ.l
      ,dat.norm.summ.l
      ,dat.norm.l
      ,dat.nonnorm.summ.w2
      ,dat.norm.summ.w2
      ,dat.dea, file=paste0('compare_defaults_outdata_', params$suffix_p, '.rda'))
-}
 ```
 
 # Results comparison

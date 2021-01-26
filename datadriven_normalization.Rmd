@@ -97,18 +97,15 @@ dat.norm.w <- emptyList(variant.names)
 
 ## median sweeping (1)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w$median_sweeping <- dat.unit.w
 dat.norm.w$median_sweeping[,channelNames] <- median_sweep(dat.norm.w$median_sweeping[,channelNames], 1, '-') 
-}
 ```
 
 ## CONSTANd
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # dat.unit.l entries are in long format so all have same colnames and no channelNames
 x.split <- split(dat.unit.w, dat.unit.w$Run)  # apply CONSTANd to each Run separately
 x.split.norm  <- lapply(x.split, function(y) {
@@ -116,28 +113,24 @@ x.split.norm  <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$CONSTANd <- bind_rows(x.split.norm)
-}
 ```
 
 ## NOMAD
 
 We apply NOMAD on the PSM level instead of the peptide level.
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # doRobust=F: use means, like CONSTANd; doLog=F: values are already transformed.
 dat.nomadnorm <- nomadNormalization(dat.unit.l$response, dat.unit.l %>% rename(iTRAQ=Channel) %>% as.data.frame, doRobust = FALSE, doiTRAQCorrection = FALSE, doLog = FALSE)
 dat.nomadnorm$x$response <- dat.nomadnorm$y
 dat.norm.w$NOMAD <- pivot_wider(data = dat.nomadnorm$x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=iTRAQ, values_from=response)
-}
 ```
 
 ## Quantile (1)
 
 We apply quantile normalization to each Run separately, and then re-scale the observations so that the mean observation within in each run is set equal to the mean observation across all runs.
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 grand_average <- mean(as.matrix(dat.unit.w[,channelNames]))
 x.split <- split(dat.unit.w, dat.unit.w$Run)  
 x.split.norm <- lapply(x.split, function(y) {
@@ -148,76 +141,62 @@ x.split.norm <- lapply(x.split, function(y) {
   return(y)
 })
 dat.norm.w$quantile1 <- bind_rows(x.split.norm)
-}
 ```
 
 # Summarization component: Median summarization
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # normalized data
 dat.norm.summ.w <- lapply(dat.norm.w, function(x){
   y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)})
-}
 ```
 
 Let's also summarize the non-normalized data for comparison in the next section.
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # non-normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup()
-}
 ```
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # make data completely wide (also across runs)
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
   return(x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}"))
 })
-}
 ```
 
 # Normalization component (2)
 
 ## Median sweeping (2)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # median sweeping: in each channel, subtract median computed across all proteins within the channel, separately for each MS run.
 tmp <- dat.norm.summ.w2$median_sweeping %>% select(-Protein)
 dat.norm.summ.w2$median_sweeping[, colnames(dat.norm.summ.w2$median_sweeping)!='Protein'] <- median_sweep(tmp, 2, '-') 
-}
 ```
 
 ## Quantile (2)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # apply normalizeQuantiles again, now to the data from all runs simultaneously
 dat.norm.summ.w2$quantile1[,sample.info$Sample] <- normalize.quantiles(as.matrix(dat.norm.summ.w2$quantile1[,sample.info$Sample]))
-}
 ```
 
-```{r, echo=FALSE}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # propagate the second round of median sweeping and quantile1 normalization from dat.norm.summ.w2 to dat.norm.summ.w
   dat.norm.summ.w$median_sweeping <- dat.norm.summ.w2$median_sweeping %>% pivot_longer(cols=-one_of('Protein'), names_to='Sample', values_to='response', values_drop_na = T) %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample') %>% pivot_wider(id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
   
   dat.norm.summ.w$quantile1 <- dat.norm.summ.w2$quantile1 %>% pivot_longer(cols=-one_of('Protein'), names_to='Sample', values_to='response', values_drop_na = T) %>% inner_join(sample.info[,c('Sample', 'Run', 'Channel', 'Condition')], by='Sample') %>% pivot_wider(id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
-}
 ```
 
 ## Quantile norm of protein-level data by condition
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 dat.nonnorm.summ.l <- to_long_format(dat.nonnorm.summ.w, sample.info)
 x.split <- split(dat.nonnorm.summ.l, dat.nonnorm.summ.l$Condition)
 x.split.norm <- lapply(x.split, function(x){
@@ -229,23 +208,20 @@ x.split.norm <- lapply(x.split, function(x){
 x <- bind_rows(x.split.norm)
 dat.norm.summ.w$quantile2 <- pivot_wider(data = x, id_cols=-one_of('Condition', 'Sample'), names_from=Channel, values_from=response)
 dat.norm.summ.w2$quantile2 <- dat.norm.summ.w$quantile2 %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
-}
 variant.names <- c('median_sweeping', 'CONSTANd', 'NOMAD', 'quantile1', 'quantile2')
 n.comp.variants <- length(variant.names)
 ```
 
 # QC plots
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # make data completely wide (also across runs)
 ## non-normalized data
 dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
-}
 ```
 
-```{r, echo=FALSE}
-if (load_outputdata) load(paste0('datadriven_normalization_outdata_', params$suffix_p, '.rda'))
+```{r, eval=params$load_outputdata_p}
+load(paste0('datadriven_normalization_outdata_', params$suffix_p, '.rda'))
 ```
 
 ## Boxplots
@@ -335,8 +311,7 @@ TODO:
   - done. remove this code?
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(names(dat.norm.summ.w2))
 for (i in 1:n.comp.variants) {
@@ -347,12 +322,10 @@ for (i in 1:n.comp.variants) {
 n.comp.variants <- n.comp.variants + 1
 variant.names <- c(variant.names, 'raw')
 dat.dea$raw <- moderated_ttest(dat=column_to_rownames(dat.nonnorm.summ.w2, 'Protein'), design.matrix, scale='log')
-}
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=!params$load_outputdata_p}
 # save output data
-if (!load_outputdata){
 save(dat.nonnorm.summ.l
      ,dat.norm.summ.l
      ,dat.nonnorm.summ.w
@@ -360,7 +333,6 @@ save(dat.nonnorm.summ.l
      ,dat.nonnorm.summ.w2
      ,dat.norm.summ.w2
      ,dat.dea, file=paste0('datadriven_normalization_outdata_', params$suffix_p, '.rda'))
-}
 ```
 
 # Results comparison

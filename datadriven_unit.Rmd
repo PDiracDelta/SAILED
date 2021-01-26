@@ -16,7 +16,7 @@ params:
   input_data_p: 'input_data_msstatstmt.Rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: TRUE
-  subsample_p: 0
+  subsample_p: 200
 ---
   
 ```{r, setup, include=FALSE}
@@ -109,53 +109,44 @@ dat.unit.l$ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 
 
 # Normalization component: medianSweeping (1)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!!params$load_outputdata_p}
 # switch to wide format
 dat.unit.w <- lapply(dat.unit.l, function(x){
   pivot_wider(data = x, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)})
-}
 ```
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!!params$load_outputdata_p}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w$log2_intensity[,channelNames] <- median_sweep(dat.norm.w$log2_intensity[,channelNames], 1, '-')
 dat.norm.w$intensity[,channelNames] <- median_sweep(dat.norm.w$intensity[,channelNames], 1, '/')
 dat.norm.w$ratio[,channelNames] <- median_sweep(dat.norm.w$ratio[,channelNames], 1, '/')
-}
 ```
 
 # Summarization component: Median summarization
 
 Summarize quantification values from PSM to peptide (first step) to protein (second step).
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # normalized data
 dat.norm.summ.w <- lapply(dat.norm.w, function(x){
   y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)})
-}
 ```
 
 Let's also summarize the non-normalized data for comparison in the next section.
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # non-normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
 # add select() statement because summarise_at is going bananas over character columns
 dat.nonnorm.summ.w <- lapply(dat.unit.w, function(x) {
   y <- x %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% summarise_at(.vars = channelNames, .funs = median, na.rm=T) %>% ungroup()
   return(y)})
-}
 ```
 
 # Normalization component: medianSweeping (2)
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # medianSweeping: in each channel, subtract/divide median computed across all proteins within the channel
 # do the above separately for each MS run
 second_median_sweep <- function(dat, fun){
@@ -167,13 +158,11 @@ second_median_sweep <- function(dat, fun){
 dat.norm.summ.w$log2_intensity <- second_median_sweep(dat.norm.summ.w$log2_intensity, '-')
 dat.norm.summ.w$intensity <- second_median_sweep(dat.norm.summ.w$intensity, '/')
 dat.norm.summ.w$ratio <- second_median_sweep(dat.norm.summ.w$ratio, '/')
-}
 ```
 
 # QC plots
 
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 # make data completely wide (also across runs)
 ## normalized data
 dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
@@ -184,11 +173,10 @@ dat.norm.summ.w2 <- lapply(dat.norm.summ.w, function(x) {
 dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x) {
   return( x %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}") )
 })
-}
 ```
 
-```{r, echo=FALSE}
-if (load_outputdata) load(paste0('datadriven_unit_outdata_', params$suffix_p, '.rda'))
+```{r, echo=FALSE, eval=params$load_outputdata_p}
+load(paste0('datadriven_unit_outdata_', params$suffix_p, '.rda'))
 ```
 
 ## Boxplots
@@ -275,8 +263,7 @@ grid.arrange(grobs = plots, nrow=n.comp.variants)
 
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
-```{r}
-if (!load_outputdata){
+```{r, eval=!params$load_outputdata_p}
 #{ INVESTIGATE late log2 transform
 dat.norm.summ.w2$intensity_lateLog2 <- dat.norm.summ.w2$intensity
 channelNames.prefixed <- colnames(dat.norm.summ.w2$intensity %>% select(-Protein))
@@ -292,12 +279,10 @@ for (i in 1:n.comp.variants) {
   d <- column_to_rownames(as.data.frame(dat.norm.summ.w2[[variant.names[i]]]), 'Protein')
   dat.dea[[variant.names[i]]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)
 }
-}
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=!params$load_outputdata_p}
 # save output data
-if (!load_outputdata){
 save(dat.nonnorm.summ.l
      ,dat.norm.summ.l
      ,dat.nonnorm.summ.w
@@ -305,7 +290,6 @@ save(dat.nonnorm.summ.l
      ,dat.nonnorm.summ.w2
      ,dat.norm.summ.w2
      ,dat.dea, file=paste0('datadriven_unit_outdata_', params$suffix_p, '.rda'))
-}
 ```
 
 # Results comparison
