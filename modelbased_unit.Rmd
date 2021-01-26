@@ -124,21 +124,23 @@ dat.norm.l <- dat.summ.l
 # fit normalization model
 norm.models <- lapply(dat.summ.l, function(x) return(lmer(response ~ Run + Run:Channel + (1|Protein) + (1|Run:Peptide), data=x)))
 # assign normalized values
-for (i in 1:n.comp.variants){ dat.norm.l[[variant.names[i]]]$response <- residuals(norm.models[[variant.names[i]]]) }
-# apply the 'fix' - add the model intercept to the residuals
-dat.norm.l$intensity_fix <- dat.norm.l$intensity; dat.norm.l$intensity_fix$response <- dat.norm.l$intensity_fix$response + fixef(norm.models$intensity)['(Intercept)']
-dat.norm.l$ratio_fix <- dat.norm.l$ratio; dat.norm.l$ratio_fix$response <- dat.norm.l$ratio_fix$response + fixef(norm.models$ratio)['(Intercept)']
-# update variant names, #, scale
-variant.names <- names(dat.norm.l)
-scale.vec <- c(scale.vec, 'raw', 'raw')
-n.comp.variants <- length(variant.names)
-tmp <- c("log2_intensity", "intensity", "intensity_fix", "ratio", "ratio_fix")
-variant.names <- tmp
-dat.norm.l <- dat.norm.l[tmp]
-# for technical reasons, assign new variants to dat.summ.l
-dat.summ.l$intensity_fix <- dat.summ.l$intensity
-dat.summ.l$ratio_fix <- dat.summ.l$ratio
-dat.summ.l <- dat.summ.l[tmp]
+for (i in 1:n.comp.variants){ 
+  # add the normalization model intercept only when on log scale
+  if (variant.names[i]=='log2_intensity') {dat.norm.l[[variant.names[i]]]$response <- residuals(norm.models[[variant.names[i]]]) + fixef(norm.models[[variant.names[i]]])['(Intercept)']} else { dat.norm.l[[variant.names[i]]]$response <- residuals(norm.models[[variant.names[i]]])}}
+# # apply the 'fix' - add the model intercept to the residuals
+# dat.norm.l$intensity_fix <- dat.norm.l$intensity; dat.norm.l$intensity_fix$response <- dat.norm.l$intensity_fix$response + fixef(norm.models$intensity)['(Intercept)']
+# dat.norm.l$ratio_fix <- dat.norm.l$ratio; dat.norm.l$ratio_fix$response <- dat.norm.l$ratio_fix$response + fixef(norm.models$ratio)['(Intercept)']
+# # update variant names, #, scale
+# variant.names <- names(dat.norm.l)
+# scale.vec <- c(scale.vec, 'raw', 'raw')
+# n.comp.variants <- length(variant.names)
+# tmp <- c("log2_intensity", "intensity", "intensity_fix", "ratio", "ratio_fix")
+# variant.names <- tmp
+# dat.norm.l <- dat.norm.l[tmp]
+# # for technical reasons, assign new variants to dat.summ.l
+# dat.summ.l$intensity_fix <- dat.summ.l$intensity
+# dat.summ.l$ratio_fix <- dat.summ.l$ratio
+# dat.summ.l <- dat.summ.l[tmp]
 ```
 
 # QC plots
