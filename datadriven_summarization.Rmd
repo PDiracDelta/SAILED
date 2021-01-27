@@ -92,6 +92,11 @@ condition.color <- tribble(
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
 sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
+# specify samples and conditions for ma plots
+ma.onesample.num <- 'Mixture2_1:127C'
+ma.onesample.denom <- 'Mixture1_2:129N'
+ma.allsamples.num <- '1'
+ma.allsamples.denom <- '0.125'
 ```
 
 ```{r}
@@ -261,13 +266,13 @@ for (i in 1:n.comp.variants){
 
 ## MA plots
 
-We now make MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively). 
+We now make MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively). 
 Clearly, the normalization had a strong variance-reducing effect on the fold changes. However, Sum summarization counteracts this.........
 
 ```{r}
 for (i in 1:n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
-  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], 'Mixture2_1:127C', 'Mixture1_2:129N', scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
 grid.arrange(p1, p2, ncol=2)}
 ```
 
@@ -275,8 +280,8 @@ To increase the robustness of these results, let's make some more MA plots, but 
 Indeed, even the raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition=='1') %>% select(Sample) %>% pull
-channels.denom <- sample.info %>% filter(Condition=='0.125') %>% select(Sample) %>% pull
+channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% select(Sample) %>% pull
+channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% select(Sample) %>% pull
 for (i in 1: n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
   p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)

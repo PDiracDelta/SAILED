@@ -77,6 +77,11 @@ condition.color <- tribble(
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
 sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
+# specify samples and conditions for ma plots
+ma.onesample.num <- 'Mixture2_1:127C'
+ma.onesample.denom <- 'Mixture1_2:129N'
+ma.allsamples.num <- '1'
+ma.allsamples.denom <- '0.125'
 ```
 
 # Unit scale component: log2 transformation of reporter ion intensities
@@ -131,19 +136,19 @@ boxplot_ils(dat.norm.summ.l, 'normalized')
 
 ## MA plot
 
-MA plots of two single samples taken from condition 1 and condition 0.125, measured in different MS runs (samples *Mixture2_1:127C* and *Mixture1_2:129N*, respectively).
+MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively).
 
 ```{r}
-p1 <- maplot_ils(dat.nonnorm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'raw', spiked.proteins)
-p2 <- maplot_ils(dat.norm.summ.w2, 'Mixture2_1:127C', 'Mixture1_2:129N', scale='log', 'normalized', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w2, ma.onesample.num, 'Mixture1_2:129N', scale='log', 'raw', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w2, ma.onesample.num, 'Mixture1_2:129N', scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-MA plots of all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+MA plots of all samples from condition *`r maplot.allsamples.num`* and condition *`r maplot.allsamples.denom`* (quantification values averaged within condition).
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition=='1') %>% distinct(Sample) %>% pull
-channels.denom <- sample.info %>% filter(Condition=='0.125') %>% distinct(Sample) %>% pull
+channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% distinct(Sample) %>% pull
+channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% distinct(Sample) %>% pull
 p1 <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'raw', spiked.proteins)
 p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
