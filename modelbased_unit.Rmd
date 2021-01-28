@@ -74,7 +74,7 @@ condition.color <- tribble(
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Condition, Color)
+# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
 sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
 # specify samples and conditions for ma plots
@@ -188,16 +188,16 @@ MA plots of two single samples taken from condition `r ma.allsamples.num` and co
 
 ```{r}
 for (i in 1:n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec[i], paste('raw', variant.names[i], sep='_'), spiked.proteins)
-  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], ma.onesample.num, ma.onesample.denom, scale.vec[i], paste('raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], ma.onesample.num, ma.onesample.denom, scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)
   grid.arrange(p1, p2, ncol=2)}  
 ```
 
-MA plots of all samples from condition *`r maplot.allsamples.num`* and condition *`r maplot.allsamples.denom`* (quantification values averaged within condition).
+MA plots of all samples from condition *`r ma.allsamples.num`* and condition *`r ma.allsamples.denom`* (quantification values averaged within condition).
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% distinct(Run:Channel) %>% pull
-channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% distinct(Run:Channel) %>% pull
+channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% distinct(Run:Channel) %>% pull
+channels.denom <- sample.info %>% filter(Condition==ma.allsamples.denom) %>% distinct(Run:Channel) %>% pull
 for (i in 1:n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec[i], paste('raw', variant.names[i], sep='_'), spiked.proteins)
   p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)
@@ -216,8 +216,8 @@ for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'), scale=pca.scale)}
 ```
 
-### Using spiked proteins only
-```{r}
+### Using spiked proteins only (if applicable)
+```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1, 2))
 for (i in 1:n.comp.variants){
   pca.scale=FALSE
@@ -305,7 +305,7 @@ for (i in 1:n.contrasts){
 ## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```

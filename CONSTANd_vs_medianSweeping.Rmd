@@ -187,15 +187,15 @@ MA plots of two single samples taken from condition `r ma.allsamples.num` and co
 # use wide2 format
 p <- emptyList(variant.names)
 for (i in 1: n.comp.variants){
-  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], ma.onesample.num, 'Mixture1_2:129N', scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)}
+  p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], ma.onesample.num, ma.onesample.denom, scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)}
 grid.arrange(p[[1]], p[[2]], ncol=2)
 ```
 
-MA plots of all samples from condition *`r maplot.allsamples.num`* and condition *`r maplot.allsamples.denom`* (quantification values averaged within condition).
+MA plots of all samples from condition *`r ma.allsamples.num`* and condition *`r ma.allsamples.denom`* (quantification values averaged within condition).
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% select(Sample) %>% pull
-channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% select(Sample) %>% pull
+channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
+channels.denom <- sample.info %>% filter(Condition==ma.allsamples.denom) %>% select(Sample) %>% pull
 p <- emptyList(variant.names)
 for (i in 1:n.comp.variants){
   p[[i]] <- maplot_ils(dat.norm.summ.w2[[i]], channels.num, channels.denom, scale=scale.vec[i], paste('normalized', variant.names[i], sep='_'), spiked.proteins)}
@@ -215,8 +215,8 @@ for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
-### Using spiked proteins only
-```{r}
+### Using spiked proteins only (if applicable)
+```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1, 2))
 for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
@@ -287,7 +287,7 @@ for (i in 1:n.contrasts){
 ## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```

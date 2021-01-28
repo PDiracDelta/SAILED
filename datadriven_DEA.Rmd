@@ -65,7 +65,9 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 variant.names <- c('moderated_ttest', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
 scale.vec <- 'log'
-# pick reference channel and condition for making plots / doing DEA
+# set seed for permutation test
+seed=9107
+# pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
 # specify colours corresponding to biological conditions
 condition.color <- tribble(
@@ -77,8 +79,6 @@ condition.color <- tribble(
 # create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
 sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
-# set seed for permutation test
-seed=9107
 # specify samples and conditions for ma plots
 ma.onesample.num <- 'Mixture2_1:127C'
 ma.onesample.denom <- 'Mixture1_2:129N'
@@ -169,16 +169,16 @@ MA plots of two single samples taken from condition `r ma.allsamples.num` and co
 
 ```{r}
 # use wide2 format
-p1 <- maplot_ils(dat.nonnorm.summ.w2, ma.onesample.num, 'Mixture1_2:129N', scale='log', 'raw', spiked.proteins)
-p2 <- maplot_ils(dat.norm.summ.w2, ma.onesample.num, 'Mixture1_2:129N', scale='log', 'normalized', spiked.proteins)
+p1 <- maplot_ils(dat.nonnorm.summ.w2, ma.onesample.num, ma.onesample.denom, scale='log', 'raw', spiked.proteins)
+p2 <- maplot_ils(dat.norm.summ.w2, ma.onesample.num, ma.onesample.denom, scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-MA plots of all samples from condition *`r maplot.allsamples.num`* and condition *`r maplot.allsamples.denom`* (quantification values averaged within condition).
+MA plots of all samples from condition *`r ma.allsamples.num`* and condition *`r ma.allsamples.denom`* (quantification values averaged within condition).
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% select(Sample) %>% pull
-channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% select(Sample) %>% pull
+channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
+channels.denom <- sample.info %>% filter(Condition==ma.allsamples.denom) %>% select(Sample) %>% pull
 p1 <- maplot_ils(dat.nonnorm.summ.w2, channels.num, channels.denom, scale='log', 'raw', spiked.proteins)
 p2 <- maplot_ils(dat.norm.summ.w2, channels.num, channels.denom, scale='log', 'normalized', spiked.proteins)
 grid.arrange(p1, p2, ncol=2)  
@@ -198,8 +198,8 @@ pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'raw')
 pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'normalized')
 ```
 
-### Using spiked proteins only
-```{r}
+### Using spiked proteins only (if applicable)
+```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1, 2))
 pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'raw')
 pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'normalized')
@@ -305,7 +305,7 @@ for (i in 1:n.contrasts){
 ## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea[c('moderated_ttest', 'Wilcoxon')], function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```

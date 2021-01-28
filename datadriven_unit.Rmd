@@ -232,8 +232,8 @@ for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
-### Using spiked proteins only
-```{r}
+### Using spiked proteins only (if applicable)
+```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1, 2))
 for (i in 1:n.comp.variants){
   if (variant.names[i]=='intensity') pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('raw', variant.names[i], sep='_'), scale=T) else pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('raw', variant.names[i], sep='_'))
@@ -329,7 +329,7 @@ for (i in 1:n.contrasts){
 ## Violin plots
 
 Let's see whether the spiked protein fold changes make sense
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```

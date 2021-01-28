@@ -271,17 +271,17 @@ Clearly, the normalization had a strong variance-reducing effect on the fold cha
 
 ```{r}
 for (i in 1:n.comp.variants){
-  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
-  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], ma.onesample.num, 'Mixture1_2:129N', scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
+  p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], ma.onesample.num, ma.onesample.denom, scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
+  p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], ma.onesample.num, ma.onesample.denom, scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
 grid.arrange(p1, p2, ncol=2)}
 ```
 
-To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `1` and condition `0.125` (quantification values averaged within condition).
+To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom` (quantification values averaged within condition).
 Indeed, even the raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
 
 ```{r}
-channels.num <- sample.info %>% filter(Condition==maplot.allsamples.num) %>% select(Sample) %>% pull
-channels.denom <- sample.info %>% filter(Condition==maplot.allsamples.denom) %>% select(Sample) %>% pull
+channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
+channels.denom <- sample.info %>% filter(Condition==ma.allsamples.denom) %>% select(Sample) %>% pull
 for (i in 1: n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
   p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
@@ -309,13 +309,13 @@ for (i in 1:n.comp.variants){
 
 There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small proportion. 
 
-### Using spiked proteins only
+### Using spiked proteins only (if applicable)
 
 Therefore, let's see what the PC plots look like if we were to only use the spiked proteins in the PCA. 
 Now, there are clear differences between the raw, non-normalized median and iPQF plots, but _after_ normalization they are very similar! This time, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully. Again, Sum summarization destroys whatever good work the normalization had done.
 Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
 
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1,2))
 for (i in 1:n.comp.variants){
   pcaplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('raw', variant.names[i], sep='_'))
@@ -430,7 +430,7 @@ Instead of plotting each protein individually, we make violin plots to get a sen
 Clearly, the empirical results _tend towards_ the theoretical truth, however not a single observation attained the fold change it should have attained. There is clearly a strong bias towards zero fold change, which may partly be explained by the ratio compression phenomenon in mass spectrometry, although the effect seems quite extreme here.
 It seems that Median summarization and iPQF produce very similar violins, while Sum summarization is again the odd one out.
 
-```{r}
+```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
