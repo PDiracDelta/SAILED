@@ -33,10 +33,28 @@ table(dat.raw$Identifying.Node)
 check1=dat.raw %>% group_by(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Isolation.Interference...., across(quan.cols)) %>% 
   summarize(ndist=n_distinct(Identifying.Node)) %>% filter(ndist>1)
 
+# create Run variable
+mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
+st=mix.loc[1]
+ed=stri_locate(str=dat.raw$Spectrum.File, regex='.raw')[1,1]-1
+
+dat.raw <- dat.raw %>%
+  mutate(Run=stri_replace_first(stri_sub(Spectrum.File, from=st, to=ed), '', fixed='0'),
+         Mixture=stri_sub(Spectrum.File, from=mix.loc[1], to=mix.loc[2]+1))
+
+# generate noise from Y_mtcb~N(0,sigma=0.2), where m-mixture; t-techrep; c-condition; b-biological replicate
+sigma.err <- 0.2
+noise.df <- study.design %>% filter(!(Channel %in% c('126', '131'))) %>% select('Run', 'Channel')
+set.seed(2991)
+noise.df$err <- 2^rnorm(n=nrow(noise.df), mean=0,sd=sigma.err)
+noise.df <- pivot_wider(noise.df, id_cols=c('Run'), names_from=Channel,values_from=err, names_prefix='err' )
+dat.raw <- left_join(dat.raw, noise.df, by='Run')
+dat.raw[,quan.cols] <- dat.raw[,quan.cols]*dat.raw[,paste0('err',quan.cols)]
+
 # construct approximation of Intensity column, which for some reason is missing... but necessary for iPQF
 dat.raw <- dat.raw %>% rename(DeltaMZ='Deltam.z..Da.')  %>% mutate(TotalIntensity=rowSums(.[,quan.cols], na.rm = T),)
 
-dat.raw <- dat.raw %>% distinct_at(vars(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols, TotalIntensity, Ions.Score, DeltaMZ))
+dat.raw <- dat.raw %>% distinct_at(vars(Mixture, Run, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols, TotalIntensity, Ions.Score, DeltaMZ))
 
 # create flags for PSMs: 
 #   having isolation interference <=30% or NA [isoInterOk]; 
@@ -66,16 +84,10 @@ dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Peptide'))
 
 # select only useful columns
 dat.raw <- dat.raw %>%
-  select(Spectrum.File, Protein, Peptide, RT, Charge, PTM, quan.cols, isoInterOk, noNAs, onehit.protein, shared.peptide, TotalIntensity, Ions.Score, DeltaMZ) 
+  select(Mixture, Run, Protein, Peptide, RT, Charge, PTM, quan.cols, isoInterOk, noNAs, onehit.protein, shared.peptide, TotalIntensity, Ions.Score, DeltaMZ) 
 
-# turn the data into long format (useful for modeling) and create Run variable
-mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
-st=mix.loc[1]
-ed=stri_locate(str=dat.raw$Spectrum.File, regex='.raw')[1,1]-1
-
+# turn the data into long format (useful for modeling)
 dat.l <- dat.raw %>% pivot_longer(cols=quan.cols, names_to='Channel', values_to='intensity', values_drop_na=FALSE) %>%
-  mutate(Run=stri_replace_first(stri_sub(Spectrum.File, from=st, to=ed), '', fixed='0'),
-         Mixture=stri_sub(Spectrum.File, from=mix.loc[1], to=mix.loc[2]+1)) %>%
   select(Mixture, Run, Channel, Protein, Peptide, RT, Charge, PTM, intensity, TotalIntensity, Ions.Score, DeltaMZ, isoInterOk, noNAs, onehit.protein, shared.peptide)
 
 # merge Condition, TechRepMixture, BioReplicate variables from study.design
