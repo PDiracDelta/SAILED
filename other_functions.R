@@ -293,7 +293,7 @@ get_design_matrix <- function(referenceCondition, sample.info) {
   rownames(design) <- all_channels
   colnames(design) <- c(referenceCondition, otherConditions)
   for (i in 1:N_channels) {  # for each channel in each condition, put a "1" in the design matrix.
-    design[sample.info$Sample[i], sample.info$Condition[i]] <- 1 }
+    design[as.character(sample.info$Sample[i]), as.character(sample.info$Condition[i])] <- 1 }
   return(design)
 }
 
