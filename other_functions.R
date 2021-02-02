@@ -346,6 +346,7 @@ moderated_ttest <- function(dat, design, scale) {
   results <- data.frame(logFC, t.ord, t.mod, p.ord, p.mod, q.ord, q.mod, df.r, df.0, s2.0, s2, s2.post)
   rownames(results) <- rownames(dat)
   # remove referenceCondition values; they are irrelevant
+  results <- results[,colSums(is.na(results))<nrow(results)]
   return(results %>% select(-contains(reference_condition)))
 }
 
