@@ -631,3 +631,30 @@ run_test <- function(dat){
   pvalues=as.data.frame(pvalues) %>% rownames_to_column('Protein')
   return(pvalues)
 }
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# compute_ratio 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# Compute ratio based on channels from the chosen reference condition. If multiple samples 
+# per condition, then samples pairing is done from left to right. 
+# Example: condition A (channels 126, 127) and B (channels 128, 129), 
+# then ratios are 126/128 and 127/129
+# dat - data in wide format
+# info - sample.info object
+# ord - character; contains channels names in order of appearance in the study design
+# ratioCondition - reference condition
+
+compute_ratio <- function(dat, info, ord, ratioCondition, keep_ref_chanels=TRUE){
+  dat <- split(dat, dat$Run)
+  dat2 <- lapply(dat, function(x){
+    tmp <- x
+    channels_ordered_mat <- data.frame(Id=1:length(ord), Channel=ord) %>% left_join(info[info$Run==unique(tmp$Run), c('Channel', 'Condition')], by='Channel') %>% arrange(Condition, Id)
+    sorted_ref <- channels_ordered_mat %>% filter(Condition==ratioCondition) %>% arrange(Id) %>% pull(Channel)
+    num_denom <- data.frame(num=channels_ordered_mat$Channel, denom=sorted_ref)
+    tmp[,num_denom$num] <- tmp[,num_denom$num]/tmp[,num_denom$denom]
+    if (!keep_ref_chanels) tmp <- tmp %>% select(-all_of(sorted_ref))
+    return(tmp)
+  })
+  dat3 <- to_long_format(bind_rows(dat2), info) %>% drop_na(response) %>% select(-all_of(c("Run.short", "Sample", "Sample.short", "Color")))
+  return(dat3)
+}
