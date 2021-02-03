@@ -23,7 +23,8 @@ get_sample_info <- function(dat, map){
     left_join(map, by='Condition') %>% 
     mutate(Run.short=factor(stri_replace(Run, fixed='Mixture', 'Mix')), 
            Sample=Run:Channel,
-           Sample.short=Run.short:Channel) %>% 
+           Sample.short=Run.short:Channel,
+           Condition=factor(Condition)) %>% 
     relocate(Run.short, .after=Run) %>%
     relocate(c(Sample, Sample.short), .after=Channel) %>% arrange(Sample)
   return(tmp)
@@ -656,6 +657,7 @@ compute_ratio <- function(dat, info, ord, ratioCondition, keep_ref_chanels=TRUE)
     if (!keep_ref_chanels) tmp <- tmp %>% select(-all_of(sorted_ref))
     return(tmp)
   })
-  dat3 <- to_long_format(bind_rows(dat2), info) %>% drop_na(response) %>% select(-all_of(c("Run.short", "Sample", "Sample.short", "Color")))
+  dat3 <- to_long_format(bind_rows(dat2), info) %>% drop_na(response) %>% select(-all_of(c("Run.short", "Sample", "Sample.short", "Color"))) %>%
+    mutate(BioReplicate=factor(paste(Mixture, Condition, sep='_')))
   return(dat3)
 }
