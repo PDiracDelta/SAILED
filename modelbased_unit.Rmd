@@ -49,6 +49,7 @@ source('plotting_functions.R')
 ```{r}
 data.list <- readRDS(params$input_data_p)
 dat.l <- data.list$dat.l # data in long format
+dat.w <- data.list$dat.w # data in wide format
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
@@ -57,16 +58,21 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
   sub.prot <- tmp[sample(1:length(tmp), size=params$subsample_p)]
   if (length(spiked.proteins)>0) sub.prot <- c(sub.prot,spiked.proteins)
   dat.l <- dat.l %>% filter(Protein %in% sub.prot)
+  dat.w <- dat.w %>% filter(Protein %in% sub.prot)
 }
 ```
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('log2_intensity', 'intensity', 'ratio')
+variant.names <- c('log2_intensity', 'intensity', 'ratio_rowmean','ratio_condmean','ratio_condpairs','ratio_onetag')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'raw', 'raw') # ratios are considered raw, because they are basically mean-normalized intensities
+scale.vec <- c('log', 'raw', 'raw','raw','raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
 # pick reference condition for making plots / doing DEA
 referenceCondition <- '0.5'
+# pick reference channel for computing ratio
+refChannel <- '128C'
+# quantification channels ordered according to the study design
+channelsOrdered <- c("127N", "127C", "128N", "128C", "129N", "129C", "130N", "130C")
 # specify colours corresponding to biological conditions
 condition.color <- tribble(
   ~Condition, ~Color,
@@ -103,16 +109,37 @@ dat.unit.l$intensity <- dat.l %>% rename(response=intensity)
 
 ## intensity ratios
 
-Calculate ratio (per PSM) with respect to average intensity within run, 
+*ratio_rowmean*: Calculate ratio (per PSM) with respect to average intensity within run, 
 or in other words: each value is divided by the row mean.
-
 ```{r}
 # use half-wide data to compute within-run average of PSM channels corresponding to the reference Condition
 refCols <- sample.info %>% distinct(Channel) %>% pull(Channel)
 denom.df=dat.l %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='intensity')
 denom.df$denom=apply(denom.df[,refCols], 1, function(x) mean(x, na.rm=T))
 denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
-dat.unit.l$ratio <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
+dat.unit.l$ratio_rowmean <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
+```
+
+*ratio_condmean*: each sample is divided by the average of samples belonging to the reference condition (here 'r referenceCondition')
+```{r}
+# use half-wide data to compute within-run average of PSM channels corresponding to the reference Condition
+refCols <- sample.info %>% filter(Condition==referenceCondition) %>% distinct(Channel) %>% pull
+denom.df=dat.l %>% filter(Condition==referenceCondition) %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='intensity')
+denom.df$denom=apply(denom.df[,refCols], 1, function(x) mean(x, na.rm=T))
+denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
+dat.unit.l$ratio_condmean <- dat.l %>% left_join(denom.df[c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
+```
+
+*ratio_condpairs*: compute ratios using samples from a selected condition as ratio denominator (channels paired from left to right)
+```{r}
+dat.unit.l$ratio_condpairs <- compute_ratio(dat.w, sample.info, channelsOrdered, referenceCondition)
+```
+
+*ratio_onetag*: divide by one fixed channel (here `r refChannel`)
+```{r}
+left_data=dat.unit.l$intensity %>% filter(Channel==refChannel) %>% select('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'response') %>% rename(denom=response)
+dat.unit.l$ratio_onetag=left_join(dat.unit.l$intensity, left_data[, c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')], by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM'))
+dat.unit.l$ratio_onetag <- dat.unit.l$ratio_onetag %>% mutate(response=response/denom) %>% select(-denom)
 ```
 
 # Summarization component: no summarization
