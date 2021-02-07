@@ -16,11 +16,13 @@ tmp.fun <- function(x){
 dat.raw <- dat.raw %>% rename_with(.fn=tmp.fun, .cols=starts_with('Abundance..'))
 
 # drop channels with reference samples and rename some more variables
-dat.raw <- dat.raw %>% select(-c('126','131')) %>% 
-  rename(Protein='Protein.Accessions', Peptide='Annotated.Sequence', RT='RT..min.', PTM='Modifications')
+# dat.raw <- dat.raw %>% select(-c('126','131')) %>% 
+#   rename(Protein='Protein.Accessions', Peptide='Annotated.Sequence', RT='RT..min.', PTM='Modifications')
+dat.raw <- dat.raw %>% rename(Protein='Protein.Accessions', Peptide='Annotated.Sequence', RT='RT..min.', PTM='Modifications')
 
 # save names of quantification columns for later use
-quan.cols <- paste0(rep(127:130, each=2), c('C','N'))
+#quan.cols <- paste0(rep(127:130, each=2), c('C','N'))
+quan.cols <- c('126', paste0(rep(127:130, each=2), c('C','N')), '131')
 
 # focus only on single proteins, not on protein groups (as in the MSstatTMT publication)
 dat.raw <- dat.raw %>% filter(X..Proteins==1)
@@ -42,12 +44,15 @@ dat.raw <- dat.raw %>%
   mutate(Run=stri_replace_first(stri_sub(Spectrum.File, from=st, to=ed), '', fixed='0'),
          Mixture=stri_sub(Spectrum.File, from=mix.loc[1], to=mix.loc[2]+1))
 
-# generate noise from Y_mtcb~N(0,sigma=0.2), where m-mixture; t-techrep; c-condition; b-biological replicate
-sigma.err <- 0.2
-noise.df <- study.design %>% filter(!(Channel %in% c('126', '131'))) %>% select('Run', 'Channel')
+# generate noise from Y_mtcb~N(0,sigma), where m-mixture; t-techrep; c-condition; b-biological replicate
+sigma.err <- 0.3
+#noise.df <- study.design %>% filter(!(Channel %in% c('126', '131'))) %>% select('Run', 'Channel')
+noise.df <- study.design %>% select('Run', 'Channel')
 set.seed(2991)
 noise.df$err <- 2^rnorm(n=nrow(noise.df), mean=0,sd=sigma.err)
 noise.df <- pivot_wider(noise.df, id_cols=c('Run'), names_from=Channel,values_from=err, names_prefix='err' )
+# don't add error to the common reference samples, so replace random values with 1
+noise.df[, c('err126', 'err131')] <- 1
 dat.raw <- left_join(dat.raw, noise.df, by='Run')
 dat.raw[,quan.cols] <- dat.raw[,quan.cols]*dat.raw[,paste0('err',quan.cols)]
 
