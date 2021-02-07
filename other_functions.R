@@ -294,7 +294,7 @@ get_design_matrix <- function(referenceCondition, sample.info) {
   rownames(design) <- all_channels
   colnames(design) <- c(referenceCondition, otherConditions)
   for (i in 1:N_channels) {  # for each channel in each condition, put a "1" in the design matrix.
-    design[sample.info$Sample[i], sample.info$Condition[i]] <- 1 }
+    design[as.character(sample.info$Sample[i]), as.character(sample.info$Condition[i])] <- 1 }
   return(design)
 }
 
@@ -329,12 +329,12 @@ moderated_ttest <- function(dat, design, scale) {
   t.mod <- fit$t # moderated t-statistic
   p.ord <- 2*pt(-abs(t.ord), fit$df.residual) # ordinary p-value corresonding to the ordinary t-statistic
   p.mod <- fit$p.value # moderated p-value corresonding to the moderated t-statistic
-  if(ngenes>1) q.ord <- apply(X = p.ord, MARGIN = 2, FUN = p.adjust, method='BH') # ordinary q-value corresponding to the ordinary t-statistic
+  if(ngenes>1) { q.ord <- apply(X = p.ord, MARGIN = 2, FUN = p.adjust, method='BH') # ordinary q-value corresponding to the ordinary t-statistic
   # if(ngenes>1) q.ord <- qvalue(p.ord)$q#, pi0=1)$q # avoid qvalue library when using BH correction
-  else q.ord <- p.ord
-  if(ngenes>1) q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') # moderated q-value corresponding to the moderated t-statistic
+  } else q.ord <- p.ord
+  if(ngenes>1) { q.mod <- apply(X = p.mod, MARGIN = 2, FUN = p.adjust, method='BH') # moderated q-value corresponding to the moderated t-statistic
   # if(ngenes>1) q.mod <- qvalue(p.mod)$q#, pi0=1)$q # avoid qvalue library when using BH correction
-  else q.mod <- p.mod
+  } else q.mod <- p.mod
   
   # incorporate entity type into colnames to overwrite identical factor names
   colnames(logFC) <- paste0('logFC_', colnames(logFC))
@@ -348,13 +348,13 @@ moderated_ttest <- function(dat, design, scale) {
   rownames(results) <- rownames(dat)
   # remove referenceCondition values; they are irrelevant
   results <- results[,colSums(is.na(results))<nrow(results)]
-  return(results %>% select(-contains(reference_condition)))
+  return(results %>% select(-contains(reference_condition, ignore.case = F)))
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Wilcoxon rank-sum test
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# Wilcoxon rank-sum test (equivalent to Mann–Whitney U test) comparing outcomes between 
+# Wilcoxon rank-sum test (equivalent to Mann-Whitney U test) comparing outcomes between 
 # two independent groups of samples. For each protein separately, the test is applied to each otherCondition w.r.t. referenceCondition.
 # Wilcoxon rank-sum test employs ranks of quantification values, therefore logFC must be computed manually:
 #   if logFC.method='diff': difference of arithmetic means computed on log2 scale
