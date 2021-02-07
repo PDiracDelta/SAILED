@@ -12,8 +12,8 @@ unload_pkgs <- function() p_unload(setdiff(p_loaded(),c("pacman","rmarkdown")), 
 #   subsample: numeric; 0 means all proteins, e.g. 50 means that 50 proteins will be randomly sampled.
 #   subsample should be an integer >=0; if a very small number is specified, some errors may occurs (e.g. in normalization or DEA)
 
-knit_notebook <- function(name, input_data, suffix='', load_outputdata=FALSE, subsample=0, norm_channels=''){
-  notebook.params=list(input_data_p=input_data, suffix_p=suffix, load_outputdata_p=load_outputdata, subsample_p=subsample, norm_channels_p=norm_channels)
+knit_notebook <- function(name, input_data, suffix='', load_outputdata=FALSE, subsample=0){
+  notebook.params=list(input_data_p=input_data, suffix_p=suffix, load_outputdata_p=load_outputdata, subsample_p=subsample)
   if (suffix=='') tmp=name else tmp=paste0(name, '_', suffix)
   render(input = paste0(name,".Rmd"), 
          output_file = file.path(dirname(paste0(name,".Rmd")), tmp),
@@ -30,37 +30,36 @@ knit_notebook('intro', input_data='input_data_msstatstmt.Rds')
 
 #### data-driven notebooks ####
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("datadriven_unit", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm') 
+knit_notebook("datadriven_unit", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("datadriven_summarization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm') 
+knit_notebook("datadriven_summarization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("datadriven_normalization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm') 
+knit_notebook("datadriven_normalization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("datadriven_DEA", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm') 
+knit_notebook("datadriven_DEA", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 #### model-based notebooks ####
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("modelbased_unit", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')  
+knit_notebook("modelbased_unit", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("modelbased_summarization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')  
+knit_notebook("modelbased_summarization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("modelbased_normalization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')   
+knit_notebook("modelbased_normalization", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE)  
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("modelbased_DEA", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')  
+knit_notebook("modelbased_DEA", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 #### other notebooks ####
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("compare_defaults", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')  
+knit_notebook("compare_defaults", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("CONSTANd_vs_medianSweeping", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')   
+knit_notebook("CONSTANd_vs_medianSweeping", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE)  
 
 rm(list=setdiff(ls(),c('unload_pkgs', 'knit_notebook'))); unload_pkgs(); 
-knit_notebook("datadriven_unit_rawratio", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', subsample=0, norm_channels='Norm')  
- 
+knit_notebook("datadriven_unit_rawratio", input_data='input_data_msstatstmt.Rds', suffix='msstatstmt', load_outputdata=FALSE) 
