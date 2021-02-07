@@ -657,6 +657,7 @@ compute_ratio <- function(dat, info, ord, ratioCondition, keep_ref_chanels=TRUE)
     if (!keep_ref_chanels) tmp <- tmp %>% select(-all_of(sorted_ref))
     return(tmp)
   })
+  if (!keep_ref_chanels) info <- info %>% filter(!(Condition %in% ratioCondition))
   dat3 <- to_long_format(bind_rows(dat2), info) %>% drop_na(response) %>% select(-all_of(c("Run.short", "Sample", "Sample.short", "Color"))) %>%
     mutate(BioReplicate=factor(paste(Mixture, Condition, sep='_')))
   return(dat3)
