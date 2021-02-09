@@ -63,7 +63,7 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 # specify # of varying component variants and their names
 variant.names <- c('log2_intensity', 'intensity', 'ratio_rowmean','ratio_condmean','ratio_condpairs','ratio_onetag')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'raw', 'raw','raw','raw','raw', 'raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
+scale.vec <- c('log', 'raw', 'raw','raw','raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
 
 # get some data parameters created in the data_prep script
 referenceCondition <- data.list$data.params$referenceCondition
