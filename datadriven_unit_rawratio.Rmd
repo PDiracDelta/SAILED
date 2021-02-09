@@ -64,27 +64,19 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 variant.names <- c('log2_intensity', 'intensity', 'ratio_rowmean','ratio_condmean','ratio_condpairs','ratio_onetag')
 n.comp.variants <- length(variant.names)
 scale.vec <- c('log', 'raw', 'raw','raw','raw','raw', 'raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
-# pick reference condition for making plots / doing DEA
-referenceCondition <- '0.5'
-# pick reference channel for computing ratio
-refChannel <- '128C'
-# quantification channels ordered according to the study design
-channelsOrdered <- c("127N", "127C", "128N", "128C", "129N", "129C", "130N", "130C")
-# specify colours corresponding to biological conditions
-condition.color <- tribble(
-  ~Condition, ~Color,
-  "0.125", 'black',
-  "0.5", 'blue',
-  "0.667", 'green',
-  "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
+
+# get some data parameters created in the data_prep script
+referenceCondition <- data.list$data.params$referenceCondition
+channelsOrdered <- data.list$data.params$channelsOrdered
+condition.color <- data.list$data.params$condition.color
+ma.onesample.num <- data.list$data.params$ma.onesample.num
+ma.onesample.denom <- data.list$data.params$ma.onesample.denom
+ma.allsamples.num <- data.list$data.params$ma.allsamples.num
+ma.allsamples.denom <- data.list$data.params$ma.allsamples.denom
+# create data frame with sample information
 sample.info <- get_sample_info(dat.l, condition.color)
+# get channel names
 channelNames <- remove_factors(unique(sample.info$Channel))
-# specify samples and conditions for ma plots
-ma.onesample.num <- 'Mixture2_1:127C'
-ma.onesample.denom <- 'Mixture1_2:129N'
-ma.allsamples.num <- '1'
-ma.allsamples.denom <- '0.125'
 ```
 
 # Unit scale component

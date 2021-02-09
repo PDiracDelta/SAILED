@@ -1,5 +1,6 @@
 library(tidyverse)
 library(stringi)
+source('other_functions.R')
 
 # suffix used when saving the processed data set ('input_data_<data_name>.rds')
 data_name <- 'msstatstmt'
@@ -123,6 +124,30 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=intensity)
 
+# specify parameters used in each notebook:
+  referenceCondition <- '0.5'
+  # specify colours corresponding to biological conditions
+  condition.color <- tribble(
+    ~Condition, ~Color,
+    "0.125", 'black',
+    "0.5", 'blue',
+    "0.667", 'green',
+    "1", 'red' )
+  # quantification channels ordered according to the study design
+  channelsOrdered <- c("127N", "127C", "128N", "128C", "129N", "129C", "130N", "130C")
+  # specify samples and conditions for ma plots
+  ma.onesample.num <- 'Mixture2_1:127C'
+  ma.onesample.denom <- 'Mixture1_2:129N'
+  ma.allsamples.num <- '1'
+  ma.allsamples.denom <- '0.125'
+params <- list(referenceCondition=referenceCondition,
+               condition.color=condition.color, 
+               channelsOrdered=channelsOrdered, 
+               ma.onesample.num=ma.onesample.num, 
+               ma.onesample.denom=ma.onesample.denom, 
+               ma.allsamples.num=ma.allsamples.num, 
+               ma.allsamples.denom=ma.allsamples.denom)
+
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-saveRDS(list(dat.l=dat.l, dat.w=dat.w), paste0('input_data_', data_name, '.rds'))  # make symlink
+saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), paste0('input_data_', data_name, '.rds'))  # make symlink

@@ -67,23 +67,18 @@ n.comp.variants <- length(variant.names)
 scale.vec <- 'log'
 # set seed for permutation test
 seed=9107
-# pick reference condition for making plots / doing DEA
-referenceCondition <- '0.5'
-# specify colours corresponding to biological conditions
-condition.color <- tribble(
-  ~Condition, ~Color,
-  "0.125", 'black',
-  "0.5", 'blue',
-  "0.667", 'green',
-  "1", 'red' )
-# create data frame with sample info (distinct Run,Channel, Sample, Condition, Color)
+
+# get some data parameters created in the data_prep script
+referenceCondition <- data.list$data.params$referenceCondition
+condition.color <- data.list$data.params$condition.color
+ma.onesample.num <- data.list$data.params$ma.onesample.num
+ma.onesample.denom <- data.list$data.params$ma.onesample.denom
+ma.allsamples.num <- data.list$data.params$ma.allsamples.num
+ma.allsamples.denom <- data.list$data.params$ma.allsamples.denom
+# create data frame with sample information
 sample.info <- get_sample_info(dat.l, condition.color)
+# get channel names
 channelNames <- remove_factors(unique(sample.info$Channel))
-# specify samples and conditions for ma plots
-ma.onesample.num <- 'Mixture2_1:127C'
-ma.onesample.denom <- 'Mixture1_2:129N'
-ma.allsamples.num <- '1'
-ma.allsamples.denom <- '0.125'
 ```
 
 # Unit scale component: log2 transformation of reporter ion intensities
