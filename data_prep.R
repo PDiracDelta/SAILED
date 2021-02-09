@@ -43,10 +43,10 @@ dat.raw <- dat.raw %>%
   mutate(Run=stri_replace_first(stri_sub(Spectrum.File, from=st, to=ed), '', fixed='0'),
          Mixture=stri_sub(Spectrum.File, from=mix.loc[1], to=mix.loc[2]+1))
 
-# generate noise from Y_mtcb~N(0,sigma=0.2), where m-mixture; t-techrep; c-condition; b-biological replicate
+# generate noise from Y_mtcb~N(0,sigma.err), where m-mixture; t-techrep; c-condition; b-biological replicate
 sigma.err <- 0.2
 noise.df <- study.design %>% filter(!(Channel %in% c('126', '131'))) %>% select('Run', 'Channel')
-set.seed(2991)
+set.seed(1991)
 noise.df$err <- 2^rnorm(n=nrow(noise.df), mean=0,sd=sigma.err)
 noise.df <- pivot_wider(noise.df, id_cols=c('Run'), names_from=Channel,values_from=err, names_prefix='err' )
 dat.raw <- left_join(dat.raw, noise.df, by='Run')
