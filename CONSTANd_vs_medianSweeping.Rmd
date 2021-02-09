@@ -219,12 +219,12 @@ for (i in 1:n.comp.variants){
 
 ## HC (hierarchical clustering) plots
 
-Only use spiked proteins
+### Using all proteins
 
 ```{r}
 par(mfrow=c(1, 2))
 for (i in 1:n.comp.variants){
-  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-Protein), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
+  dendrogram_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-Protein), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
 ## Run effect p-value plot
