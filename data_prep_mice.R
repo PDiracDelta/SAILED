@@ -14,17 +14,16 @@ des.mat <- matrix(c('BM3','PM3','TAM4','BM4','TAM3','PM4',
                     'TAM1','BM1','PM1','PM2','BM2','TAM2'),
                   byrow=TRUE,ncol=6)
 sample=as.vector(t(des.mat))
-study.design <- data.frame( 
-  TechRepMixture='1',
-  Channel=as.character(rep(126:(126+ncol(des.mat)-1))),
-  Condition=case_when(
-    str_detect(sample,'BM') ~ 'BM',
-    str_detect(sample,'PM') ~ 'PM',
-    str_detect(sample,'TAM') ~ 'TAM'))
+study.design <- data.frame(TechRepMixture='1',
+                           Channel=as.character(rep(126:(126+ncol(des.mat)-1))),
+                           Condition=case_when(
+                             str_detect(sample,'BM') ~ 'BM',
+                             str_detect(sample,'PM') ~ 'PM',
+                             str_detect(sample,'TAM') ~ 'TAM'))
 study.design <- study.design %>% mutate(
   Mixture=paste0('Mixture',rep(1:3, each=ncol(des.mat))),
   BioReplicate=paste(Mixture,Condition,sep='_'),
-  Run=paste(Mixture,rep(1:3, each=ncol(des.mat)), sep='_'))
+  Run=paste(Mixture,TechRepMixture, sep='_'))
 
 ###############################
 # dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
@@ -146,6 +145,29 @@ dat.l <- dat.l %>% filter(isoInterOk & noNAs)
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=intensity)
 
+# specify parameters used in each notebook:
+referenceCondition <- 'BM'
+# specify colours corresponding to biological conditions
+condition.color <- tribble(
+  ~Condition, ~Color,
+  "BM", 'black',
+  "PM", 'blue',
+  "TAM", 'green')
+# quantification channels ordered according to the study design
+channelsOrdered <- as.character(126:131)
+# specify samples and conditions for ma plots
+ma.onesample.num <- 'Mixture1_1:128'
+ma.onesample.denom <- 'Mixture3_1:126'
+ma.allsamples.num <- 'TAM'
+ma.allsamples.denom <- 'PM'
+params <- list(referenceCondition=referenceCondition,
+               condition.color=condition.color, 
+               channelsOrdered=channelsOrdered, 
+               ma.onesample.num=ma.onesample.num, 
+               ma.onesample.denom=ma.onesample.denom, 
+               ma.allsamples.num=ma.allsamples.num, 
+               ma.allsamples.denom=ma.allsamples.denom)
+
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-saveRDS(list(dat.l=dat.l, dat.w=dat.w), 'input_data_mice.rds')  # make symlink
+saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), 'input_data_mice.rds')  # make symlink
