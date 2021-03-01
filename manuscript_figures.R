@@ -23,7 +23,7 @@ condition.color <- tribble(
   "0.5", 'blue',
   "0.667", 'green',
   "1", 'red' )
-data.list <- readRDS('input_data.rds')
+data.list <- readRDS('input_data_msstatstmt.rds')
 dat.l <- data.list$dat.l 
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
 sample.info <- get_sample_info(dat.l, condition.color)
@@ -84,7 +84,7 @@ keep_objects=c('referenceCondition', 'reportContrast', 'condition.color', 'spike
                'width.plot3.c','height.plot3.c','res.plot3.c')
 
 ### compare defaults ###
-load('compare_defaults_outdata.rda')
+load('compare_defaults_outdata_msstatstmt.rda')
 # dat <- list(dat.nonnorm.summ.l$data_driven
 #             ,dat.nonnorm.summ.l$model_based
 #             ,dat.norm.summ.l$model_based 
@@ -118,7 +118,7 @@ dev.off()
 ### raw ratios as good as normalized ratios ###
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_unit_outdata.rda')
+load('datadriven_unit_outdata_msstatstmt.rda')
 variant.names=names(dat.norm.summ.w2)
 
 #c(2,1,1,1)
@@ -136,7 +136,7 @@ dev.off()
 
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_unit_rawratio_outdata.rda')
+load('datadriven_unit_rawratio_outdata_msstatstmt.rda')
 dat.dea[!(names(dat.dea) %in% c('log2_intensity', 'ratio'))] <- NULL
 dea.info <- get_dea_info(dat.dea)
 dat.dea[!(names(dat.dea) %in% c('log2_intensity', 'ratio'))] <- NULL
@@ -151,7 +151,7 @@ dev.off()
 ### constand_vs_mediansweeping ###
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('constand_vs_mediansweeping_outdata.rda')
+load('constand_vs_mediansweeping_outdata_msstatstmt.rda')
 variant.names=names(dat.norm.summ.w2)
 dea.info <- get_dea_info(dat.dea)
 
@@ -172,7 +172,7 @@ dev.off()
 # MODEL-BASED
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('modelbased_unit_outdata.rda')
+load('modelbased_unit_outdata_msstatstmt.rda')
 
 dat.norm.summ.w2[c("intensity_fix","ratio_fix")]<- NULL
 dat.dea[c("intensity_fix","ratio_fix")]<- NULL
@@ -222,7 +222,7 @@ dev.off()
 # DATA-DRIVEN
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_unit_outdata.rda')
+load('datadriven_unit_outdata_msstatstmt.rda')
 names(dat.norm.summ.w2)
 variant.names=names(dat.norm.summ.w2)
 dat.norm.summ.w2$intensity_lateLog2 <- NULL
@@ -260,7 +260,7 @@ dev.off()
 # MODEL-BASED
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('modelbased_normalization_outdata.rda')
+load('modelbased_normalization_outdata_msstatstmt.rda')
 variant.names=names(dat.norm.summ.w2)
 # F1 (PCA PLOT)
 png(paste0(out_path, "mb_norm1.png"), width = width.plot1.b, height = height.plot1.b, res=res.plot1.b)
@@ -297,7 +297,7 @@ dev.off()
 # DATA-DRIVEN
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_normalization_outdata.rda')
+load('datadriven_normalization_outdata_msstatstmt.rda')
 #names(dat.norm.summ.w2)[names(dat.norm.summ.w2) %in% c("quantile", "quantileByCondition")] <- c("quantile1", "quantile2")
 variant.names=names(dat.norm.summ.w2)
 
@@ -338,7 +338,7 @@ dev.off()
 # MODEL-BASED
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('modelbased_summarization_outdata.rda')
+load('modelbased_summarization_outdata_msstatstmt.rda')
 variant.names=names(dat.norm.summ.w2)
 
 # F1 (PCA PLOT)
@@ -370,7 +370,7 @@ dev.off()
 # DATA-DRIVEN
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_summarization_outdata.rda')
+load('datadriven_summarization_outdata_msstatstmt.rda')
 variant.names=names(dat.norm.summ.w2)
 # F1 (PCA PLOT)
 png(paste0(out_path, "dd_summ1.png"), width = width.plot1.a , height = height.plot1.a , res=res.plot1.a)
@@ -403,7 +403,7 @@ dev.off()
 # MODEL-BASED
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('modelbased_DEA_outdata.rda')
+load('modelbased_DEA_outdata_msstatstmt.rda')
 variant.names=names(dat.dea)
 dea.info <- get_dea_info(dat.dea)
 
@@ -424,7 +424,7 @@ dev.off()
 # DATA-DRIVEN
 rm(list = ls()[!(ls() %in% keep_objects)])
 source('manuscript_functions.R')
-load('datadriven_DEA_outdata.rda')
+load('datadriven_DEA_outdata_msstatstmt.rda')
 variant.names=names(dat.dea)
 dea.info <- get_dea_info(dat.dea)
 # F2 (REP + VIOLIN PLOT)

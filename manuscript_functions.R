@@ -25,21 +25,6 @@ get_dea_info <- function(dat){
 # pcaplot_rep
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-# dat=dat.nonnorm.summ.w2$data_driven %>% select(-'Protein')
-# info=sample.info
-# title='aa'
-# scale=F;
-# shape.vec=c(15,19,17,3)
-# par.list=list(oma=c(3,2,2,2), mar=c(3,3,2,1), mgp=c(1.5,0.5,0))
-# show.legend=T
-# 
-# dat.norm.summ.w2$data_driven %>% select(-Protein)
-# info=sample.info
-# 'Data-driven'
-# show.legend = T
-# legend.cex=0.8,legend.run.xy=c(-0.9,1.5),legend.cond.xy=c(-0.9,-1.8),
-# par.list=list(oma=c(2,1,1,1), mar=c(2,2,1,1), mgp=c(1.5,0.5,0)))
-
 pcaplot_rep=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3),show.legend=F, par.list=NULL, 
                      legend.cex=1,legend.run.xy=NULL, legend.cond.xy=NULL, legend.textwidth=1, cex.lab=0.9, cex.main=0.9, ...){
   # fix columns order (as in 'info' arg)
@@ -68,11 +53,7 @@ pcaplot_rep=function(dat, info, title, scale=F, shape.vec=c(15,19,17,3),show.leg
     legend(legend.run.xy[1],legend.run.xy[2], text.width = strwidth(text.run)[1]*legend.textwidth, legend=text.run, pch=shape.vec[as.numeric(legend.run)], cex=legend.cex) # run legend
     legend(legend.cond.xy[1],legend.cond.xy[2], text.width = strwidth(text.cond)[1]*legend.textwidth, legend=text.cond, text.col=legend.cond$Color, cex=legend.cex) # condition legend
   }
-  #bty = "n"
-  # mtext(side = 1, text = axis.lab[1], line = 2, cex=0.8)
-  # mtext(side = 2, text = axis.lab[2], line = 2, cex=0.8)
   mtext(side=3, text=title, line=0, cex=cex.main, font=2)
-  #par(op)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -112,31 +93,6 @@ run_effect_plot_rep <- function(dat, main.title=''){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # scatterplot_rep
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-# library(GGally)
-# dat=dat.dea$data_driven %>% rownames_to_column('Protein') %>% select(Protein, logFC_0.125) %>%
-#   left_join(dat.dea$model_based %>% rownames_to_column('Protein') %>% select(Protein, logFC_0.125), by='Protein') %>% select(-Protein)
-# m <- ggpairs(dat)
-# for (i in 2:m$nrow) {
-#   for (j in 1:(i-1)) {
-#     m[i,j] = m[i,j] + geom_abline(intercept=0,slope=1)
-#   }
-# }
-
-# dat=dat.dea
-# cols=significance.cols
-# stats='q-values'
-# spiked.proteins=spiked.proteins
-# plot.title='Aaa'
-# reportContrast='0.125'
-# xlab.title='a'
-# ylab.title='b'
-# ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
-# #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
-# ,col.points=ifelse(rw %in% spiked.proteins, '#E69F00', '#000000')
-# dat=dat.dea; cols=dea.info$logFC.cols; spiked.proteins; 
-# xlab.title='Data-driven (logFC)'; ylab.title='Model-based (logFC)'; reportContrast='0.125'; legend_position = c(-1,0.9)
-# legend_position=c(0.2,0.)
 
 scatterplot_rep <- function(dat, cols, spiked.proteins, xlab.title, ylab.title, reportContrast, legend_position=NULL){
   variant.names <- names(dat)
@@ -199,7 +155,8 @@ scatterplot_rep2 <- function(dat, cols, stat, spiked.proteins, reportContrast){
                         , method='pearson', lm=T, ellipses = FALSE, 
                         ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
                         ,col.points=ifelse(rw %in% spiked.proteins, '#E69F00', '#000000')
-                        ,cex.points=ifelse(rw %in% spiked.proteins, 2, 1))
+                        ,cex.points=ifelse(rw %in% spiked.proteins, 2, 1)
+                        ,digits=3)
 }
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
