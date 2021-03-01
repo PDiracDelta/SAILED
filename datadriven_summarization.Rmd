@@ -45,7 +45,6 @@ library(limma)
 library(psych)
 library(MSnbase)  # CAREFUL! load this BEFORE tidyverse, or you will screw up the rename function.
 library(tidyverse)
-library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 source('other_functions.R')
 source('plotting_functions.R')
 ```

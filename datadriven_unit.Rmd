@@ -38,7 +38,6 @@ library(kableExtra)
 library(limma)
 library(psych)
 library(tidyverse)
-library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 source('other_functions.R')
 source('plotting_functions.R')
 ```
