@@ -52,12 +52,13 @@ knitr::include_graphics("data_hierarchy.png")
 # Workflow components
 
 The table below shows an overview of the many components that make up a workflow for performing a differential expression analysis (DEA). This list is probably not exhaustive, but for each of those components a decision has to be made.
-Note that we have made a dichotomy between data-driven and model-based approaches.
-
+Note that we have made a distinction between data-driven and model-based approaches, which refers to the type of normalization method they use.
 <!-- use tablesgenerator.com OR the image below... -->
-![An overview of our selected components and component variants for constructing an analysis workflow. When studying a particular component (e.g. data-driven normalization), each component variant (e.g. median sweeping, CONSTANd, ...) is applied to the data, while the other workflow components are executed using 'Variant 1' methods only. The same process applies when studying the other components (e.g. summarization), overall, leading to multiple sets of outcomes.](table_selected_variants.png)
+```{r f:table_selected_variants, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 3: An overview of our selected components and component variants for constructing an analysis workflow. When studying a particular component (e.g. data-driven normalization), each component variant (e.g. median sweeping, CONSTANd, ...) is applied to the data, while the other workflow components are executed using 'Variant 1' methods only. The same process applies when studying the other components (e.g. summarization), overall, leading to multiple sets of outcomes."}
+knitr::include_graphics("table_selected_variants.png")
+```
 
-Each of the notebooks in this series takes the default approach, except for one component for which different variants are explored in detail. We chose the **unit scale**, **normalization method**, **summarization method** and **DEA method** as most interesting components to investigate, because on one hand we expect them to be impactful and on the other hand they are the ones we see varied and published about the most. We have made a non-systematic, non-exhaustive, [publicly available list of publications and software packages](https://docs.google.com/spreadsheets/d/1P6yCwUPVIxLb6w3oHiH-xptKBXe_17D_KUkBbLJ6p4w/edit?pli=1#gid=0) related to analyzing proteomics data. You are very welcome to suggest edits and additions to this public repository.
+Each of the notebooks in this series takes the default approach, except for one component for which different variants are explored in detail. We chose the **unit scale**, **normalization method**, **summarization method** and **DEA method** as most interesting components to investigate, because on one hand we expect them to be impactful and on the other hand they are the ones we see varied and published about the most. We have made a non-systematic, non-exhaustive, [publicly available list of publications and software packages](https://docs.google.com/document/d/14BeNQFh3KHiKESdoF5A4OUlo9QWmt9kv/edit) related to analyzing proteomics data. You are very welcome to suggest edits and additions to this public repository.
 
 # Data set
 
