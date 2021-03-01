@@ -243,7 +243,8 @@ scatterplot_ils <- function(dat, cols, stat, spiked.proteins, refCond){
                     ,pch=ifelse(rw %in% spiked.proteins, 'X', 'o') 
                     #,pch=ifelse(rw2 %in% spiked.proteins, 2, 1) 
                     ,col.points=ifelse(rw %in% spiked.proteins, '#E69F00', '#000000')
-                    ,cex.points=ifelse(rw %in% spiked.proteins, 2, 1))
+                    ,cex.points=ifelse(rw %in% spiked.proteins, 2, 1)
+                    ,digits=3)
   }
 }
 
