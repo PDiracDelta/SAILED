@@ -14,11 +14,12 @@ output:
 editor_options: 
   chunk_output_type: console
 params:
-  input_data_p: 'input_data_msstatstmt.Rds'
+  input_data_p: 'input_data_msstatstmt.rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: FALSE
   subsample_p: 0
 ---
+<style>body {text-align: justify}</style>
 
 ```{r, libraries, message=FALSE, echo=FALSE, warning=FALSE}
 library(tidyverse)
@@ -34,11 +35,18 @@ In this notebook series, we explore how different data analysis strategies affec
 Each analysis strategy or 'workflow' can be divided up into different components.
 In this notebook specifically, we give an overview of the different workflow components and briefly describe the data set used.
 
-Analyzing this kind of data is not a simple matter, because there is quite some complexity and experimental variability involved due to the pooling of samples and combining of data from different intrument runs, respectively. On top of that, the data is also quite hierarchical in nature. 
+There is quite some complexity and experimental variability involved due to the isobaric labeling and pooling of samples and combining of data from different instrument runs, respectively. To make matters worse, LC-MS/MS data is already quite hierarchical in nature. If you need a refresher on any of this, expand the next paragraph.
 
 <details>
-  <summary>If you need a refresher on any of those, expand this section.</summary>
-  _stuff about proteins, sample pooling, and the large amount of variability between MS runs (as opposed to, e.g. NGS data. You can copy that info from this paper: https://drive.google.com/file/d/1TE_2e_tWsIU5fNtPpIwN7CjJsetgPqP5/view?usp=sharing)_
+  <summary>Structure of isobarically labeled LC-MS/MS proteomics data.</summary>
+  A labeling approach enables the bottom-up analysis of multiple biological samples simultaneously within a single tandem-MS run. In isobaric labeling (e.g. TMT labels in Figure 1), there is no mass difference between signals of identical peptides, which further increases the comparability and quality of the signals, in this case represented by the reporter fragment ion intensities.
+```{r f:tmtlabels, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 1: a) TMT 6-plex labels differ by isotopes (*) only. b) The reactive group binds to the amino-terminus of the peptides, the reporter breaks off during fragmentation and the mass normalizer/balancer guarantees that the intact labels are isobaric. Image source: [Rosenblatt et al.](https://assets.fishersci.com/TFS-Assets/BID/posters/D00337~.pdf)."}
+knitr::include_graphics("tmt.png")
+```
+  Even though the reporters allow one to assign each spectrum to the correct sample, there is still a substantial amount of complexity to be dealt with. The figure below shows how each protein may be represented by many peptides, multiple times, in multiple 'shapes and forms'. This is why summarization and normalization steps are key components in every workflow.
+```{r f:data_hierarchy, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 2: Tandem-MS data is complex and hierarchical; many different signals compete in determining the (relative) abundance of a protein . The latter are not measured directly, but are represented in possibly multiple runs as multiple variations of multiple peptides in different conditions and different (usually replicate) samples. Many different combinations of such signals co-exist and some are measured in each LC-MS run, while some are not (e.g.: peptide k is not measured in the rightmost run). RT=retention time, CS=charge state, PTM=post-translational modification."}
+knitr::include_graphics("data_hierarchy.png")
+```
 </details>  
 
 # Workflow components
