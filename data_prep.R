@@ -29,11 +29,6 @@ dat.raw <- dat.raw %>% filter(X..Proteins==1)
 # check for empty Protein variable - there should be none of them
 dat.raw %>% filter(Protein=='') %>% nrow
 
-# remove PSM redundancy due to multiple PSM engine score
-table(dat.raw$Identifying.Node)
-check1=dat.raw %>% group_by(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Isolation.Interference...., across(quan.cols)) %>% 
-  summarize(ndist=n_distinct(Identifying.Node)) %>% filter(ndist>1)
-
 # create Run variable
 mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
 st=mix.loc[1]
@@ -55,6 +50,12 @@ dat.raw[,quan.cols] <- dat.raw[,quan.cols]*dat.raw[,paste0('err',quan.cols)]
 # construct approximation of Intensity column, which for some reason is missing... but necessary for iPQF
 dat.raw <- dat.raw %>% rename(DeltaMZ='Deltam.z..Da.')  %>% mutate(TotalIntensity=rowSums(.[,quan.cols], na.rm = T),)
 
+# note that for this data only Mascot was used
+table(dat.raw$Identifying.Node)
+
+# remove PSM redundancy due to multiple PSM engine score e.g. one peptide with 2 rows with identical RT,
+# charge, PTM, and abundance values, but different 'Identifying.Node' values: Mascot (A2) and Mascot (A4).
+# in such case, keep only one record (doesn't matter which one)
 dat.raw <- dat.raw %>% distinct_at(vars(Mixture, Run, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols, TotalIntensity, Ions.Score, DeltaMZ))
 
 # create flags for PSMs: 
@@ -71,14 +72,14 @@ dat.raw$noNAs=ifelse(complete.cases(dat.raw[, quan.cols]), T, F)
 # otherwise one protein could be marked as 'one-hit wonder' in one run and as not 'one-hit wonder' in another run
 # then if you would remove the one-hit wonder case, you would create more missing values affecting further analyses
 onehit.df <- dat.raw %>% group_by(Protein) %>% 
-  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, T, F)) %>%
-  select(-c(ndist))
+  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, T, F)) %>% select(-c(ndist))
 
+# in theory, there should be no shared peptides anymore (after excluding protein groups)
+# but let's calculate a flag for this anyway
 # this flag should be calculated regardless of MS run
 shared.peptide.df <- dat.raw %>% group_by(Peptide) %>% 
   summarize(ndist=n_distinct(Protein), 
-            shared.peptide=ifelse(ndist>1, T, F)) %>%
-  select(-c(ndist))
+            shared.peptide=ifelse(ndist>1, T, F)) %>% select(-c(ndist)) 
 
 dat.raw <- inner_join(dat.raw, onehit.df, by=c('Protein'))
 dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Peptide'))
@@ -100,9 +101,6 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 # convert character variables to factors and drop unused factor levels
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
 
-# create 'Sample' variable, which is Run by Channel interaction
-# dat.l <- dat.l %>% mutate(Sample=Run:Channel) %>% relocate(Sample, .after=Channel)
- 
 ### finally, remove the proteins overlapped between spiked-in proteins and background proteins
 # extract the list of spiked-in proteins
 ups.prot <- unique(dat.l[grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
@@ -120,6 +118,8 @@ dat.l <- dat.l %>% filter(!shared.peptide)
 
 # keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
+
+# remember that you can also exclude proteins with just one peptide (onehit.protein flag), though we decided not to do that
 
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=intensity)

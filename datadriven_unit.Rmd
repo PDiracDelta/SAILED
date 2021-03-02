@@ -38,7 +38,6 @@ library(kableExtra)
 library(limma)
 library(psych)
 library(tidyverse)
-library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 source('other_functions.R')
 source('plotting_functions.R')
 ```
@@ -61,9 +60,9 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 
 ```{r}
 # specify # of varying component variants and their names
-variant.names <- c('log2_intensity', 'intensity', 'ratio_rowmean', 'ratio_condmean', 'ratio_condpairs', 'ratio_onetag')
+variant.names <- c('log2_intensity', 'intensity', 'ratio')
 n.comp.variants <- length(variant.names)
-scale.vec <- c('log', 'raw','raw','raw', 'raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
+scale.vec <- c('log', 'raw','raw')  # ratios are considered raw, because they are basically mean-normalized intensities
 
 # get some data parameters created in the data_prep script
 referenceCondition <- data.list$data.params$referenceCondition
@@ -98,38 +97,15 @@ dat.unit.l$intensity <- dat.l %>% rename(response=intensity)
 
 ## intensity ratios
 
-*ratio_rowmean*: Calculate ratio (per PSM) with respect to average intensity within run, 
-or in other words: each value is divided by the row mean.
-```{r}
-# use half-wide data to compute within-run average of PSM channels corresponding to the reference Condition
-refCols <- sample.info %>% distinct(Channel) %>% pull(Channel)
-denom.df=dat.l %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='intensity')
-denom.df$denom=apply(denom.df[,refCols], 1, function(x) mean(x, na.rm=T))
-denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
-dat.unit.l$ratio_rowmean <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
-```
+Calculate ratio (per PSM): each value is divided by the mean of the reference condition values.
 
-*ratio_condmean*: each sample is divided by the average of samples belonging to the reference condition (here 'r referenceCondition')
 ```{r}
 # use half-wide data to compute within-run average of PSM channels corresponding to the reference Condition
 refCols <- sample.info %>% filter(Condition==referenceCondition) %>% distinct(Channel) %>% pull
 denom.df=dat.l %>% filter(Condition==referenceCondition) %>% pivot_wider(id_cols=-one_of('Condition', 'BioReplicate'),names_from='Channel', values_from='intensity')
 denom.df$denom=apply(denom.df[,refCols], 1, function(x) mean(x, na.rm=T))
 denom.df=denom.df[,c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'denom')]
-dat.unit.l$ratio_condmean <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
-```
-
-*ratio_condpairs*: compute ratios using samples from a selected condition as ratio denominator (channels paired from left to right)
-```{r}
-dat.unit.l$ratio_condpairs <- compute_ratio(dat.w, sample.info, channelsOrdered, referenceCondition)
-```
-
-*ratio_onetag*: divide by one channel reserved for the reference condition (here the first channel of `r referenceCondition`)
-```{r}
-refCols <- sample.info %>% filter(Condition %in% referenceCondition) %>% group_by(Run) %>% top_n(1, Channel) %>% pull(Sample) %>% as.character()
-left_data=dat.unit.l$intensity %>% filter(paste(Run, Channel, sep=':') %in% refCols) %>% select('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM', 'response') %>% rename(denom=response)
-dat.unit.l$ratio_onetag=left_join(dat.unit.l$intensity, left_data, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM'))
-dat.unit.l$ratio_onetag <- dat.unit.l$ratio_onetag %>% mutate(response=response/denom) %>% select(-denom)
+dat.unit.l$ratio <- dat.l %>% left_join(denom.df, by=c('Run', 'Protein', 'Peptide', 'RT', 'Charge', 'PTM')) %>% mutate(response=intensity/denom) %>% select(-c(intensity, denom)) 
 ```
 
 # Normalization component: medianSweeping (1)
@@ -145,10 +121,7 @@ dat.unit.w <- lapply(dat.unit.l, function(x){
 dat.norm.w <- dat.unit.w
 dat.norm.w$log2_intensity[,channelNames] <- median_sweep(dat.norm.w$log2_intensity[,channelNames], 1, '-')
 dat.norm.w$intensity[,channelNames] <- median_sweep(dat.norm.w$intensity[,channelNames], 1, '/')
-dat.norm.w$ratio_rowmean[,channelNames] <- median_sweep(dat.norm.w$ratio_rowmean[,channelNames], 1, '/')
-dat.norm.w$ratio_condmean[,channelNames] <- median_sweep(dat.norm.w$ratio_condmean[,channelNames], 1, '/')
-dat.norm.w$ratio_condpairs[,channelNames] <- median_sweep(dat.norm.w$ratio_condpairs[,channelNames], 1, '/')
-dat.norm.w$ratio_onetag[,channelNames] <- median_sweep(dat.norm.w$ratio_onetag[,channelNames], 1, '/')
+dat.norm.w$ratio[,channelNames] <- median_sweep(dat.norm.w$ratio[,channelNames], 1, '/')
 ```
 
 # Summarization component: Median summarization
@@ -185,10 +158,7 @@ second_median_sweep <- function(dat, fun){
 }
 dat.norm.summ.w$log2_intensity <- second_median_sweep(dat.norm.summ.w$log2_intensity, '-')
 dat.norm.summ.w$intensity <- second_median_sweep(dat.norm.summ.w$intensity, '/')
-dat.norm.summ.w$ratio_rowmean <- second_median_sweep(dat.norm.summ.w$ratio_rowmean, '/')
-dat.norm.summ.w$ratio_condmean <- second_median_sweep(dat.norm.summ.w$ratio_condmean, '/')
-dat.norm.summ.w$ratio_condpairs <- second_median_sweep(dat.norm.summ.w$ratio_condpairs, '/')
-dat.norm.summ.w$ratio_onetag <- second_median_sweep(dat.norm.summ.w$ratio_onetag, '/')
+dat.norm.summ.w$ratio <- second_median_sweep(dat.norm.summ.w$ratio, '/')
 ```
 
 # QC plots
@@ -291,14 +261,6 @@ grid.arrange(grobs = plots, nrow=n.comp.variants)
 ```
 
 # DEA component: Moderated t-test
-
-```{r, eval=FALSE}
-# remove ref channels for DEA
-# excl.sample1 <- sample.info %>% filter(Condition==ratioCondition) %>% pull(Sample) %>% as.character
-# excl.sample2 <- sample.info %>% filter(stri_detect(Sample, fixed=refChannel)) %>% pull(Sample) %>% as.character
-# dat.norm.summ.w2$ratio_condpairs <- dat.norm.summ.w2$ratio_condpairs %>% select(-all_of(excl.sample1))
-# dat.norm.summ.w2$ratio_onetag <- dat.norm.summ.w2$ratio_onetag %>% select(-all_of(excl.sample2))
-```
 
 NOTE:
 - actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
