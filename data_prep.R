@@ -8,7 +8,7 @@ dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
 dat.raw.org <- dat.raw
 
 # read in the study design data frame
-study.design=read.delim('msstatstmt_studydesign.csv')  # create symlink
+study.design <- read.delim('msstatstmt_studydesign.csv', sep=',')  # create symlink
 
 # rename quantification columns
 tmp.fun <- function(x){
