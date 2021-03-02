@@ -1,6 +1,5 @@
 ---
-title: "The anatomy of workflows for analyzing isobarically labeled mass spectrometry
-  data in proteomics"
+title: "Strategies for the analysis of isobarically labeled samples in mass spectrometry-based proteomics"
 author: "Piotr Prostko, Joris Van Houtven"
 date: '`r format(Sys.time(), "%B %d, %Y")`'
 output: 
@@ -29,8 +28,7 @@ library(venn)
 library(kableExtra)
 ```
 
-# General intro
-*The text below is just a quick and dirty sketch of the future content*
+# Introduction
 
 In this notebook series, we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry.
 Each analysis strategy or 'workflow' can be divided up into different components.
