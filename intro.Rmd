@@ -26,6 +26,7 @@ library(tidyverse)
 library(ggplot2)
 library(stringi)
 library(venn)
+library(kableExtra)
 ```
 
 # General intro
@@ -62,37 +63,82 @@ Each of the notebooks in this series takes the default approach, except for one 
 
 # Data set
 
-The data used in this notebook series is a subset of the SpikeIn-5mix-MS2 (Five controlled mixtures with technical replicates) data set used in the initial [publication](https://doi.org/10.1074/mcp.RA120.002105) on [MSstatsTMT](http://msstats.org/msstatstmt/).
-As shown in the figure below, we use only ............subsetting to mixtures 1,2 and techreps 1,2
+The data used in this notebook series is a subset of the SpikeIn-5mix-MS2 (Five controlled mixtures with technical replicates) data set used in [Ting et al.](https://doi.org/10.1074/mcp.RA120.002105) for [MSstatsTMT](http://msstats.org/msstatstmt/).
+It contains a HeLa background with 48 UPS1 proteins spiked in as a dilution series, which will also constitute the nomenclature for our biological conditions: 1, 0.667, 0.5, and 0.125 times of the highest UPS1 peptide amount (500 fmol).
+As shown in the figure below, we use only Runs 1, 2, 4, 5, which represent the first two technical replicates of the first two biological replicates (mixtures). Further, we do not use the reference channels because a) we wish to demonstrate how to analyze data sets _without_ the use of internal references; and b) we wish to avoid confusion with reference conditions and/or channels in the context of ratio's and fold changes.
 
-![](design_ILS_as_subset.png)
+```{r f:design_ILS_as_subset, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 4: We use only the subset (red rectangle) of data from the original study that consists of channels 127N through 130C (omitting the Reference condition samples) in Runs 1,2,4,5 with Mixtures 1 and 2. We also applied several data filtering steps - detailed in the 'Arbitrary choices for the other components' subsection above - after which we were left with 58 028 PSMs, 26 921 unique peptides and 4083 unique proteins, containing 19 out of the 48 spiked-in proteins. Image adapted from [Ting et al.](https://doi.org/10.1074/mcp.ra120.002105)"}
+knitr::include_graphics("design_ILS_as_subset.png")
+```
 
-Below the first few records of the data (in wide format) are printed out to see what we will be dealing with.
+We use the following settings _whenever applicable_ for calculating values or generating figures:
+
+- the reference condition is '0.5';
+- the example ratio for sample comparisons is 'Run4_127C' / 'Run2_129N' (a.k.a. 'Mixture2_1:127C' / 'Mixture1_2:129N');
+- the example ratio for condition comparisons is '1' / '0.125';
+- in multi-color figures, the color coding is:
+```{r, echo=FALSE, results='asis', align='center'} 
+df <- data.frame(Condition=c("0.125", "0.5", "0.667", "1"), Color=c('black', 'blue', 'green', 'red'))
+knitr::kable(df) %>% kable_styling(full_width = F)
+```
+
+
+## Filtering and preparation
+
+In the file `data_prep.R` you can find the details of all data preparation steps. Here, we list which PSMs were discarded or modified and why:
+1. Use only data from Runs 1, 2, 4, 5.
+1. Discard reference samples (TMT channels 126 and 131).
+1. Discard PSMs with shared peptides (as done in [Ting et al.](https://doi.org/10.1074/mcp.RA120.002105)).
+1. Add simulated variability (see next section)
+1. Reconstruct missing MS1 Intensity column based on MS2 intensities (necessary for some component variants).
+1. deduplication
+1. Discard PSMs of proteins that appear both in the background and spike-in.
+1. Discard PSMs with Isolation Interference (%) > 30.
+1. Discard PSMs with NA entries in the quantification channels.
+1. Discard PSMs of one-hit-wonder proteins.
 
 - DATA WAS FILTERED IN data_prep.R: Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
 
-```{r, echo=FALSE}
+## Simulated biological variability
+
+_Piotr can you write this part?_
+
+## Explore data
+
+This is what the data looks like (in wide format):
+
+```{r kable, echo=FALSE, results = "asis"}
+#if (!exists('params')) params <- list(input_data_p='input_data.Rds', suffix_p='msstatstmt', load_outputdata_p=FALSE, subsample_p=0)
 data.list <- readRDS(params$input_data_p)  # create symlink
 dat.l <- data.list$dat.l
 dat.w <- data.list$dat.w
-head(dat.w)
+thekable <- head(dat.w) %>%
+  kable(format = "html", col.names = colnames(dat.w)) %>%
+  kable_styling() %>%
+  kableExtra::scroll_box(width = "100%")
+# kableExtra::column_spec(thekable, 1:ncol(dat.w), width_max = "20em")  # broken https://github.com/haozhu233/kableExtra/issues/534
+thekable
 ```
 
-Some data characteristics:
-```{r, warning=FALSE, message=FALSE}
-(n.protein <- length(unique(dat.w$Protein))) # number of detected proteins
-(n.peptide <- length(unique(dat.w$Peptide))) # number of detected pepides
-(n.spectra <- nrow(dat.w)) # number of recorded spectra
+The rest of this section calculates some interesting characteristics and informative graphs:
+
+```{r, warning=FALSE, message=FALSE, class.source = "fold-show"}
+# number of detected proteins
+(n.protein <- length(unique(dat.w$Protein))) 
+# number of detected pepides
+(n.peptide <- length(unique(dat.w$Peptide))) 
+# number of recorded spectra
+(n.spectra <- nrow(dat.w)) 
   
-# median # of peptides per protein
+# median number of peptides per protein
 dat.w %>% group_by(Protein) %>% summarize(ndist=n_distinct(Peptide)) %>% mutate(n.protein.mean=median(ndist)) %>% pull(n.protein.mean) %>% unique
 
-# median # of PSMs per peptide
+# median number of PSMs per peptide
 dat.w %>% group_by(Peptide) %>% summarize(ndist=n()) %>% mutate(n.peptide.med=median(ndist)) %>%
   pull(n.peptide.med) %>% unique
 
-# how many 'peptides within run' instances 
-# (i.e. one peptide across multiple runs is treated as a separate entitity)
+# number of 'peptides within run' instances 
+# (i.e. one peptide across multiple runs is counted as multiple separate entitities)
 (dc1 <- dat.w %>% distinct(Run, Peptide) %>% nrow) 
 
 dc2 <- dat.w %>% group_by(Run, Peptide) %>% 
@@ -100,9 +146,10 @@ dc2 <- dat.w %>% group_by(Run, Peptide) %>%
   filter(ndist>1)
 dc2 %>% nrow # 'peptides within run' instances detected in >1 spectra
 
-# distribution of PSM counts per 'peptides within run' (counts >1)
+# distribution of PSM counts per 'peptides within run' (counts > 1)
 table(dc2$ndist)
-hist(dc2$ndist, breaks=10, main="PSM counts per 'peptides within run'", xlab='PSM counts per peptide')
+# histogram of PSM counts per 'peptides within run' (counts > 1; removed 5 outliers)
+hist(dc2$ndist[dc2$ndist<12], breaks=0.5+1:11, main="PSM counts per 'peptides within run'", xlab='PSM counts per peptide')
 
 # percentage of duplicates on PSM level
 100*nrow(dc2)/dc1
@@ -114,47 +161,49 @@ dc3 <- dat.w %>% group_by(Run, Peptide) %>%
 dc3 %>% nrow 
 
 # RT is the cause of 99% of PSM duplicates
-100*(dc3 %>% nrow/dc2 %>% nrow) 
+100*(dc3 %>% nrow/dc2 %>% nrow)
+```
 
-# number of spectra with isolation interference>30%
-dat.w %>% filter(isoInterOk=='N') %>% nrow 
 
-# number of spectra with at least one missing quantification channel
-dat.w %>% filter(noNAs=='N') %>% nrow 
+```{r, warning=FALSE, message=FALSE, echo=FALSE, class.source = "fold-show"}
+if (FALSE) { #+ already removed in data_prep.R
+  # number of spectra with isolation interference>30%
+  dat.w %>% filter(isoInterOk=='N') %>% nrow 
+  
+  # number of spectra with at least one missing quantification channel
+  dat.w %>% filter(noNAs=='N') %>% nrow 
+  
+  # number of proteins represented by one peptide only 
+  dat.w %>% filter(onehit.protein=='Y') %>% distinct(Protein) %>% nrow
+  
+  # number of shared peptides
+  dat.w %>% filter(shared.peptide=='Y') %>% distinct(Peptide) %>% nrow
+  
+  # number of spectra after filtering out spectra wth iso interference >30% or with >1 missing quan channel
+  dat.tmp <- dat.w %>% filter(isoInterOk=='Y' & noNAs=='Y')
+  nrow(dat.tmp)
+  
+  # reduction in number of spectra
+  nrow(dat.w)-nrow(dat.tmp)
+} #- already removed in data_prep.R
+```
 
-# number of proteins represented by one peptide only 
-dat.w %>% filter(onehit.protein=='Y') %>% distinct(Protein) %>% nrow
 
-# number of shared peptides
-dat.w %>% filter(shared.peptide=='Y') %>% distinct(Peptide) %>% nrow
-
-# number of spectra after filtering out spectra wth iso interference >30% or with >1 missing quan channel
-dat.tmp <- dat.w %>% filter(isoInterOk=='Y' & noNAs=='Y')
-nrow(dat.tmp)
-
-# reduction in # of spectra
-nrow(dat.w)-nrow(dat.tmp)
-
+```{r, warning=FALSE, message=FALSE, class.source = "fold-show"}
 # Venn diagram of proteins identified  across MS runs
-unique.prot=dat.w %>% 
-  group_by(Run) %>%
-  distinct(Protein) %>% 
-  mutate(val=1)
+unique.prot <- dat.w %>% group_by(Run) %>% distinct(Protein) %>% mutate(val=1)
 unique.prot <- unique.prot %>% pivot_wider(Protein, names_from='Run', values_from='val', values_fill=0)
 venn(unique.prot[, -1], zcolor = "style", main='Proteins')
 
 # Venn diagram of peptides identified  across MS runs
-unique.pep=dat.w %>% 
-  group_by(Run) %>%
-  distinct(Peptide) %>% 
-  mutate(val=1)
+unique.pep <- dat.w %>% group_by(Run) %>% distinct(Peptide) %>% mutate(val=1)
 unique.pep <- unique.pep %>% pivot_wider(Peptide, names_from='Run', values_from='val', values_fill=0)
 venn(unique.pep[, -1], zcolor = "style", main='Peptides')
 
-# names of spiked-in proteins
-(sp <- dat.tmp %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character)
+# names of remaining spiked-in proteins
+(sp <- dat.w %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character)
 
-# number of spiked-in proteins
+# number of spiked-in proteins remaining (out of 48) after filtering
 length(sp)
 ```
 
