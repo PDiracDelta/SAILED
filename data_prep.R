@@ -72,14 +72,14 @@ dat.raw$noNAs=ifelse(complete.cases(dat.raw[, quan.cols]), T, F)
 # otherwise one protein could be marked as 'one-hit wonder' in one run and as not 'one-hit wonder' in another run
 # then if you would remove the one-hit wonder case, you would create more missing values affecting further analyses
 onehit.df <- dat.raw %>% group_by(Protein) %>% 
-  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, T, F)) %>%
-  select(-c(ndist))
+  summarize(ndist=n_distinct(Peptide), onehit.protein=ifelse(ndist==1, T, F)) %>% select(-c(ndist))
 
+# in theory, there should be no shared peptides anymore (after excluding protein groups)
+# but let's calculate a flag for this anyway
 # this flag should be calculated regardless of MS run
 shared.peptide.df <- dat.raw %>% group_by(Peptide) %>% 
   summarize(ndist=n_distinct(Protein), 
-            shared.peptide=ifelse(ndist>1, T, F)) %>%
-  select(-c(ndist))
+            shared.peptide=ifelse(ndist>1, T, F)) %>% select(-c(ndist)) 
 
 dat.raw <- inner_join(dat.raw, onehit.df, by=c('Protein'))
 dat.raw <- inner_join(dat.raw, shared.peptide.df, by=c('Peptide'))
@@ -101,9 +101,6 @@ dat.l <- left_join(dat.l, study.design, by=c('Mixture', 'Run', 'Channel')) %>%
 # convert character variables to factors and drop unused factor levels
 dat.l <- dat.l %>% mutate(across(c(Mixture:Peptide, Charge, PTM ), .fns=as.factor)) %>% droplevels
 
-# create 'Sample' variable, which is Run by Channel interaction
-# dat.l <- dat.l %>% mutate(Sample=Run:Channel) %>% relocate(Sample, .after=Channel)
- 
 ### finally, remove the proteins overlapped between spiked-in proteins and background proteins
 # extract the list of spiked-in proteins
 ups.prot <- unique(dat.l[grepl("ups", dat.l$Protein), "Protein"]) %>% pull %>% as.character
@@ -121,6 +118,8 @@ dat.l <- dat.l %>% filter(!shared.peptide)
 
 # keep spectra with (isolation interference <=30 or NA) and no missing quantification channels
 dat.l <- dat.l %>% filter(isoInterOk & noNAs)
+
+# remember that you can also exclude proteins with just one peptide (onehit.protein flag), though we decided not to do that
 
 # and now return to semi-wide format (wide only within runs)
 dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=intensity)
