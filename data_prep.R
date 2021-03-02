@@ -29,11 +29,6 @@ dat.raw <- dat.raw %>% filter(X..Proteins==1)
 # check for empty Protein variable - there should be none of them
 dat.raw %>% filter(Protein=='') %>% nrow
 
-# remove PSM redundancy due to multiple PSM engine score
-table(dat.raw$Identifying.Node)
-check1=dat.raw %>% group_by(Spectrum.File, Protein, Peptide, RT, Charge, PTM, Isolation.Interference...., across(quan.cols)) %>% 
-  summarize(ndist=n_distinct(Identifying.Node)) %>% filter(ndist>1)
-
 # create Run variable
 mix.loc=stri_locate(str=dat.raw$Spectrum.File, regex='Mixture')[1,]
 st=mix.loc[1]
@@ -55,6 +50,12 @@ dat.raw[,quan.cols] <- dat.raw[,quan.cols]*dat.raw[,paste0('err',quan.cols)]
 # construct approximation of Intensity column, which for some reason is missing... but necessary for iPQF
 dat.raw <- dat.raw %>% rename(DeltaMZ='Deltam.z..Da.')  %>% mutate(TotalIntensity=rowSums(.[,quan.cols], na.rm = T),)
 
+# note that for this data only Mascot was used
+table(dat.raw$Identifying.Node)
+
+# remove PSM redundancy due to multiple PSM engine score e.g. one peptide with 2 rows with identical RT,
+# charge, PTM, and abundance values, but different 'Identifying.Node' values: Mascot (A2) and Mascot (A4).
+# in such case, keep only one record (doesn't matter which one)
 dat.raw <- dat.raw %>% distinct_at(vars(Mixture, Run, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols, TotalIntensity, Ions.Score, DeltaMZ))
 
 # create flags for PSMs: 
