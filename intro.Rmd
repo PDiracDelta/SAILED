@@ -95,11 +95,10 @@ In the file `data_prep.R` you can find the details of all data preparation steps
 1. Discard PSMs with NA entries in the quantification channels.
 1. Discard PSMs of one-hit-wonder proteins.
 
-- DATA WAS FILTERED IN data_prep.R: Mention potential filtering steps (PSM engine redundancy, dropping reference channels, SMs with missing values, isolation interference>30%, shared peptides, one-hit wonders) and their impact on # of PSMS and intensity distributions.  
-
 ## Simulated biological variability
 
-_Piotr can you write this part?_
+This experiment was carried out so carefully that the protein concentrations, i.e., the sample sizes, are all very close to each other. In principle this is good, but we actually want to thoroughly test different normalization methods, and specifically their ability to correct for different sample sizes.
+Therefore, in `data_prep.R` we introduced additional, random variation by multiplying all quantification values in each sample by 2^r, where r is a random number drawn from a normal distribution with mean zero and standard deviation 0.2 (this value was also used by [Ting et al.](https://doi.org/10.1074/mcp.RA120.002105)).
 
 ## Explore data
 
