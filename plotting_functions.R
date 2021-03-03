@@ -316,3 +316,15 @@ run_effect_plot <- function(dat, main.title=''){
     xlab('p-value') +
     ylab('scaled density')
 }
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# display_dataframe - display full-size dataframe/tibble using kable's scrollbox
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+display_dataframe <- function(df) {
+  thekable <- head(dat.l) %>%
+    kable(format = "html", col.names = colnames(df)) %>%
+    kable_styling() %>%
+    kableExtra::scroll_box(width = "100%")
+  return(thekable)
+}
