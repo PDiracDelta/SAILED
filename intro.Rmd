@@ -73,7 +73,7 @@ We use the following settings _whenever applicable_ for calculating values or ge
 
 - the reference condition is '0.5';
 - the example ratio for sample comparisons is 'Run4_127C' / 'Run2_129N' (a.k.a. 'Mixture2_1:127C' / 'Mixture1_2:129N');
-- the example ratio for condition comparisons is '1' / '0.125';
+- the example ratio for condition comparisons is '0.125' / '0.5';
 - in multi-color figures, the color coding is:
 ```{r, echo=FALSE, results='asis', align='center'} 
 df <- data.frame(Condition=c("0.125", "0.5", "0.667", "1"), Color=c('black', 'blue', 'green', 'red'))
