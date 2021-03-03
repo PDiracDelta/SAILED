@@ -54,7 +54,7 @@ dat.raw <- dat.raw %>% rename(DeltaMZ='Deltam.z..Da.')  %>% mutate(TotalIntensit
 table(dat.raw$Identifying.Node)
 
 # remove PSM redundancy due to multiple PSM engine score e.g. one peptide with 2 rows with identical RT,
-# charge, PTM, and abundance values, but different 'Identifying.Node' values: Mascot (A2) and Mascot (A4).
+# charge, PTM, and abundance values, but different 'Identifying.Node' and 'DeltaScore' values: Mascot (A2) and Mascot (A4).
 # in such case, keep only one record (doesn't matter which one)
 dat.raw <- dat.raw %>% distinct_at(vars(Mixture, Run, Protein, Peptide, RT, Charge, PTM, Isolation.Interference....,quan.cols, TotalIntensity, Ions.Score, DeltaMZ))
 
