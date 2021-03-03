@@ -87,9 +87,9 @@ In the file `data_prep.R` you can find the details of all data preparation steps
 1. Use only data from Runs 1, 2, 4, 5.
 1. Discard reference samples (TMT channels 126 and 131).
 1. Discard PSMs with shared peptides (as done in [Ting et al.](https://doi.org/10.1074/mcp.RA120.002105)).
-1. Add simulated variability (see next section)
+1. Add simulated variability (see next section).
 1. Reconstruct missing MS1 Intensity column based on MS2 intensities (necessary for some component variants).
-1. deduplication
+1. Discard duplicate PSMs due to the use of multiple search engine instances (which only change the score).
 1. Discard PSMs of proteins that appear both in the background and spike-in.
 1. Discard PSMs with Isolation Interference (%) > 30.
 1. Discard PSMs with NA entries in the quantification channels.
