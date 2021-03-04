@@ -322,7 +322,7 @@ run_effect_plot <- function(dat, main.title=''){
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 display_dataframe <- function(df) {
-  thekable <- head(dat.l) %>%
+  thekable <- head(df) %>%
     kable(format = "html", col.names = colnames(df)) %>%
     kable_styling() %>%
     kableExtra::scroll_box(width = "100%")
