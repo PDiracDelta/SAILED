@@ -321,10 +321,11 @@ run_effect_plot <- function(dat, main.title=''){
 # display_dataframe - display full-size dataframe/tibble using kable's scrollbox
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
-display_dataframe <- function(df) {
+display_dataframe_head <- function(df) {
   thekable <- head(df) %>%
     kable(format = "html", col.names = colnames(df)) %>%
     kable_styling() %>%
     kableExtra::scroll_box(width = "100%")
+  # kableExtra::column_spec(thekable, 1:ncol(dat.w), width_max = "20em")  # broken https://github.com/haozhu233/kableExtra/issues/534
   return(thekable)
 }
