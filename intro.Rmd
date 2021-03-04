@@ -109,12 +109,7 @@ This is what the data looks like (in wide format):
 data.list <- readRDS(params$input_data_p)  # create symlink
 dat.l <- data.list$dat.l
 dat.w <- data.list$dat.w
-thekable <- head(dat.w) %>%
-  kable(format = "html", col.names = colnames(dat.w)) %>%
-  kable_styling() %>%
-  kableExtra::scroll_box(width = "100%")
-# kableExtra::column_spec(thekable, 1:ncol(dat.w), width_max = "20em")  # broken https://github.com/haozhu233/kableExtra/issues/534
-thekable
+display_dataframe_head(dat.w)
 ```
 
 The rest of this section calculates some interesting characteristics and informative graphs:
