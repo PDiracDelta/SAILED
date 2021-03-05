@@ -1,5 +1,5 @@
 ---
-title: "Summarization strategy comparison for Data-driven analysis of isobarically labeled proteomic data."
+title: "*Summarization* strategy comparison for *Data-driven* analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -29,14 +29,17 @@ knitr::opts_chunk$set(
 )
 ```
 
-This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry.
-Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook.
-In this notebook specifically, we investigate the effect of varying the **Summarization** component on the outcome of the differential expression results. The three component variants are: **median summarization**, **iPQF**, **sum summarization**.
+<span style="color: grey;">
+_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook._
+</span>
 
-The R packages and helper scripts necessary to run this notebook are listed below and each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd).
+In this notebook specifically, we investigate the effect of varying the **Summarization** component on the outcome of the differential expression results. The three component variants are: **Median summarization**, **iPQF**, **Sum summarization**.
+
+<span style="color: grey;">
+_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd)._
+</span>
 
 ```{r}
-library(ggplot2)
 library(stringi)
 library(gridExtra)
 library(dendextend)
@@ -49,15 +52,15 @@ source('other_functions.R')
 source('plotting_functions.R')
 ```
 
-Let's load the PSM data set
+Let's load our PSM-level data set:
 
 ```{r}
 data.list <- readRDS(params$input_data_p)
 dat.l <- data.list$dat.l # data in long format
-dat.l
+display_dataframe_head(dat.l)
 ```
 
-After this thresholding there are 19 UPS1 proteins remaining, even though 48 were originally spiked in.
+After the filtering done in `data_prep.R`, there are 19 UPS1 proteins remaining, even though 48 were originally spiked in.
 
 ```{r}
 # which proteins were spiked in?
@@ -72,7 +75,7 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 }
 ```
 
-We pick technical replicates with a dilution of 0.5 as the reference condition of interest. Each condition is represented by two of eight reporter Channels in each Run.
+We store the metadata in `sample.info` and show some entries below. We also pick technical replicates with a dilution factor of 0.5 as the reference condition of interest. Each condition is represented by two of eight reporter Channels in each Run. 
 
 ```{r,echo=FALSE}
 # specify # of varying component variants and their names
@@ -94,7 +97,7 @@ channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
 ```{r}
-sample.info
+display_dataframe_head(sample.info)
 referenceCondition
 channelNames
 ```
@@ -105,34 +108,35 @@ We use the default unit scale: the log2-transformed reportion ion intensities.
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
-dat.unit.l
+display_dataframe_head(dat.unit.l)
 ```
 
 # Normalization component: medianSweeping (1)
 
-Since medianSweeping needs to be applied on matrix-like data, let's switch to wide format. 
+Median sweeping means subtracting from each PSM quantification value the spectrum median (i.e., the row median computed across samples/channels). If the unit scale is set to intensities or ratios, the multiplicative variant of this procedure is applied: subtraction is replaced by division.
+Since median sweeping needs to be applied on matrix-like data, let's switch to wide format. 
 (Actually, this is semi-wide, since the Channel columns still have contributions form all Runs, but that's OK because in the next step we split by Run.)
 
 ```{r}
 # switch to wide format
 dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
-dat.unit.w
+display_dataframe_head(dat.unit.w)
 ```
 
-Now let's sweep the medians of all the rows. No need to split this per Run, because each row contains only values from one Run and each median calculation is independent of the other rows. We will sweep the columns on the protein level -- as suggested by HERBRICH ET AL -- after summarization.
+Now let's sweep the medians of all the rows. No need to split this per Run, because each row in this semi-wide format contains only values from one Run and each median calculation is independent of the other rows.
 
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
-dat.norm.w
+display_dataframe_head(dat.norm.w)
 ```
 
-These normalized quantification values are now perfectly comparable!
+These (partially) normalized quantification values are now already comparable, but after summarization we will also sweep the columns on the protein level, as suggested by [Herbrich at al.](https://doi.org/10.1021/pr300624g).
 
 # Summarization component
 
-Now, let's look at three ways to summarize quantification values from PSM to peptide (first step) to protein (second step).
+In the next three subsections, let's look at our different ways to summarize quantification values from PSM to peptide (first step) to protein (second step) in each sample.
 
 ```{r}
 dat.norm.summ.w <- emptyList(variant.names)
@@ -141,7 +145,7 @@ dat.nonnorm.summ.w <- emptyList(variant.names)
 
 ## Median summarization
 
-Median summarization is simple: within each Run and within each Channel, we replace multiple observations with their median. First, for each Peptide (median of the PSM values), then for each Protein (median of the PSM values) .
+Median summarization is simple: within each Run and within each Channel, we replace multiple related observations with their median. First, for each Peptide (median of the PSM values), then for each Protein (median of the peptide values).
 
 ```{r}
 median_summarization <- function(dat) {
@@ -152,15 +156,10 @@ median_summarization <- function(dat) {
 
 # normalized data
 dat.norm.summ.w$median <- median_summarization(dat.norm.w)
-dat.norm.summ.w$median[, channelNames]
-head(rowSums(dat.norm.summ.w$median[, channelNames]))
+display_dataframe_head(dat.norm.summ.w$median[, channelNames])
 ```
 
-Notice that the row sums are not equal to Ncols anymore, because the median summarization
-does not preserve them (but mean summarization does).
-
-Let's also summarize the non-normalized data for comparison later on
-.
+Let's also summarize the non-normalized data for comparison later on.
 ```{r}
 # non-normalized data
 dat.nonnorm.summ.w$median <- median_summarization(dat.unit.w) 
@@ -168,7 +167,7 @@ dat.nonnorm.summ.w$median <- median_summarization(dat.unit.w)
 
 ## iPQF
 
-_explain iPQF_
+iPQF uses several quantitative _and_ qualitative peptide spectral characteristics to compute a weighted mean to approximate protein abundance. This means it can summarize directly from PSM to protein level while taking into account "features such as charge state, sequence length, identification score, mass and a distance metric within uniquely and redundantly measured spectra". As iPQF is easiest to use through MSnbase, we first turn each MS run in our data set into an MSnSet object and then use the `combineFeatures` function with the iPQF option.
 
 ```{r}
 iPQF_summarization <- function(x) {
@@ -185,7 +184,10 @@ iPQF_summarization <- function(x) {
 }
 # normalized data
 dat.norm.summ.w$iPQF <- iPQF_summarization(dat.norm.w)
+display_dataframe_head(dat.norm.summ.w$iPQF[, channelNames])
 ```
+
+Here, too, let's summarize the non-normalized data for comparison later on.
 
 ```{r}
 # non-normalized data
@@ -194,7 +196,7 @@ dat.nonnorm.summ.w$iPQF <- iPQF_summarization(dat.unit.w)
 
 ## Sum summarization
 
-Sum summarization is completely analogous to the median summarization, except that we sum values instead of taking the median. Note that sum normalization is NOT equivalent to mean normalization: yes, rows containing NA values are removed, but there may be multiple PSMs per peptide and multiple peptides per protein. Since we know that there is a strong peptide-run interaction, summing values across peptides per protein may result in strong bias by run.
+Sum summarization is completely analogous to the Median summarization, except that we sum values instead of taking the median. Note that sum normalization is _not_ equivalent to mean normalization: yes, rows containing NA values are removed, but there may be multiple PSMs per peptide and multiple peptides per protein. Since we know that there is a strong peptide-run interaction, summing values across peptides per protein may result in strong bias by run.
 
 ```{r}
 sum_summarization <- function(dat) {
@@ -204,7 +206,10 @@ sum_summarization <- function(dat) {
 }
 # normalized data
 dat.norm.summ.w$sum <- sum_summarization(dat.norm.w)
+display_dataframe_head(dat.norm.summ.w$sum[, channelNames])
 ```
+
+Again, let's also summarize the non-normalized data for comparison later on.
 
 ```{r}
 # non-normalized data
@@ -213,7 +218,7 @@ dat.nonnorm.summ.w$sum <- sum_summarization(dat.unit.w)
 
 # Normalization component: medianSweeping (2)
 
-Now that the data is on the protein level, let's sweep all values separately per protein in the columns/samples. This is _slightly_ different from sweeping before the summarization step because the median of medians is not the same as the grand median, but this does not introduce bias.
+Now that the data is on the protein level, let's sweep all values separately per protein in the columns/samples. This is _slightly_ different from sweeping before the summarization step because the median of medians is not the same as the grand median, but this does not introduce any bias.
 
 ```{r}
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel
@@ -229,7 +234,7 @@ dat.norm.summ.w <- lapply(dat.norm.summ.w, function(x) {
 
 # QC plots
 
-Before getting to the DEA section, let's do some basic quality control and take a sneak peek at the differences between the component varints we've chosen. First, however, we should make the data completely wide, so that each sample gets it's own unique column.
+Before getting to the DEA section, let's do some basic quality control and take a sneak peek at the differences between the component variants we've chosen. First, however, we should make the data completely wide, so that each sample gets it's own unique column.
 
 ```{r}
 # make data completely wide (also across runs)
@@ -247,8 +252,8 @@ dat.nonnorm.summ.w2 <- lapply(dat.nonnorm.summ.w, function(x){
 
 ## Boxplots
 
-These boxplots of the normalized intensities show that the distributions of Median- and iPQF-summarized values are very similar and symmetrical! In contrast, the Sum summarization produces very skewed distributions.
-As for normalization, .......
+These boxplots of both the raw and normalized intensities show that the distributions of Median- and iPQF-summarized values are very similar and symmetrical. In contrast, the Sum summarization produces very skewed distributions.
+Although for all summarization methods the boxplots are centered after normalization, this skewness of the Sum summarized values is ominous.
 
 ```{r}
 # use (half-)wide format
@@ -260,8 +265,8 @@ for (i in 1:n.comp.variants){
 
 ## MA plots
 
-We now make MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively). 
-Clearly, the normalization had a strong variance-reducing effect on the fold changes. However, Sum summarization counteracts this.........
+We then make MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively). 
+Clearly, the normalization had a strong variance-reducing effect on the fold changes. It seems that fold changes associated with Sum summarization experience a strong bias (blue curve is rolling average) for low abundance proteins after normalization.
 
 ```{r}
 for (i in 1:n.comp.variants){
@@ -271,12 +276,12 @@ grid.arrange(p1, p2, ncol=2)}
 ```
 
 To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom` (quantification values averaged within condition).
-Indeed, even the raw, unnormalized data now show less variability, and again even more so for the normalized data. In this case, even the Sum summarized data experienced variance reduction, although not as much.
+Indeed, even the raw, unnormalized data now show less variability, and again even more so for the Median summarization normalized data. It seems that by using more samples (now 8 in both the enumerator and denominator instead of just one) in the fold change calculation the rolling average is more robust and the Sum summarization data bias has been reduced (but not disappeared).
 
 ```{r}
 channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
 channels.denom <- sample.info %>% filter(Condition==ma.allsamples.denom) %>% select(Sample) %>% pull
-for (i in 1: n.comp.variants){
+for (i in 1:n.comp.variants){
   p1 <- maplot_ils(dat.nonnorm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('raw', variant.names[i], sep='_'), spiked.proteins)
   p2 <- maplot_ils(dat.norm.summ.w2[[variant.names[i]]], channels.num, channels.denom, scale=scale.vec, paste('normalized', variant.names[i], sep='_'), spiked.proteins)
 grid.arrange(p1, p2, ncol=2)}
@@ -289,8 +294,8 @@ dat.norm.summ.l <- lapply(dat.norm.summ.w, to_long_format, sample.info)
 
 ## PCA plots
 
-Now, let's check if these multi-dimensional data contains some kind of grouping; It's time to make PCA plots!
-Even though PC1 does seem to capture the conditions, providing a gradient for the dilution number, only the 0.125 condition is completely separable in the normalized data. Again, here, the Sum summariztion messes everything up and just separates samples according to.......??? just like the raw data.
+Now, let's check if these multi-dimensional data contains some kind of grouping; It's time to make PCA plots.
+Even though PC1 does seem to capture the conditions, providing a gradient for the dilution number, only the 0.125 condition is completely separable in the normalized data. Here, clearly the Sum summarization is insufficient and does not get further than merely scrambling the samples and not leaving them clustered according to run.
 
 ### Using all proteins
 
@@ -301,13 +306,12 @@ for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
-There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small proportion. 
+There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small amount in both relative (to the 4083 proteins total) and absolute (for a biological sample) terms. 
 
-### Using spiked proteins only (if applicable)
+### Using spiked proteins only
 
-Therefore, let's see what the PC plots look like if we were to only use the spiked proteins in the PCA. 
-Now, there are clear differences between the raw, non-normalized median and iPQF plots, but _after_ normalization they are very similar! This time, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully. Again, Sum summarization destroys whatever good work the normalization had done.
-Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
+Therefore, let's see what the PCA plots look like if we were to only use the spiked proteins in the PCA. 
+Now, there are clear differences between the raw or non-normalized Median and iPQF) plots, but _after_ normalization they are very similar! This time, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully. Even here, Sum summarization does not properly separate the samples according to condition.
 
 ```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1,2))
@@ -316,11 +320,12 @@ for (i in 1:n.comp.variants){
   pcaplot_ils(dat.norm.summ.w2[[variant.names[i]]] %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, paste('normalized', variant.names[i], sep='_'))}
 ```
 
-Note that in a real situation without spiked proteins, you might plot data corresponding to the top X most differential proteins instead.
+Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
+In a real situation without spiked proteins, you might plot data corresponding to the top X most differential proteins instead.
 
 ## HC (hierarchical clustering) plots
 
-The PCA plots of all proteins has a rather lower fraction of variance explained by PC1. We can confirm this using a hierarchical clustering dendrogram: when considering the entire multidimensional space, the different conditions are not very separable at all. This is not surprising as there are only 19 truly differential proteins out of.........?
+The PCA plots of all proteins has a rather lower fraction of variance explained by PC1. We can confirm this using the hierarchical clustering dendrograms below: when considering the entire multidimensional space, the different conditions are not very separable at all. This is not surprising as there is little biological variation between the conditions: there are only 19 truly differential proteins, and they all (ought to) covary in exactly the same manner (i.e., their variation can be captured in one dimension).
 
 ```{r}
 par(mfrow=c(1,2))
@@ -331,7 +336,9 @@ for (i in 1:n.comp.variants){
 
 ## Run effect p-value plot
 
-Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
+Our last quality check involves a measure of how well each variant was able to assist in removing the run effect. 
+Below are the distributions of p-values from a linear model for the `response` variable with `Run` as a covariate.
+If the run effect was removed successfully, these p-values ought to be large. Clearly, the raw data contains a run effect, which is partially removed by Median and iPQF summarization and - surprisingly - even better by Sum summarization. The latter may be a consequence of the fact that this experiment was carried out very carefully: the sample sizes are near-identical and the simulated variance we added averages out across multiple samples, rendering the total summed intensities of proteins more or less stable across runs.
 
 ```{r}
 plots <- vector('list', n.comp.variants)
@@ -344,15 +351,15 @@ grid.arrange(grobs = plots, nrow=n.comp.variants)
 
 # DEA component: Moderated t-test
 
-We look at the log2 fold changes of all conditions w.r.t. the reference condition with dilution ratio 0.5.
+We look at the log2 fold changes of each condition w.r.t. the reference condition with dilution ratio `r ma.allsamples.denom`.
 Since we are working with a log2 unit scale already, this means that for each protein we just look at the difference in mean observation across all channels between one condition and the reference condition.
-Note that this is not the same as looking at the log2 of the ratio of mean raw intensities for each condition, nor the mean ratio of raw intensities for each condition, since $log_2 (\frac{mean(B)}{mean(A)}) \neq \frac{mean(log_2 (B))}{mean(log_2 (A))} \neq mean(\frac{log_2 (B)}{log_2 (A)})$.
+Note that this is not the same as looking at the log2 of the ratio of mean raw intensities for each condition (left hand side below), nor the mean ratio of raw intensities for each condition (right hand side below), since $log_2 (\frac{mean(B)}{mean(A)}) \neq \frac{mean(log_2 (B))}{mean(log_2 (A))} \neq mean(\frac{log_2 (B)}{log_2 (A)})$.
 
 To check whether these fold changes are significant (criterium: $q<0.05$), we use a [moderated t-test](http://www.biostat.jhsph.edu/~kkammers/software/eupa/R_guide.html) slightly adapted from the `limma` package, which in use cases like ours should improve statistical power over a regular t-test. In a nutshell, this is a t-test done independently for each protein, although the variance used in the calculation of the t-statistic is [moderated using some empirical Bayes estimation](https://doi.org/10.2202/1544-6115.1027).
 After testing, we make a correction for multiple testing using the Benjamini-Hochberg method in order to keep the FDR under control.
 
-NOTE:
-- actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
+<!--NOTE:
+- actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).-->
 ```{r}
 # design matrix as used in ANOVA testing.
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
@@ -364,19 +371,21 @@ for (i in 1:n.comp.variants){
   dat.dea[[variant.names[i]]] <- moderated_ttest(dat=d, design.matrix, scale=this_scale)}
 ```
 
-For each condition, we now get the fold changes, moderated and unmoderated p-values, moderated and unmoderated q-values (BH-adjusted p-values), and some other details.
+For each condition, we now get the fold changes, moderated and unmoderated p-values, moderated and unmoderated q-values (BH-adjusted p-values), and some other details (head of dataframe below).
 
 ```{r}
-colnames(dat.dea[[1]])
+display_dataframe_head(dat.dea[[1]])
 ```
 
 # Results comparison
 
-Let's look at how our component variants have affected the outcome of the DEA.
+Now, the most important part: let's find out how our component variants have affected the outcome of the DEA.
 
 ## Confusion matrix
 
-_Piotr, can you do this?_
+A confusion matrix shows how many true and false positives/negatives each variant has given rise to. Spiked proteins that are DE are true positives, background proteins that are not DE are true negatives. We calculate this matrix for all conditions and then calculate some other informative metrics based on the confusion matrices: accuracy, sensitivity, specificity, positive predictive value and negative predictive value. 
+
+Clearly, across the board, Sum summarization underperforms while Median summarization and iPQF are on equal footing, with an acceptable but not spectacular sensitivity.
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
@@ -385,7 +394,7 @@ print_conf_mat(cm, referenceCondition)
 
 ## Correlation scatter plots
 
-To see whether the three Summarization methods produce similar results on the detailed level of individual proteins, we make scatter plots and check the correlation of their fold changes and p-values. 
+To see whether the three Summarization methods produce similar results on the detailed level of individual proteins, we make scatter plots and check the correlation between their fold changes and between their significance estimates (q-values, in our case). 
 
 ```{r,echo=FALSE,results=FALSE}
 # character vectors containing logFC and p-values columns
@@ -395,13 +404,13 @@ significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
 ```
 
-For all conditions, we see the iPQF consistently produces slightly higher p-values in the $[0, 0.5]$ interval than the Median summarization, with which it correlates $>0.82$ overall. Towards $q=1$ the correlation is worse, but that is not surprising as that is the domain of housekeeping proteins, which moreover are not of particular interest. The Sum summarization resulted in very, very little significant observations.
+For all conditions, we see the iPQF correlates well ($>0.9$) with the Median summarization, especially for the spike-in proteins with low q-values. Towards $q=1$ the correlation is worse, but that is not surprising as that is the domain of housekeeping proteins, which are still subject to stochasticity and moreover not of particular interest. The Sum summarization marked everything as very insignificant, except for but a handful of proteins.
 
 ```{r}
 scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins, referenceCondition)
 ```
 
-The correlation metween Median summarization and iPQF is even higher for the fold changes: $>0.96$ for all conditions. This is to be expected based on the q-value plots, as a large difference in the test statistic can be due to a small difference in fold change. The plots involving Sum summarization have an anomaly around 0 fold change.
+The correlation metween Median summarization and iPQF is even higher for the fold changes: $>0.99$ for all conditions. This is to be expected based on the q-value plots, as a large difference in the test statistic can be due to a small difference in fold change. The plots involving Sum summarization have an anomaly around 0 fold change, and the values of the spike-in proteins are not very well correlated with those of the other methods.
 
 ```{r}
 scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins, referenceCondition)
@@ -409,7 +418,7 @@ scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins, referenceConditi
 
 ## Volcano plots
 
-The volcano plot combines information on fold changes and statistical significance. The spike-in proteins are colored blue, and immediately it is clear that their fold changes dominate the region of statistical significance, which suggests the experiment and analysis were carried out successfully.
+The volcano plot combines information on fold changes and statistical significance. The spike-in proteins are colored blue, and immediately it is clear that their fold changes dominate the region of statistical significance, which suggests the experiment and analysis were carried out successfully. The magenta, dashed line indicates the theoretical fold change of the spike-ins.
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -418,11 +427,10 @@ for (i in 1:n.contrasts){
 
 ## Violin plots
 
-On a 'macroscopic' scale, the best way to find out whether this experiment and subsequent analysis was successful is to check whether the spike-in proteins have attained the fold change that corresponds to their condition.
-Instead of plotting each protein individually, we make violin plots to get a sense of the general trend. The theoretical fold changes are indicated with red dotted lines.
+A good way to assess the general trend of the fold change estimates on a more 'macroscopic' scale is to make a violin plot. Ideally, there will be some spike-in proteins that attain the expected fold change  (red dashed line) that corresponds to their condition, while most (background) protein log2 fold changes are situated around zero.
 
-Clearly, the empirical results _tend towards_ the theoretical truth, however not a single observation attained the fold change it should have attained. There is clearly a strong bias towards zero fold change, which may partly be explained by the ratio compression phenomenon in mass spectrometry, although the effect seems quite extreme here.
-It seems that Median summarization and iPQF produce very similar violins, while Sum summarization is again the odd one out.
+Clearly, the empirical results _tend towards_ the theoretical truth, but not a single observation attained the fold change it should have attained. There is clearly a strong bias towards zero fold change, which may partly be explained by the ratio compression phenomenon in mass spectrometry, although the effect seems quite extreme here.
+It seems that Median summarization and iPQF produce very similar violins, while Sum summarization is again the odd one out. Even though the Sum-associated values are closer to their theoretically expected values, in light of the rest of our analysis it seems more plausible that this is due to the entire distribution suffering increased variability, rather than that the Sum summarization would produce more reliable outcomes.
 
 ```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
@@ -441,7 +449,7 @@ save(dat.nonnorm.summ.l
 
 # Conclusions
 
-For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. The QC plots suggest that the Sum summarization obfuscates any work done by the normalization. This may be explained by the fact that sum summarization promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity. Therefore, Sum summarization does not work when you have data from multiple runs. In such a case, it would be advised to use mean normalization instead.
+For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. The QC plots suggest that the Sum summarization obfuscates much of the work done by the normalization. This may be explained by the fact that sum summarization promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity. Therefore, Sum summarization does not work when you have data from multiple runs. In such a case, it would be advised to use summarization method instead.
 
 # Session information
 
