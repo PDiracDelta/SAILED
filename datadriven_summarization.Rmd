@@ -200,7 +200,7 @@ Sum summarization is completely analogous to the median summarization, except th
 sum_summarization <- function(dat) {
   # group by (run,)protein,peptide then summarize twice (once on each level)
   # add select() statement because summarise_at is going bananas over character columns
-  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = median) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = sum) %>% ungroup())
+  return(dat %>% group_by(Run, Protein, Peptide) %>% select(Run, Protein, Peptide, channelNames) %>% summarise_at(.vars = channelNames, .funs = sum) %>% select(Run, Protein, channelNames) %>% summarise_at(.vars = channelNames, .funs = sum) %>% ungroup())
 }
 # normalized data
 dat.norm.summ.w$sum <- sum_summarization(dat.norm.w)
