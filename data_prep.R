@@ -138,7 +138,7 @@ dat.w <- dat.l %>% pivot_wider(id_cols=-one_of(c('Condition', 'BioReplicate')), 
   # specify samples and conditions for ma plots
   ma.onesample.num <- 'Mixture2_1:127C'
   ma.onesample.denom <- 'Mixture1_2:129N'
-  ma.allsamples.num <- '1'
+  ma.allsamples.num <- '0.5'
   ma.allsamples.denom <- '0.125'
 params <- list(referenceCondition=referenceCondition,
                condition.color=condition.color, 
