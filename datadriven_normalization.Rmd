@@ -475,6 +475,16 @@ In general, all fold change distributions (except those of CONSTANd whose distri
 violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
+<!-- ```{r, echo=!params$load_outputdata_p} -->
+<!-- save(dat.nonnorm.summ.l -->
+<!--      ,dat.norm.summ.l -->
+<!--      ,dat.nonnorm.summ.w -->
+<!--      ,dat.norm.summ.w -->
+<!--      ,dat.nonnorm.summ.w2 -->
+<!--      ,dat.norm.summ.w2 -->
+<!--      ,dat.dea, file=paste0('datadriven_summarization_outdata_', params$suffix_p, '.rda')) -->
+<!-- ``` -->
+
 # Conclusions
 
 For the given data set, the differences in proteomic outcomes between median sweeping and NOMAD normalization are quite small, both on the global and individual scale.
