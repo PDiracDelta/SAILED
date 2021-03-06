@@ -113,7 +113,8 @@ display_dataframe_head(dat.unit.l)
 
 # Normalization component: medianSweeping (1)
 
-Median sweeping means subtracting from each PSM quantification value the spectrum median (i.e., the row median computed across samples/channels). If the unit scale is set to intensities or ratios, the multiplicative variant of this procedure is applied: subtraction is replaced by division.
+Median sweeping means subtracting from each PSM quantification value the spectrum median (i.e., the row median computed across samples/channels) and the sample median (i.e., the column median computed across features). If the unit scale is set to intensities or ratios, the multiplicative variant of this procedure is applied: subtraction is replaced by division.
+
 Since median sweeping needs to be applied on matrix-like data, let's switch to wide format. 
 (Actually, this is semi-wide, since the Channel columns still have contributions form all Runs, but that's OK because in the next step we split by Run.)
 
@@ -123,7 +124,8 @@ dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'Bio
 display_dataframe_head(dat.unit.w)
 ```
 
-Now let's sweep the medians of all the rows. No need to split this per Run, because each row in this semi-wide format contains only values from one Run and each median calculation is independent of the other rows.
+First, let's sweep the medians of all the rows, and do the columns later as suggested by [Herbrich at al.](https://doi.org/10.1021/pr300624g. 
+No need to split this per Run, because each row in this semi-wide format contains only values from one Run and each median calculation is independent of the other rows.
 
 ```{r}
 # subtract the spectrum median log2intensity from the observed log2intensities
