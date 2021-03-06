@@ -340,7 +340,7 @@ for (i in 1:n.comp.variants){
 
 Our last quality check involves a measure of how well each variant was able to assist in removing the run effect. 
 Below are the distributions of p-values from a linear model for the `response` variable with `Run` as a covariate.
-If the run effect was removed successfully, these p-values ought to be large. Clearly, the raw data contains a run effect, which is partially removed by Median and iPQF summarization and - surprisingly - even better by Sum summarization. The latter may be a consequence of the fact that this experiment was carried out very carefully: the sample sizes are near-identical and the simulated variance we added averages out across multiple samples, rendering the total summed intensities of proteins more or less stable across runs.
+If the run effect was removed successfully, these p-values ought to be large. Clearly, the raw data contains a run effect, which is partially removed by the normalization when using Median or iPQF summarization and - surprisingly - even better when using Sum summarization. The latter may be a consequence of the fact that this experiment was carried out very carefully: the sample sizes are near-identical and the simulated variance we added averages out across multiple samples, rendering the total summed intensities of proteins more or less stable across runs.
 
 ```{r}
 plots <- vector('list', n.comp.variants)
