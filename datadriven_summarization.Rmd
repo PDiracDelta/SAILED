@@ -387,7 +387,7 @@ Now, the most important part: let's find out how our component variants have aff
 
 A confusion matrix shows how many true and false positives/negatives each variant has given rise to. Spiked proteins that are DE are true positives, background proteins that are not DE are true negatives. We calculate this matrix for all conditions and then calculate some other informative metrics based on the confusion matrices: accuracy, sensitivity, specificity, positive predictive value and negative predictive value. 
 
-Clearly, across the board, Sum summarization underperforms while Median summarization and iPQF are on equal footing, with an acceptable but not spectacular sensitivity.
+Clearly, across the board, Sum summarization underperforms while Median summarization and iPQF are on equal footing, with an acceptable but not spectacular sensitivity. That said, the contrast between conditions 0.667 and 0.5 seems not large enough to yield many significant results.
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
