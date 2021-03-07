@@ -26,6 +26,8 @@ library(ggplot2)
 library(stringi)
 library(venn)
 library(kableExtra)
+source('other_functions.R')
+source('plotting_functions.R')
 ```
 
 # Introduction
