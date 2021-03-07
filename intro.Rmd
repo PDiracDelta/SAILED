@@ -13,7 +13,7 @@ output:
 editor_options: 
   chunk_output_type: console
 params:
-  input_data_p: 'input_data_msstatstmt.rds'
+  input_data_p: 'input_data.rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: FALSE
   subsample_p: 0
