@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.Rproj
+*.Rproj
 PSMs.csv
 PSMs_cleaned.csv
 .idea
