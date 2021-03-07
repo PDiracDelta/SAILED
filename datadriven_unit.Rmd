@@ -1,5 +1,5 @@
 ---
-title: "*Unit scaling* strategy comparison for *Data-driven* analysis of isobarically labeled proteomic data."
+title: "**Unit scaling** strategy comparison for **Data-driven** analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -30,13 +30,13 @@ knitr::opts_chunk$set(
 ```
 
 <span style="color: grey;">
-_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook._
+_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the [introduction notebook](intro.html)._
 </span>
 
 In this notebook specifically, we investigate the effect of varying the **Unit scale** component on the outcome of the differential expression results. The three component variants are: **log2 intensity**, **(untransformed) intensity**, **ratio**.
 
 <span style="color: grey;">
-_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd)._
+_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_unit.Rmd)._
 </span>
 
 ```{r}

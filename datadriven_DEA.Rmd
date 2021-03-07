@@ -30,14 +30,14 @@ knitr::opts_chunk$set(
 ```
 
 <span style="color: grey;">
-_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook._
+_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the [introduction notebook](intro.html)._
 </span>
 
 In this notebook specifically, we investigate the effect of varying the **Differential Expression testing** component on the outcome of the differential expression results. 
 The four component variants are: **moderated t-test**, **Wilcoxon test**, **permutation test**, and **Reproducibility-Optimized Test Statistic (ROTS)**.
 
 <span style="color: grey;">
-_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd)._
+_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_DEA.Rmd)._
 </span>
 
 ```{r}
@@ -316,7 +316,7 @@ display_dataframe_head(dat.dea$moderated_ttest)
 
 ## Wilcoxon test
 
-The Wilcoxon test ((Wilcoxon, F.)[http://doi.org/10.1007/978-1-4612-4380-9]) is a non-parametric rank-based test for comparing two groups (i.e., biological conditions).
+The Wilcoxon test ([Wilcoxon, F.](http://doi.org/10.1007/978-1-4612-4380-9)) is a non-parametric rank-based test for comparing two groups (i.e., biological conditions).
 For each protein separately, the test is applied to each condition w.r.t. the reference condition `r referenceCondition`.
 
 _@Piotr: uncomment the explanation of Wilcoxon fold changes if desired, otherwise explain why not_
@@ -338,7 +338,7 @@ display_dataframe_head(dat.dea$Wilcoxon)
 
 ## Permutation test
 
-The Fisher-Pitman permutation test ((Pitman, E.J.G.)[https://doi.org/10.2307/2984124]) is a classical non-parametric permutation test based on the difference between group (i.e., biological condition) means.
+The Fisher-Pitman permutation test ([Pitman, E.J.G.](https://doi.org/10.2307/2984124)) is a classical non-parametric permutation test based on the difference between group (i.e., biological condition) means.
 Multiple times, the columns of the quantification matrix are randomly shuffled and the resulting shuffled data set is tested, such that a null distribution of the test statistic is constructed.
 The final p-values are then computed by comparing the observed test statistic value with the null distribution.
 
@@ -354,7 +354,7 @@ display_dataframe_head(dat.dea$permutation_test)
 
 ## ROTS
 
-The Reproducibility-Optimized Test Statistic (ROTS) ((Elo et al.)[https://doi.org/10.1109/tcbb.2007.1078]) introduces two additional parameters into the denominator of the classical t-test statistic, which it uses to maximize the overlap of top X differentially abundant proteins detected in bootstrap data sets, and hence also maximize the confidence of findings.
+The Reproducibility-Optimized Test Statistic (ROTS) ([Elo et al.](https://doi.org/10.1109/tcbb.2007.1078)) introduces two additional parameters into the denominator of the classical t-test statistic, which it uses to maximize the overlap of top X differentially abundant proteins detected in bootstrap data sets, and hence also maximize the confidence of findings.
 
 ```{r, eval=!params$load_outputdata_p}
 dat.dea$ROTS <- rots_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions)

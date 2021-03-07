@@ -1,5 +1,5 @@
 ---
-title: "*Normalization* strategy comparison for *Data-driven* analysis of isobarically labeled proteomic data."
+title: "**Normalization** strategy comparison for **Data-driven** analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -30,13 +30,13 @@ knitr::opts_chunk$set(
 ```
 
 <span style="color: grey;">
-_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook._
+_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the [introduction notebook](intro.html)._
 </span>
 
 In this notebook specifically, we investigate the effect of varying the **Normalization** component on the outcome of the differential expression results. The five component variants are: **median sweeping**, **CONSTANd**, **NOMAD**, **quantile1 (first on PSM level)**, **quantile2 (only on protein level)**.
 
 <span style="color: grey;">
-_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd)._
+_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_normalization.Rmd)._
 </span>
 
 ```{r}
@@ -144,7 +144,7 @@ dat.norm.w$median_sweeping[,channelNames] <- median_sweep(dat.norm.w$median_swee
 
 ## CONSTANd
 
-(CONSTANd)[https://doi.org/doi:10.18129/B9.bioc.CONSTANd] ((Van Houtven et al.)[https://doi.org/10.1101/2021.03.04.433870]) normalizes a data matrix by 'raking' iteratively along the rows and columns (i.e. multiplying each row or column with a particular number) such that the row means and column means equal 1.
+[CONSTANd](https://doi.org/doi:10.18129/B9.bioc.CONSTANd) ([Van Houtven et al.](https://doi.org/10.1101/2021.03.04.433870)) normalizes a data matrix by 'raking' iteratively along the rows and columns (i.e. multiplying each row or column with a particular number) such that the row means and column means equal 1.
 One can never attain these row and column constraints simultaneously, but the algorithm converges very fast to the desired precision.
 
 ```{r, eval=!params$load_outputdata_p}
@@ -160,7 +160,7 @@ display_dataframe_head(dat.norm.w$CONSTANd[, channelNames])
 
 ## NOMAD
 
-NOMAD ((Murie et al.)[https://doi.org/10.1016/j.jbior.2017.11.005]) is a computationally efficient implementation akin to linear regression, similar to Tukey's median polish but using the mean: it subtracts the mean from each subset (defined by a categorical covariate) of quantification values, for each covariate.
+NOMAD ([Murie et al.](https://doi.org/10.1016/j.jbior.2017.11.005)) is a computationally efficient implementation akin to linear regression, similar to Tukey's median polish but using the mean: it subtracts the mean from each subset (defined by a categorical covariate) of quantification values, for each covariate.
 We apply NOMAD on the PSM level instead of the peptide level.
 
 ```{r, eval=!params$load_outputdata_p}
