@@ -1,5 +1,5 @@
 ---
-title: "Differential Expression Analysis strategy comparison for Data-driven analysis of isobarically labeled proteomic data."
+title: "**Differential Expression Analysis** strategy comparison for **Data-driven** analysis of isobarically labeled proteomic data."
 author: "Joris Van Houtven, Piotr Prostko"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
 output: 
@@ -29,8 +29,18 @@ knitr::opts_chunk$set(
 )
 ```
 
+<span style="color: grey;">
+_This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the introduction notebook._
+</span>
+
+In this notebook specifically, we investigate the effect of varying the **Differential Expression testing** component on the outcome of the differential expression results. 
+The four component variants are: **moderated t-test**, **Wilcoxon test**, **permutation test**, and **Reproducibility-Optimized Test Statistic (ROTS)**.
+
+<span style="color: grey;">
+_The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_summarization.Rmd)._
+</span>
+
 ```{r}
-library(ggplot2)
 library(stringi)
 library(gridExtra)
 library(dendextend)
@@ -45,11 +55,20 @@ source('other_functions.R')
 source('plotting_functions.R')
 ```
 
+Let's load our PSM-level data set:
+
 ```{r}
 data.list <- readRDS(params$input_data_p)
 dat.l <- data.list$dat.l # data in long format
+display_dataframe_head(dat.l)
+```
+
+After the filtering done in `data_prep.R`, there are 19 UPS1 proteins remaining, even though 48 were originally spiked in.
+
+```{r}
 # which proteins were spiked in?
 spiked.proteins <- dat.l %>% distinct(Protein) %>% filter(stri_detect(Protein, fixed='ups')) %>% pull %>% as.character
+remove_factors(spiked.proteins)
 tmp=dat.l %>% distinct(Protein) %>% pull %>% as.character
 # protein subsampling
 if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & params$subsample_p<=length(tmp)){
@@ -59,13 +78,15 @@ if (params$subsample_p>0 & params$subsample_p==floor(params$subsample_p) & param
 }
 ```
 
-```{r}
+Before we begin, let's set an RNG seed for the permutation testing, store the metadata in `sample.info` and show some entries below. We also pick technical replicates with a dilution factor of 0.5 as the reference condition of interest. Each condition is represented by two of eight reporter Channels in each Run. 
+
+```{r,echo=FALSE}
 # specify # of varying component variants and their names
 variant.names <- c('moderated_ttest', 'Wilcoxon', 'permutation_test', 'ROTS')
 n.comp.variants <- length(variant.names)
 scale.vec <- 'log'
 # set seed for permutation test
-seed=9107
+(seed=9107)
 
 # get some data parameters created in the data_prep script
 referenceCondition <- data.list$data.params$referenceCondition
@@ -80,24 +101,45 @@ sample.info <- get_sample_info(dat.l, condition.color)
 channelNames <- remove_factors(unique(sample.info$Channel))
 ```
 
+```{r}
+display_dataframe_head(sample.info)
+referenceCondition
+channelNames
+```
+
 # Unit scale component: log2 transformation of reporter ion intensities
 
-```{r}
-dat.unit.l <- dat.l
-```
+We use the default unit scale: the log2-transformed reportion ion intensities.
 
 ```{r}
 dat.unit.l <- dat.l %>% mutate(response=log2(intensity)) %>% select(-intensity)
+display_dataframe_head(dat.unit.l)
 ```
 
 # Normalization component: medianSweeping (1)
 
+Median sweeping means subtracting from each PSM quantification value the spectrum median (i.e., the row median computed across samples/channels) and the sample median (i.e., the column median computed across features). If the unit scale is set to intensities or ratios, the multiplicative variant of this procedure is applied: subtraction is replaced by division.
+
+Since median sweeping needs to be applied on matrix-like data, let's switch to wide format. 
+(Actually, this is semi-wide, since the Channel columns still have contributions form all Runs, but that's OK because in the next step we split by Run.)
+
 ```{r}
 # switch to wide format
-dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response) 
+dat.unit.w <- pivot_wider(data = dat.unit.l, id_cols=-one_of(c('Condition', 'BioReplicate')), names_from=Channel, values_from=response)
+display_dataframe_head(dat.unit.w)
 ```
 
 ```{r}
+dat.norm.w <- emptyList(variant.names)
+```
+
+## median sweeping (1)
+
+Median sweeping means subtracting from each PSM quantification value the spectrum median (i.e., the row median computed across samples/channels) and the sample median (i.e., the column median computed across features). If the unit scale is set to intensities or ratios, the multiplicative variant of this procedure is applied: subtraction is replaced by division.
+First, let's sweep the medians of all the rows, and do the columns later as suggested by [Herbrich at al.](https://doi.org/10.1021/pr300624g. 
+No need to split this per Run, because each row in this semi-wide format contains only values from one Run and each median calculation is independent of the other rows.
+
+```{r, eval=!params$load_outputdata_p}
 # subtract the spectrum median log2intensity from the observed log2intensities
 dat.norm.w <- dat.unit.w
 dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
@@ -105,14 +147,14 @@ dat.norm.w[,channelNames] <- median_sweep(dat.norm.w[,channelNames], 1, '-')
 
 # Summarization component: Median summarization
 
-Summarize quantification values from PSM to peptide (first step) to protein (second step).
+Within each Run and within each Channel, we replace multiple related observations with their median. First, for each Peptide (median of the PSM values), then for each Protein (median of the peptide values).
 
 ```{r, eval=!params$load_outputdata_p}
 # normalized data
 dat.norm.summ.w <- dat.norm.w %>% group_by(Run, Protein, Peptide) %>% summarise_at(.vars = channelNames, .funs = median) %>% summarise_at(.vars = channelNames, .funs = median) %>% ungroup() 
 ```
 
-Let's also summarize the non-normalized data for comparison in the next section.
+Let's also summarize the non-normalized data for comparison later on.
 ```{r, eval=!params$load_outputdata_p}
 # non-normalized data
 # group by (run,)protein,peptide then summarize twice (once on each level)
@@ -121,6 +163,8 @@ dat.nonnorm.summ.w <- dat.unit.w %>% group_by(Run, Protein, Peptide) %>% select(
 ```
 
 # Normalization component: medianSweeping (2)
+
+Now that the data is on the protein level, let's sweep all values separately per protein in the columns/samples. This is _slightly_ different from sweeping before the summarization step because the median of medians is not the same as the grand median, but this does not introduce any bias.
 
 ```{r, eval=!params$load_outputdata_p}
 # medianSweeping: in each channel, subtract median computed across all proteins within the channel
@@ -135,6 +179,8 @@ dat.norm.summ.w <- bind_rows(x.split.norm)
 
 # QC plots
 
+Before getting to the DEA section, let's do some basic quality control and take a sneak peek at the differences between the component variants we've chosen. First, however, we should make the data completely wide, so that each sample gets it's own unique column.
+
 ```{r, eval=!params$load_outputdata_p}
 # make data completely wide (also across runs)
 ## normalized data
@@ -144,11 +190,13 @@ dat.norm.summ.w2 <- dat.norm.summ.w %>% pivot_wider(names_from = Run, values_fro
 dat.nonnorm.summ.w2 <- dat.nonnorm.summ.w %>% pivot_wider(names_from = Run, values_from = all_of(channelNames), names_glue = "{Run}:{.value}")
 ```
 
-```{r, echo=FALSE, eval=params$load_outputdata_p}
-load(paste0('datadriven_DEA_outdata_', params$suffix_p, '.rda'))
-```
+<!-- ```{r, echo=FALSE, eval=params$load_outputdata_p} -->
+<!-- load(paste0('datadriven_DEA_outdata_', params$suffix_p, '.rda')) -->
+<!-- ``` -->
 
 ## Boxplots
+
+These boxplots show that the distributions are symmetrical and centered after median sweeping normalization, as desired and expected.
 
 ```{r}
 # use (half-)wide format
@@ -159,7 +207,8 @@ boxplot_w(dat.norm.summ.w, sample.info, 'normalized')
 
 ## MA plots
 
-MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively).
+We then make MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively). 
+Clearly, the normalization had a strong variance-reducing effect on the fold changes.
 
 ```{r}
 # use wide2 format
@@ -168,7 +217,8 @@ p2 <- maplot_ils(dat.norm.summ.w2, ma.onesample.num, ma.onesample.denom, scale='
 grid.arrange(p1, p2, ncol=2)  
 ```
 
-MA plots of all samples from condition *`r ma.allsamples.num`* and condition *`r ma.allsamples.denom`* (quantification values averaged within condition).
+To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom` (quantification values averaged within condition).
+Indeed, even the raw, unnormalized data now show less variability. It seems that by using more samples (now 8 in both the enumerator and denominator instead of just one) in the fold change calculation the rolling average is more robust and the Sum summarization data bias has been reduced (but not disappeared).
 
 ```{r}
 channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
@@ -185,23 +235,36 @@ dat.norm.summ.l <- to_long_format(dat.norm.summ.w, sample.info)
 
 ## PCA plots
 
+Now, let's check if these multi-dimensional data contains some kind of grouping; It's time to make PCA plots.
+Even though PC1 does seem to capture the conditions, providing a gradient for the dilution number, only the 0.125 condition is completely separable in the normalized data.
+
 ### Using all proteins
+
 ```{r}
 par(mfrow=c(1, 2))
 pcaplot_ils(dat.nonnorm.summ.w2 %>% select(-'Protein'), info=sample.info, 'raw')
 pcaplot_ils(dat.norm.summ.w2 %>% select(-'Protein'), info=sample.info, 'normalized')
 ```
 
-### Using spiked proteins only (if applicable)
+There are only 19 proteins supposed to be differentially expressed in this data set, which is only a very small amount in both relative (to the 4083 proteins total) and absolute (for a biological sample) terms. 
+
+### Using spiked proteins only
+
+Therefore, let's see what the PCA plots look like if we were to only use the spiked proteins in the PCA. 
+Now, the separation between different conditions has become more distinct, which suggests the experiment was carried out successfully: only conditions 0.5 and 0.667 aren't clearly separable.
+
 ```{r, eval=length(spiked.proteins)>0}
 par(mfrow=c(1, 2))
 pcaplot_ils(dat.nonnorm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'raw')
 pcaplot_ils(dat.norm.summ.w2 %>% filter(Protein %in% spiked.proteins) %>% select(-'Protein'), info=sample.info, 'normalized')
 ```
 
+Notice how for all PCA plots, the percentage of variance explained by PC1 is now much greater than when using data from all proteins.
+In a real situation without spiked proteins, you might plot data corresponding to the top X most differential proteins instead.
+
 ## HC (hierarchical clustering) plots
 
-### Using all proteins
+The PCA plots of all proteins has a rather lower fraction of variance explained by PC1. We can confirm this using the hierarchical clustering dendrograms below: when considering the entire multidimensional space, the different conditions are not very separable at all. This is not surprising as there is little biological variation between the conditions: there are only 19 truly differential proteins, and they all (ought to) covary in exactly the same manner (i.e., their variation can be captured in one dimension).
 
 ```{r}
 par(mfrow=c(1, 2))
@@ -211,7 +274,9 @@ dendrogram_ils(dat.norm.summ.w2 %>% select(-Protein), info=sample.info, 'normali
 
 ## Run effect p-value plot
 
-Below the histograms of p-values from the linear model explaining the response variable with Run as a covariate.
+Our last quality check involves a measure of how well each variant was able to assist in removing the run effect. 
+Below are the distributions of p-values from a linear model for the `response` variable with `Run` as a covariate.
+If the run effect was removed successfully, these p-values ought to be large. Clearly, the raw data contains a run effect, which is partially removed by the normalization.
 
 ```{r}
 dat <- list(dat.nonnorm.summ.l,dat.norm.summ.l)
@@ -221,14 +286,21 @@ run_effect_plot(dat)
 
 # DEA component
 
+We wish to look at the log2 fold changes of each condition w.r.t. the reference condition with dilution ratio `r ma.allsamples.denom`.
+Since we are working with a log2 unit scale already, this means that for each protein we just look at the difference in mean observation across all channels between one condition and the reference condition.
+Note that this is not the same as looking at the log2 of the ratio of mean raw intensities for each condition (left hand side below), nor the mean ratio of raw intensities for each condition (right hand side below), since $log_2 (\frac{mean(B)}{mean(A)}) \neq \frac{mean(log_2 (B))}{mean(log_2 (A))} \neq mean(\frac{log_2 (B)}{log_2 (A)})$.
+
+In the next subsections, we use our four components variants to check whether these fold changes are significant (criterium: $q<0.05$).
+After testing, we make a correction for multiple testing using the Benjamini-Hochberg method in order to keep the FDR under control.
+
 ## Moderated t-test
 
-TODO:
-- Also try to log-transform the intensity case, to see if there are large differences in the t-test results.
-  - done. remove this code?
-NOTE:
-- actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).
+The [moderated t-test](http://www.biostat.jhsph.edu/~kkammers/software/eupa/R_guide.html) slightly adapted from the `limma` package, which in use cases like ours should improve statistical power over a regular t-test. In a nutshell, this is a t-test done independently for each protein, although the variance used in the calculation of the t-statistic is [moderated using some empirical Bayes estimation](https://doi.org/10.2202/1544-6115.1027).
+
+<!--NOTE:
+- actually, lmFit (used in moderated_ttest) was built for log2-transformed data. However, supplying untransformed intensities can also work. This just means that the effects in the linear model are also additive on the untransformed scale, whereas for log-transformed data they are multiplicative on the untransformed scale. Also, there may be a bias which occurs from biased estimates of the population means in the t-tests, as mean(X) is not equal to exp(mean(log(X))).-->
 ```{r, eval=!params$load_outputdata_p}
+# design matrix as used in ANOVA testing.
 design.matrix <- get_design_matrix(referenceCondition, sample.info)
 dat.dea <- emptyList(variant.names)
 this_scale <- scale.vec
@@ -236,7 +308,21 @@ d <- column_to_rownames(as.data.frame(dat.norm.summ.w2), 'Protein')
 dat.dea$moderated_ttest <- moderated_ttest(dat=d, design.matrix, scale=this_scale) 
 ```
 
+For each condition, we now get the fold changes, moderated and unmoderated p-values, moderated and unmoderated q-values (BH-adjusted p-values), and some other details: see `head` of dataframe below.
+
+```{r}
+display_dataframe_head(dat.dea$moderated_ttest)
+```
+
 ## Wilcoxon test
+
+The Wilcoxon test ((Wilcoxon, F.)[http://doi.org/10.1007/978-1-4612-4380-9]) is a non-parametric rank-based test for comparing two groups (i.e., biological conditions).
+For each protein separately, the test is applied to each condition w.r.t. the reference condition `r referenceCondition`.
+
+_@Piotr: uncomment the explanation of Wilcoxon fold changes if desired, otherwise explain why not_
+<!-- # Wilcoxon rank-sum test employs ranks of quantification values, therefore logFC must be computed manually: -->
+<!-- #   if logFC.method='diff': difference of arithmetic means computed on log2 scale -->
+<!-- #   if logFC.method='ratio': log2 ratio of arithmetic means computed on raw scale -->
 
 ```{r, eval=!params$load_outputdata_p}
 otherConditions <- dat.l %>% distinct(Condition) %>% pull(Condition) %>% as.character %>% sort
@@ -244,52 +330,85 @@ otherConditions <- otherConditions[-match(referenceCondition, otherConditions)]
 dat.dea$Wilcoxon <- wilcoxon_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions, logFC.method='ratio')
 ```
 
+For each condition, we now get fold change estimates, p-values and q-values (adjusted p-values): see `head` of dataframe below.
+
+```{r}
+display_dataframe_head(dat.dea$Wilcoxon)
+```
+
 ## Permutation test
+
+The Fisher-Pitman permutation test ((Pitman, E.J.G.)[https://doi.org/10.2307/2984124]) is a classical non-parametric permutation test based on the difference between group (i.e., biological condition) means.
+Multiple times, the columns of the quantification matrix are randomly shuffled and the resulting shuffled data set is tested, such that a null distribution of the test statistic is constructed.
+The final p-values are then computed by comparing the observed test statistic value with the null distribution.
 
 ```{r, eval=!params$load_outputdata_p}
 dat.dea$permutation_test <- permutation_test(dat.norm.summ.l, referenceCondition, otherConditions, seed=seed, distribution='exact')
 ```
 
+For each condition, we now get fold change estimates, p-values and q-values (adjusted p-values): see `head` of dataframe below.
+
+```{r}
+display_dataframe_head(dat.dea$permutation_test)
+```
+
 ## ROTS
+
+The Reproducibility-Optimized Test Statistic (ROTS) ((Elo et al.)[https://doi.org/10.1109/tcbb.2007.1078]) introduces two additional parameters into the denominator of the classical t-test statistic, which it uses to maximize the overlap of top X differentially abundant proteins detected in bootstrap data sets, and hence also maximize the confidence of findings.
 
 ```{r, eval=!params$load_outputdata_p}
 dat.dea$ROTS <- rots_test(dat.norm.summ.w2, sample.info, referenceCondition, otherConditions)
 ```
 
-```{r, echo=FALSE, eval=!params$load_outputdata_p}
-# save output data
-save(dat.nonnorm.summ.l
-     ,dat.norm.summ.l
-     ,dat.nonnorm.summ.w
-     ,dat.norm.summ.w
-     ,dat.nonnorm.summ.w2
-     ,dat.norm.summ.w2
-     ,dat.dea, file=paste0('datadriven_DEA_outdata_', params$suffix_p, '.rda'))
+For each condition, we now get fold change estimates, p-values and q-values (adjusted p-values): see `head` of dataframe below.
+
+```{r}
+display_dataframe_head(dat.dea$ROTS)
 ```
+
 
 # Results comparison
 
+Now, the most important part: let's find out how our component variants have affected the outcome of the DEA.
+
 ## Confusion matrix
+
+A confusion matrix shows how many true and false positives/negatives each variant has given rise to. Spiked proteins that are DE are true positives, background proteins that are not DE are true negatives. We calculate this matrix for all conditions and then calculate some other informative metrics based on the confusion matrices: accuracy, sensitivity, specificity, positive predictive value and negative predictive value. 
+
+Clearly, across the board, the non-parametric methods underperform while the moderated t-test gives rise to an acceptable but not spectacular sensitivity. That said, the contrast between conditions 0.667 and 0.5 seems not large enough to yield many significant results.
 
 ```{r, results='asis'}
 cm <- conf_mat(dat.dea, 'q.mod', 0.05, spiked.proteins)
 print_conf_mat(cm, referenceCondition)
 ```
 
-## Scatter plots
+## Correlation scatter plots
 
-```{r}
+To see whether the three Summarization methods produce similar results on the detailed level of individual proteins, we make scatter plots and check the correlation between their fold changes and between their significance estimates (q-values, in our case). 
+
+```{r,echo=FALSE,results=FALSE}
 # character vectors containing logFC and p-values columns
 dea.cols <- colnames(dat.dea[[1]])
 logFC.cols <- dea.cols[stri_detect_fixed(dea.cols, 'logFC')]
 significance.cols <- dea.cols[stri_detect_fixed(dea.cols, 'q.mod')]
 n.contrasts <- length(logFC.cols)
+```
 
+For all conditions, the q-values of the different variants correlate moderately well at best, though the Wilcoxon and permutation test correlate well ($>0.921$). ROTS seems consistently (over-)optimistic (i.e., low q-values, even for background proteins) even compared to the moderated t-test.
+
+```{r}
 scatterplot_ils(dat.dea, significance.cols, 'q-values', spiked.proteins, referenceCondition)
-scatterplot_ils(dat.dea[c('moderated_ttest', 'Wilcoxon')], logFC.cols, 'log2FC', spiked.proteins, referenceCondition)
+```
+
+On the other hand, the fold changes are very well correlated for all component variants, across all conditions, though the Wilcoxon estimates to a slightly lesser extent.
+
+```{r}
+scatterplot_ils(dat.dea, logFC.cols, 'log2FC', spiked.proteins, referenceCondition)
 ```
 
 ## Volcano plots
+
+The volcano plot combines information on fold changes and statistical significance. The spike-in proteins are colored blue, and immediately it is clear that their fold changes dominate the region of statistical significance, which suggests the experiment and analysis were carried out successfully. The magenta, dashed line indicates the theoretical fold change of the spike-ins.
 
 ```{r}
 for (i in 1:n.contrasts){
@@ -298,13 +417,29 @@ for (i in 1:n.contrasts){
 
 ## Violin plots
 
-Let's see whether the spiked protein fold changes make sense
+A good way to assess the general trend of the fold change estimates on a more 'macroscopic' scale is to make a violin plot. Ideally, there will be some spike-in proteins that attain the expected fold change  (red dashed line) that corresponds to their condition, while most (background) protein log2 fold changes are situated around zero.
+
+_@Piotr: results missing: add all violin plots first_
+
 ```{r, eval=length(spiked.proteins)>0}
 # plot theoretical value (horizontal lines) and violin per variant
 violinplot_ils(lapply(dat.dea[c('moderated_ttest', 'Wilcoxon')], function(x) x[spiked.proteins, logFC.cols]), referenceCondition)
 ```
 
+<!-- ```{r, echo=!params$load_outputdata_p} -->
+<!-- save(dat.nonnorm.summ.l -->
+<!--      ,dat.norm.summ.l -->
+<!--      ,dat.nonnorm.summ.w -->
+<!--      ,dat.norm.summ.w -->
+<!--      ,dat.nonnorm.summ.w2 -->
+<!--      ,dat.norm.summ.w2 -->
+<!--      ,dat.dea, file=paste0('datadriven_summarization_outdata_', params$suffix_p, '.rda')) -->
+<!-- ``` -->
+
 # Conclusions
+
+It seems that the nonparametric methods do not have enough statistical power, even though ROTS is (over-)optimistic, producing low q-values for many background proteins, even compared to the moderated t-test. 
+Though the correlation between their significance estimates is a bit all over the place, all variants do agree on the fold change estimates.
 
 # Session information
 
