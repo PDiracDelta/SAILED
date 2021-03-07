@@ -3,7 +3,6 @@ library(stringi)
 source('other_functions.R')
 
 # suffix used when saving the processed data set ('input_data_<data_name>.rds')
-data_name <- 'msstatstmt'
 dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
 dat.raw.org <- dat.raw
 
@@ -150,4 +149,4 @@ params <- list(referenceCondition=referenceCondition,
 
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), paste0('input_data_', data_name, '.rds'))  # make symlink
+saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), paste0('input_data', '.rds'))  # make symlink
