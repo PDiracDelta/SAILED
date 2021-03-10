@@ -392,7 +392,7 @@ print_conf_mat(cm, referenceCondition)
 
 ## Correlation scatter plots
 
-To see whether the three Summarization methods produce similar results on the detailed level of individual proteins, we make scatter plots and check the correlation between their fold changes and between their significance estimates (q-values, in our case). 
+To see whether the three Unit scales produce similar results on the detailed level of individual proteins, we make scatter plots and check the correlation between their fold changes and between their significance estimates (q-values, in our case). 
 
 ```{r, fig.width=12, fig.height=10}
 # character vectors containing logFC and p-values columns
