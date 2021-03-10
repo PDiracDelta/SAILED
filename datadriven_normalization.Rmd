@@ -160,7 +160,7 @@ display_dataframe_head(dat.norm.w$CONSTANd[, channelNames])
 
 ## NOMAD
 
-NOMAD ([Murie et al.](https://doi.org/10.1016/j.jbior.2017.11.005)) is a computationally efficient implementation akin to linear regression, similar to Tukey's median polish but using the mean: it subtracts the mean from each subset (defined by a categorical covariate) of quantification values, for each covariate.
+NOMAD ([Murie et al.](https://doi.org/10.1016/j.jbior.2017.11.005)) is a computationally efficient implementation akin to linear regression, similar to Tukey's median polish but using the mean: it subtracts the mean from each subset (defined by a categorical covariate) of quantification values, sequentially for each covariate.
 We apply NOMAD on the PSM level instead of the peptide level.
 
 ```{r, eval=!params$load_outputdata_p}
