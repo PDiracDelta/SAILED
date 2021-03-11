@@ -268,7 +268,9 @@ for (i in 1:n.comp.variants){
 ## MA plots
 
 We then make MA plots of two single samples taken from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom`, measured in different MS runs (samples *`r ma.onesample.num`* and *`r ma.onesample.denom`*, respectively). 
-Clearly, the normalization had a strong variance-reducing effect on the fold changes. It seems that fold changes associated with Sum summarization experience a strong bias (blue curve is rolling average) for low abundance proteins after normalization.
+Clearly, the normalization had a strong variance-reducing effect on the fold changes. It seems that fold changes associated with Sum summarization experience a strong bias (blue curve is rolling average) for low abundance proteins after normalization. 
+
+Remarkably, the raw, Sum summarized values exhibit artifacts: clusters near the lower end of the A axis. This hints at a hidden incompatibility: additive median sweeping (which we apply to $\log_2$-scale data) produces negative values - on the PSM level already - which actually reduce the grand sum of intensities instead of strictly increasing them. The clusters represent the discrete number of combinations - on the protein level - of some number of positive values with some number of negative values. The proteins near the lowest extreme of the M axis are likely represented by only one peptide, meaning their fold changes (A-axis) have contributions from (in the simplest case) only one PSM. This means both the denominator and enumerator are likely two similarly-sized values. The next clusters, for instance, are not on the M-axis but above and below, as they probably contain contributions from, e.g., 2 PSMs (from the same peptide or not) where one contributes two quantification values with the same sign, and the other one two values with an opposite sign, generating MA values strictly above or below the M axis. The effect becomes less discrete as M increases and more PSMs and thus more quantification values get involved, reducing the stochasticity.
 
 ```{r}
 for (i in 1:n.comp.variants){
@@ -278,7 +280,9 @@ grid.arrange(p1, p2, ncol=2)}
 ```
 
 To increase the robustness of these results, let's make some more MA plots, but now for all samples from condition `r ma.allsamples.num` and condition `r ma.allsamples.denom` (quantification values averaged within condition).
-Indeed, even the raw, unnormalized data now show less variability, and again even more so for the Median summarization normalized data. It seems that by using more samples (now 8 in both the enumerator and denominator instead of just one) in the fold change calculation the rolling average is more robust and the Sum summarization data bias has been reduced (but not disappeared).
+Indeed, even the raw, unnormalized data now show less variability, and again even more so for the Median summarization normalized data. 
+
+It seems that by using more samples (now 8 in both the enumerator and denominator instead of just one) in the fold change calculation the rolling average is more robust and the Sum summarization data bias has been reduced (but not disappeared). This is also supported by the fact that the anomalies due to stochasticity in the raw Sum summarization plot have disappeared.
 
 ```{r}
 channels.num <- sample.info %>% filter(Condition==ma.allsamples.num) %>% select(Sample) %>% pull
@@ -451,7 +455,9 @@ violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), refe
 
 # Conclusions
 
-For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. The QC plots suggest that the Sum summarization obfuscates much of the work done by the normalization. This may be explained by the fact that sum summarization promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity. Therefore, Sum summarization does not work when you have data from multiple runs. In such a case, it would be advised to use summarization method instead.
+For the given data set, the differences in proteomic outcomes between Median and iPQF normalization are quite small, both on the global and individual scale. Their differences with the Sum summarization outcomes are very large. 
+
+The QC plots suggest that the Sum summarization obfuscates much of the work done by the normalization. That is because it is inherently incompatible with (additive) median sweeping, or any other normalization method that produces negative values, as they lead to artifacts and blatantly incorrect outcomes. That said, one could even expect Sum summarization to perform improperly even with compatible normalization methods (e.g., multiplicative median sweeping on intensity-scale data), since it promotes not only _abundant_ detections (at the PSM level) of proteins, but also _repeated_ detections. Since repetition of detections in MS experiments is far from robust across runs, this is expected to introduce a great amount of stochasticity. Therefore, Sum summarization would also not work when you have data from multiple runs, and it would be advised to use another summarization method instead.
 
 # Session information
 
