@@ -33,7 +33,8 @@ knitr::opts_chunk$set(
 _This notebook is one in a series of many, where we explore how different data analysis strategies affect the outcome of a proteomics experiment based on isobaric labeling and mass spectrometry. Each analysis strategy or 'workflow' can be divided up into different components; it is recommend you read more about that in the [introduction notebook](intro.html)._
 </span>
 
-In this notebook specifically, we investigate the effect of varying the **Normalization** component on the outcome of the differential expression results. The five component variants are: **median sweeping**, **CONSTANd**, **NOMAD**, **quantile1 (first on PSM level)**, **quantile2 (only on protein level)**.
+In this _bonus_ notebook, specifically, we compare two variants of the **Normalization** component - **CONSTANd** and **median sweeping** - but each using the **unit scale** they are fit best for - **(untransformed) intensities** and **$log_2$-transformed intensities**, respectively. This is because in the datadriven normalization notebook we had seen that CONSTANd does not perform well at all on $log_2$-transformed intensities, which warranted further research.
+To make the comparison, we create some quality control plots and investigate the outcomes of the differential expression results.
 
 <span style="color: grey;">
 _The R packages and helper scripts necessary to run this notebook are listed in the next code chunk: click the 'Code' button. Each code section can be expanded in a similar fashion. You can also download the [entire notebook source code](datadriven_normalization.Rmd)._
