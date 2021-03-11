@@ -13,7 +13,7 @@ output:
 editor_options: 
   chunk_output_type: console
 params:
-  input_data_p: 'input_data.rds'
+  input_data_p: 'data/input_data.rds'
   suffix_p: ''
   load_outputdata_p: FALSE
   subsample_p: 0
@@ -48,13 +48,9 @@ library(psych)
 library(limma)
 library(tidyverse)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
-source('other_functions.R')
-source('plotting_functions.R')
+source('util/other_functions.R')
+source('util/plotting_functions.R')
 ```
-
-This notebook presents isobaric labeling data analysis strategy that includes data-driven normalization. 
-
-In other notebooks in this series we have systematically varied components and observed how they affect the outcome of a DEA analysis. We have seen that median sweeping normalization works does not work well for intensities on the original scale, and that CONSTANd does not work well on log2-transformed intensities. Here we compare median sweeping on log2 scale, which we know does a good job, with CONSTANd on original intensity scale.
 
 Let's load our PSM-level data set:
 

@@ -222,7 +222,7 @@ cvplot_ils <- function(dat, feature.group, xaxis.group, title, rmCVquan=0.95, ..
 # scatterplot_ils: wrapper function on pairs.panels from 'psych' package
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # pairs.panels.my is a modified pairs.panels function such that the y=x identity line is plotted when lm=T
-source('pairs_panels_idline.R')
+source('util/pairs_panels_idline.R')
 
 scatterplot_ils <- function(dat, cols, stat, spiked.proteins, refCond){
   select.stat <- match.arg(stat, c('p-values', 'log2FC', 'q-values'))

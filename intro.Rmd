@@ -13,7 +13,7 @@ output:
 editor_options: 
   chunk_output_type: console
 params:
-  input_data_p: 'input_data.rds'
+  input_data_p: 'data/input_data.rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: FALSE
   subsample_p: 0
@@ -26,8 +26,8 @@ library(ggplot2)
 library(stringi)
 library(venn)
 library(kableExtra)
-source('other_functions.R')
-source('plotting_functions.R')
+source('util/other_functions.R')
+source('util/plotting_functions.R')
 ```
 
 # Introduction
@@ -42,11 +42,11 @@ There is quite some complexity and experimental variability involved due to the 
   <summary>Structure of isobarically labeled LC-MS/MS proteomics data.</summary>
   A labeling approach enables the bottom-up analysis of multiple biological samples simultaneously within a single tandem-MS run. In isobaric labeling (e.g. TMT labels in Figure 1), there is no mass difference between signals of identical peptides, which further increases the comparability and quality of the signals, in this case represented by the reporter fragment ion intensities.
 ```{r f:tmtlabels, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 1: a) TMT 6-plex labels differ by isotopes (*) only. b) The reactive group binds to the amino-terminus of the peptides, the reporter breaks off during fragmentation and the mass normalizer/balancer guarantees that the intact labels are isobaric. Image source: [Rosenblatt et al.](https://assets.fishersci.com/TFS-Assets/BID/posters/D00337~.pdf)."}
-knitr::include_graphics("tmt.png")
+knitr::include_graphics("figures/tmt.png")
 ```
   Even though the reporters allow one to assign each spectrum to the correct sample, there is still a substantial amount of complexity to be dealt with. The figure below shows how each protein may be represented by many peptides, multiple times, in multiple 'shapes and forms'. This is why summarization and normalization steps are key components in every workflow.
 ```{r f:data_hierarchy, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 2: Tandem-MS data is complex and hierarchical; many different signals compete in determining the (relative) abundance of a protein . The latter are not measured directly, but are represented in possibly multiple runs as multiple variations of multiple peptides in different conditions and different (usually replicate) samples. Many different combinations of such signals co-exist and some are measured in each LC-MS run, while some are not (e.g.: peptide k is not measured in the rightmost run). RT=retention time, CS=charge state, PTM=post-translational modification."}
-knitr::include_graphics("data_hierarchy.png")
+knitr::include_graphics("figures/data_hierarchy.png")
 ```
 </details>  
 
@@ -56,7 +56,7 @@ The table below shows an overview of the many components that make up a workflow
 Note that we have made a distinction between data-driven and model-based approaches, which refers to the type of normalization method they use.
 <!-- use tablesgenerator.com OR the image below... -->
 ```{r f:table_selected_variants, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 3: An overview of our selected components and component variants for constructing an analysis workflow. When studying a particular component (e.g. data-driven normalization), each component variant (e.g. median sweeping, CONSTANd, ...) is applied to the data, while the other workflow components are executed using 'Variant 1' methods only. The same process applies when studying the other components (e.g. summarization), overall, leading to multiple sets of outcomes."}
-knitr::include_graphics("table_selected_variants.png")
+knitr::include_graphics("figures/table_selected_variants.png")
 ```
 
 Each of the notebooks in this series takes the default approach, except for one component for which different variants are explored in detail. We chose the **unit scale**, **normalization method**, **summarization method** and **DEA method** as most interesting components to investigate, because on one hand we expect them to be impactful and on the other hand they are the ones we see varied and published about the most. We have made a non-systematic, non-exhaustive, [publicly available list of publications and software packages](https://docs.google.com/document/d/14BeNQFh3KHiKESdoF5A4OUlo9QWmt9kv/edit) related to analyzing proteomics data. You are very welcome to suggest edits and additions to this public repository.
@@ -68,7 +68,7 @@ It contains a HeLa background with 48 UPS1 proteins spiked in as a dilution seri
 As shown in the figure below, we use only Runs 1, 2, 4, 5, which represent the first two technical replicates of the first two biological replicates (mixtures). Further, we do not use the reference channels because a) we wish to demonstrate how to analyze data sets _without_ the use of internal references; and b) we wish to avoid confusion with reference conditions and/or channels in the context of ratio's and fold changes.
 
 ```{r f:design_ILS_as_subset, echo=FALSE, fig.align="center", out.width = "100%", fig.cap="Figure 4: We use only the subset (red rectangle) of data from the original study that consists of channels 127N through 130C (omitting the Reference condition samples) in Runs 1,2,4,5 with Mixtures 1 and 2. We also applied several data filtering steps - detailed in the 'Arbitrary choices for the other components' subsection above - after which we were left with 58 028 PSMs, 26 921 unique peptides and 4083 unique proteins, containing 19 out of the 48 spiked-in proteins. Image adapted from [Ting et al.](https://doi.org/10.1074/mcp.ra120.002105)"}
-knitr::include_graphics("design_ILS_as_subset.png")
+knitr::include_graphics("figures/design_ILS_as_subset.png")
 ```
 
 We use the following settings _whenever applicable_ for calculating values or generating figures:

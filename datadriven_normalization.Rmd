@@ -13,7 +13,7 @@ output:
 editor_options: 
   chunk_output_type: console 
 params:
-  input_data_p: 'input_data.rds'
+  input_data_p: 'data/input_data.rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: FALSE
   subsample_p: 0   
@@ -50,8 +50,8 @@ library(tidyverse)
 library(preprocessCore)
 library(CONSTANd)  # install from source: https://github.com/PDiracDelta/CONSTANd/
 library(NOMAD)  # devtools::install_github("carlmurie/NOMAD")
-source('other_functions.R')
-source('plotting_functions.R')
+source('util/other_functions.R')
+source('util/plotting_functions.R')
 ```
 
 Let's load our PSM-level data set:
@@ -490,6 +490,7 @@ violinplot_ils(lapply(dat.dea, function(x) x[spiked.proteins, logFC.cols]), refe
 For the given data set, the differences in proteomic outcomes between median sweeping and NOMAD normalization are quite small, both on the global and individual scale.
 The quantile methods seem to underperform across the board, but they still produce reliable fold change estimates.
 Finally, CONSTANd naturally reduces the variance in the distribution of quantification values and is only suitable for use with untransformed intensities. When used on log2-transformed values like we did here, there is a double variance-reducing effect that ends up over-compressing the fold change estimates.
+However, when applied to untransformed intensities like in [this bonus notebook](CONSTANd_vs_medianSweeping.html), the CONSTANd method performs at least on par with median sweeping!
 
 # Session information
 

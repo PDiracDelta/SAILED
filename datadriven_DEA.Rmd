@@ -13,7 +13,7 @@ output:
 editor_options: 
   chunk_output_type: console
 params:
-  input_data_p: 'input_data.rds'
+  input_data_p: 'data/input_data.rds'
   suffix_p: 'msstatstmt'
   load_outputdata_p: FALSE
   subsample_p: 0
@@ -51,8 +51,8 @@ library(tidyverse)
 library(matrixTests)
 library(coin)
 library(ROTS)
-source('other_functions.R')
-source('plotting_functions.R')
+source('util/other_functions.R')
+source('util/plotting_functions.R')
 ```
 
 Let's load our PSM-level data set:

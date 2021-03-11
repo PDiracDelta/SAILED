@@ -1,13 +1,13 @@
 library(tidyverse)
 library(stringi)
-source('other_functions.R')
+source('util/other_functions.R')
 
 # suffix used when saving the processed data set ('input_data_<data_name>.rds')
-dat.raw <- read.delim('PSMs.csv', sep = '\t')  # create symlink
+dat.raw <- read.delim('data/PSMs.csv', sep = '\t')  # create symlink
 dat.raw.org <- dat.raw
 
 # read in the study design data frame
-study.design <- read.delim('msstatstmt_studydesign.csv', sep=',')  # create symlink
+study.design <- read.delim('data/msstatstmt_studydesign.csv', sep=',')  # create symlink
 
 # rename quantification columns
 tmp.fun <- function(x){
@@ -149,4 +149,4 @@ params <- list(referenceCondition=referenceCondition,
 
 # save data in wide and long format
 if ('X' %in% colnames(dat.l)) { dat.l$X <- NULL }
-saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), paste0('input_data', '.rds'))  # make symlink
+saveRDS(list(dat.l=dat.l, dat.w=dat.w, data.params=params), paste0('data/input_data', '.rds'))  # make symlink
